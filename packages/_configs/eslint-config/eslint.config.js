@@ -1,6 +1,5 @@
-import { createBaseConfig } from './index.js';
+import base from "./configs/base.js";
+import typescript from "./configs/typescript.js";
+import nextjs from "./configs/nextjs.js";
 
-/**
- * ESLint configuration for the eslint-config package itself
- */
-export default createBaseConfig();
+export default [...base, ...typescript, ...nextjs];

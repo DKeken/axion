@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package axion.graph;
+
+import "common/common.proto";
+import "graph/graph.proto"; // For GraphData
+
+// Sync messages
+message SyncGraphWithServicesRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  GraphData graph_data = 3;
+}
+
+message SyncGraphWithServicesResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    SyncGraphWithServicesData data = 3;
+  }
+}
+
+message SyncGraphWithServicesData {
+  int32 services_created = 1;
+  int32 services_updated = 2;
+  int32 services_deleted = 3;
+  repeated string created_service_ids = 4;
+  repeated string updated_service_ids = 5;
+  repeated string deleted_service_ids = 6;
+}
+
+// Validate messages
+message ValidateGraphRequest {
+  axion.common.RequestMetadata metadata = 1;
+  GraphData graph_data = 2;
+}
+
+message ValidateGraphResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ValidateGraphData data = 3;
+  }
+}
+
+message ValidateGraphData {
+  bool valid = 1;
+  repeated string errors = 2;
+  repeated string warnings = 3;
+}

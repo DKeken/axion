@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "common/common.proto";
+
+// Update messages
+message CheckUpdateRequest {
+  string agent_id = 1;
+  string current_version = 2;
+  axion.common.UpdateChannel update_channel = 3;
+}
+
+message CheckUpdateResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    CheckUpdateData data = 3;
+  }
+}
+
+message CheckUpdateData {
+  bool update_available = 1;
+  optional UpdateInfo update_info = 2;
+}
+
+message UpdateInfo {
+  string version = 1;
+  string download_url = 2;
+  string checksum = 3;
+  bool mandatory = 4;
+  string release_notes = 5;
+}
+
+message UpdateAgentRequest {
+  string agent_id = 1;
+  string target_version = 2;
+}
+
+message UpdateAgentResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    UpdateAgentData data = 3;
+  }
+}
+
+message UpdateAgentData {
+  bool update_initiated = 1;
+  string message = 2;
+}

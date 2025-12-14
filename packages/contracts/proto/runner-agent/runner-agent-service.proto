@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "common/common.proto";
+import "common/health.proto";
+import "runner-agent/registration.proto";
+import "runner-agent/heartbeat.proto";
+import "runner-agent/status.proto";
+import "runner-agent/metrics.proto";
+import "runner-agent/updates.proto";
+import "runner-agent/deployment.proto";
+
+// Runner Agent Service - управление Runner Agent через gRPC
+
+service RunnerAgentService {
+  // Регистрация и управление агентами
+  rpc RegisterAgent(RegisterAgentRequest) returns (RegisterAgentResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc GetAgentStatus(GetAgentStatusRequest) returns (AgentStatusResponse);
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  
+  // Метрики
+  rpc SendMetrics(SendMetricsRequest) returns (axion.common.Empty);
+  rpc StreamMetrics(StreamMetricsRequest) returns (stream MetricsBatch);
+  
+  // Обновления
+  rpc CheckUpdate(CheckUpdateRequest) returns (CheckUpdateResponse);
+  rpc UpdateAgent(UpdateAgentRequest) returns (UpdateAgentResponse);
+  
+  // Команды деплоя (от Control Plane к агенту)
+  rpc DeployProject(DeployProjectCommand) returns (DeployProjectResponse);
+  rpc GetDeploymentStatus(GetDeploymentStatusRequest) returns (DeploymentStatusResponse);
+  rpc CancelDeployment(CancelDeploymentRequest) returns (axion.common.Empty);
+  rpc ScaleService(ScaleServiceCommand) returns (ScaleServiceResponse);
+  rpc StopProject(StopProjectCommand) returns (StopProjectResponse);
+  
+  // Health Check
+  rpc HealthCheck(axion.common.HealthCheckRequest) returns (axion.common.HealthCheckResponse);
+}

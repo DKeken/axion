@@ -1,0 +1,363 @@
+services:
+  # PostgreSQL - основная база данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: axion-postgres
+    environment:
+      POSTGRES_USER: axion
+      POSTGRES_PASSWORD: axion_password
+      POSTGRES_DB: axion_control_plane
+      # Ensure user is created even if database directory exists
+      POSTGRES_INITDB_ARGS: "-U axion"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || pg_isready -U axion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axion-network
+
+  # Redis - Service Discovery и кэширование
+  redis:
+    image: redis:7-alpine
+    container_name: axion-redis
+    command: redis-server --appendonly yes --requirepass axion_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - axion-network
+
+  # Kafka - Event Bus для CQRS и Event Sourcing (KRaft mode, без Zookeeper)
+  # Configured with SASL/SCRAM authentication and security best practices
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: axion-kafka
+    environment:
+      # KRaft mode configuration
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_NODE_ID: 1
+      # CLUSTER_ID: Required for KRaft mode (22-character base64 string)
+      CLUSTER_ID: "YXhpb24ta2Fma2EtY2x1c3"
+
+      # Listeners configuration
+      # PLAINTEXT: for development (can be upgraded to SASL/SSL in production)
+      # CONTROLLER: for KRaft controller communication (internal)
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      # Advertised listeners: use localhost:9092 for host access
+      # For Docker containers, use host.docker.internal:9092 or connect via mapped port
+      # This allows both host services and Docker services to connect
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Security: Disable ACLs for development (KRaft mode doesn't need Zookeeper)
+      # For production, enable ACLs with proper configuration
+      # KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      # KAFKA_SUPER_USERS: User:ANONYMOUS
+      # KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+
+      # Topic configuration
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      # Performance and reliability settings
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+
+      # Consumer and Producer settings for better performance
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # Network and connection settings
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 8
+
+      # Log directories for KRaft
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      # JMX for monitoring
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+    ports:
+      - "9092:9092"
+      - "9101:9101" # JMX port for monitoring
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - axion-network
+
+  # Kafka UI - Web UI for Apache Kafka Management
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: axion-kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "axion-kafka"
+      # Use kafka:9092 for Docker network access
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
+      KAFKA_CLUSTERS_0_READONLY: "false"
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "PLAINTEXT"
+      # Security settings (when SASL is enabled)
+      # KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      # KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+      # KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin-password\";"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - axion-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kafka-ui.rule=Host(`kafka-ui.localhost`)"
+      - "traefik.http.routers.kafka-ui.entrypoints=web"
+      - "traefik.http.services.kafka-ui.loadbalancer.server.port=8080"
+
+  # Traefik - API Gateway
+  traefik:
+    image: traefik:v3.0
+    container_name: axion-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.ws.address=:80"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@axion.dev"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+      # WebSocket support
+      - "--entrypoints.ws.transport.respondingTimeouts.idleTimeout=3600s"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+  graph-service:
+    image: nginx:alpine
+    container_name: axion-graph-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.graph.rule=Host(`graph.localhost`)"
+      - "traefik.http.routers.graph.entrypoints=web"
+      - "traefik.http.services.graph-service.loadbalancer.server.url=http://host.docker.internal:3001"
+      - "traefik.http.routers.graph-ws.rule=Host(`graph.localhost`)"
+      - "traefik.http.routers.graph-ws.entrypoints=ws"
+      - "traefik.http.routers.graph-ws.service=graph-service"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # CODEGEN_SERVICE - Dev mode (runs locally)
+  codegen-service:
+
+      labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.codegen.rule=Host(`codegen.localhost`)"
+      - "traefik.http.routers.codegen.entrypoints=web"
+      - "traefik.http.services.codegen-service.loadbalancer.server.url=http://host.docker.internal:3002"
+      - "traefik.enable=true"
+      - "traefik.http.routers.codegen.rule=Host(`codegen.localhost`)"
+      - "traefik.http.routers.codegen.entrypoints=web"
+      - "traefik.http.services.codegen-service.loadbalancer.server.port=3002"
+
+    image: nginx:alpine
+    container_name: axion-codegen-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.codegen.rule=Host(`codegen.localhost`)"
+      - "traefik.http.routers.codegen.entrypoints=web"
+      - "traefik.http.services.codegen-service.loadbalancer.server.port=3002"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3002
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # DEPLOYMENT_SERVICE - Dev mode (runs locally)
+  deployment-service:
+
+      labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deployment.rule=Host(`deployment.localhost`)"
+      - "traefik.http.routers.deployment.entrypoints=web"
+      - "traefik.http.services.deployment-service.loadbalancer.server.url=http://host.docker.internal:3003"
+      - "traefik.enable=true"
+      - "traefik.http.routers.deployment.rule=Host(`deployment.localhost`)"
+      - "traefik.http.routers.deployment.entrypoints=web"
+      - "traefik.http.services.deployment-service.loadbalancer.server.port=3003"
+
+    image: nginx:alpine
+    container_name: axion-deployment-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deployment.rule=Host(`deployment.localhost`)"
+      - "traefik.http.routers.deployment.entrypoints=web"
+      - "traefik.http.services.deployment-service.loadbalancer.server.port=3003"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # INFRASTRUCTURE_SERVICE - Dev mode (runs locally)
+  infrastructure-service:
+
+      labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.infrastructure.rule=Host(`infrastructure.localhost`)"
+      - "traefik.http.routers.infrastructure.entrypoints=web"
+      - "traefik.http.services.infrastructure-service.loadbalancer.server.url=http://host.docker.internal:3004"
+      - "traefik.enable=true"
+      - "traefik.http.routers.infrastructure.rule=Host(`infrastructure.localhost`)"
+      - "traefik.http.routers.infrastructure.entrypoints=web"
+      - "traefik.http.services.infrastructure-service.loadbalancer.server.port=3004"
+
+    image: nginx:alpine
+    container_name: axion-infrastructure-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.infrastructure.rule=Host(`infrastructure.localhost`)"
+      - "traefik.http.routers.infrastructure.entrypoints=web"
+      - "traefik.http.services.infrastructure-service.loadbalancer.server.port=3004"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3004
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # GATEWAY_SERVICE - Dev mode (runs locally)
+  gateway-service:
+
+      labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`gateway.localhost`)"
+      - "traefik.http.routers.gateway.entrypoints=web"
+      - "traefik.http.services.gateway-service.loadbalancer.server.url=http://host.docker.internal:3005"
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`gateway.localhost`)"
+      - "traefik.http.routers.gateway.entrypoints=web"
+      - "traefik.http.services.gateway-service.loadbalancer.server.port=3005"
+
+    image: nginx:alpine
+    container_name: axion-gateway-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`gateway.localhost`)"
+      - "traefik.http.routers.gateway.entrypoints=web"
+      - "traefik.http.services.gateway-service.loadbalancer.server.port=3005"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3005
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # BILLING_SERVICE - Dev mode (runs locally)
+  billing-service:
+
+      labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.billing.rule=Host(`billing.localhost`)"
+      - "traefik.http.routers.billing.entrypoints=web"
+      - "traefik.http.services.billing-service.loadbalancer.server.url=http://host.docker.internal:3006"
+      - "traefik.enable=true"
+      - "traefik.http.routers.billing.rule=Host(`billing.localhost`)"
+      - "traefik.http.routers.billing.entrypoints=web"
+      - "traefik.http.services.billing-service.loadbalancer.server.port=3006"
+
+    image: nginx:alpine
+    container_name: axion-billing-service-proxy
+    command: ["sh", "-c", "while true; do sleep 86400; done"]
+    networks:
+      - axion-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.billing.rule=Host(`billing.localhost`)"
+      - "traefik.http.routers.billing.entrypoints=web"
+      - "traefik.http.services.billing-service.loadbalancer.server.port=3006"
+    # In dev, actual service runs locally on host
+    # Traefik will proxy to host.docker.internal:3006
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  kafka_data:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+
+networks:
+  axion-network:
+    driver: bridge

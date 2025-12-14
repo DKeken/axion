@@ -1,0 +1,460 @@
+---
+title: "Technical Details: Изоляция, Деплой, Архитектура"
+description: "Ключевые технические детали реализации, которые дополняют основную архитектуру."
+order: 1
+---
+
+# Technical Details: Изоляция, Деплой, Архитектура
+
+## Обзор
+
+Ключевые технические детали реализации, которые дополняют основную архитектуру.
+
+## Изоляция контуров между проектами
+
+Каждый проект = полностью изолированный контур.
+
+**Уровни изоляции:**
+
+1. **Database Level** — `project_id` во всех таблицах, автоматическая фильтрация всех запросов
+2. **Network Level** — отдельные Docker сети, RabbitMQ vhost для каждого проекта
+3. **Resource Level** — CPU/Memory limits на уровне Docker, отдельные Redis databases
+4. **Code Level** — код в `generated/{project_id}/`, каждый проект = отдельная монорепа
+
+## Деплой на серверы клиентов (через Axion Runner Agent)
+
+Деплой выполняется через **Axion Runner Agent** — Rust агент на серверах клиентов, который управляет Docker Swarm локально.
+
+**Архитектура:**
+
+```
+Control Plane → BullMQ → Deployment Service → gRPC + Kafka → Runner Agent → Docker Swarm
+```
+
+**Процесс деплоя:**
+
+1. Создание задачи в BullMQ с retry механизмом
+2. Получение серверов и проверка Runner Agent
+3. Генерация Docker Swarm Stack для каждого сервера
+4. Отправка команды через gRPC + Kafka к Runner Agent
+5. Runner Agent выполняет `docker stack deploy` локально
+6. Мониторинг деплоя через Agent (health checks, метрики)
+7. Валидация успешности деплоя
+
+**Установка Runner Agent:**
+Агент устанавливается автоматически при добавлении сервера через SSH + BullMQ. Один статический бинарник работает на любом Linux без зависимостей.
+
+## Управление SSH и серверами
+
+**Архитектура:**
+
+```
+Infrastructure Service → PostgreSQL (servers) → SSH Service → Client Servers
+```
+
+**Database Schema:**
+
+- Таблица `servers`: метаданные серверов, зашифрованные SSH private keys (AES-256-GCM), статус подключения
+- Таблица `server_connection_logs`: история всех попыток подключения
+
+**Безопасность:**
+
+- Шифрование SSH ключей: AES-256-GCM
+- Ключ генерируется из `SSH_ENCRYPTION_MASTER_KEY` через scrypt
+- Все операции требуют авторизации пользователя
+
+**SSH Service:**
+
+- Connection Pooling: переиспользование SSH соединений
+- Автоматическое тестирование при добавлении сервера
+- Мониторинг здоровья: проверка каждые 5 минут
+- Автоматическая настройка: проверка/установка Docker, установка Runner Agent
+
+## Расчет системных требований
+
+Автоматический расчет системных требований позволяет:
+
+- Проверить достаточно ли ресурсов для деплоя
+- Предложить оптимальное распределение сервисов
+- Рекомендовать масштабирование при необходимости
+
+**Метрики:**
+
+- CPU: количество cores, текущая утилизация (%)
+- Memory: total/used/available (MB)
+- Disk: total/used/available (GB)
+- Network: bandwidth (Mbps), latency (ms)
+
+**Процесс расчета:**
+
+1. Получение сервисов проекта
+2. Получение метрик серверов
+3. Расчет требований для каждого сервиса
+4. Агрегация требований
+5. Проверка доступности
+6. Генерация рекомендаций
+
+## Упрощенная архитектура генерируемых сервисов
+
+**Почему не NestJS?**
+
+- Слишком много boilerplate кода
+- Сложная структура для простых сервисов
+- Тяжелые зависимости
+- Медленный старт приложения
+
+**Решение: легковесный фреймворк**
+Для генерируемых сервисов используется:
+
+- **ElysiaJS или Hono** — минималистичные HTTP фреймворки
+- **RabbitMQ** — для межсервисного общения
+- **Drizzle ORM** — легковесная работа с БД
+- **Protobuf** — типобезопасные контракты
+
+**Структура сервиса:**
+
+```
+src/
+├── main.ts              # Точка входа (Elysia/Hono app)
+├── config/              # Конфигурация
+├── messaging/           # RabbitMQ клиент/сервер
+├── database/            # Работа с БД
+├── modules/             # Бизнес-логика (LLM генерит ТОЛЬКО это)
+└── health/              # Health checks
+```
+
+## SaaS платформа: NestJS Microservices
+
+**Почему NestJS для платформы?**
+
+- Сложная бизнес-логика
+- Множество интеграций (LLM, Stripe, SSH)
+- Необходимость в надежности и масштабируемости
+
+**Архитектура:**
+
+```
+Traefik Gateway → Next.js Frontend → NestJS Microservices → Kafka/Redis/PostgreSQL
+```
+
+**Компоненты платформы:**
+
+1. **Traefik Gateway** — Load balancing, SSL termination, Rate limiting
+2. **Next.js Frontend** — React 19 RSC, Better Auth, SSE, React Flow
+3. **NestJS Microservices:**
+   - Gateway Service — Service Discovery (Redis), routing
+   - Graph Service — CRUD графов, версионирование, real-time синхронизация
+   - Codegen Service — LLM интеграция, генерация кода, Blueprint System
+   - Deployment Service — BullMQ для деплоя, SSH management
+   - Infrastructure Service — управление серверами и кластерами
+   - Billing Service — Stripe integration, usage tracking
+
+**Технологии:**
+
+- Service Discovery (Redis): регистрация сервисов с TTL 30 секунд
+- Event Bus (Kafka): Event sourcing, CQRS события
+- Databases (Multiple PostgreSQL): разделение по доменам, Drizzle ORM
+- Contracts (Protobuf): типобезопасное межсервисное общение
+- Auth (Better Auth): современная аутентификация
+- Real-time (SSE): Server-Sent Events для обновлений
+- Deployment (BullMQ): надежная обработка асинхронных задач
+
+## LLM Интеграция через OpenRouter
+
+### Обзор
+
+Axion использует **OpenRouter** как единую точку доступа к множеству LLM моделей для генерации бизнес-логики. OpenRouter предоставляет унифицированный API для доступа к моделям от различных провайдеров (OpenAI, Anthropic, Google, Mistral, Meta и др.).
+
+**Преимущества OpenRouter:**
+
+- ✅ **Единый API** — один интерфейс для всех моделей
+- ✅ **Выбор моделей** — доступ к 100+ моделям от разных провайдеров
+- ✅ **Гибкость** — возможность переключения между моделями без изменения кода
+- ✅ **Мониторинг** — встроенный мониторинг использования и стоимости
+- ✅ **Fallback** — автоматический fallback на альтернативные модели при ошибках
+- ✅ **Rate Limiting** — встроенное управление лимитами запросов
+
+### Архитектура
+
+```
+Codegen Service → OpenRouter API → LLM Models (OpenAI, Anthropic, Google, etc.)
+                      ↓
+              Usage Tracking → Billing Service
+```
+
+### Конфигурация
+
+**Переменные окружения:**
+
+```bash
+# Обязательные
+OPENROUTER_API_KEY=sk-or-v1-xxx          # API ключ OpenRouter
+OPENROUTER_DEFAULT_MODEL=openai/gpt-4o   # Модель по умолчанию
+
+# Опциональные
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_TIMEOUT=30000                 # Timeout в миллисекундах
+OPENROUTER_MAX_RETRIES=3                 # Количество повторных попыток
+OPENROUTER_FALLBACK_MODELS=anthropic/claude-3.5-sonnet,google/gemini-pro  # Fallback модели
+```
+
+**Конфигурация в коде:**
+
+```typescript
+// Codegen Service Configuration
+interface LLMConfig {
+  provider: "openrouter";
+  apiKey: string;
+  defaultModel: string;
+  fallbackModels: string[];
+  timeout: number;
+  maxRetries: number;
+  temperature: number; // 0.0 - 2.0
+  maxTokens: number; // Максимальное количество токенов
+  topP?: number; // Nucleus sampling
+  frequencyPenalty?: number; // Frequency penalty
+  presencePenalty?: number; // Presence penalty
+}
+```
+
+### Поддерживаемые Модели
+
+OpenRouter предоставляет доступ к моделям от различных провайдеров:
+
+**OpenAI:**
+
+- `openai/gpt-4o` — GPT-4 Optimized (рекомендуется для генерации кода)
+- `openai/gpt-4-turbo` — GPT-4 Turbo
+- `openai/gpt-3.5-turbo` — GPT-3.5 Turbo (быстрая и дешевая)
+
+**Anthropic:**
+
+- `anthropic/claude-3.5-sonnet` — Claude 3.5 Sonnet (высокое качество)
+- `anthropic/claude-3-opus` — Claude 3 Opus
+- `anthropic/claude-3-haiku` — Claude 3 Haiku (быстрая)
+
+**Google:**
+
+- `google/gemini-pro` — Google Gemini Pro
+- `google/gemini-pro-vision` — Gemini Pro Vision
+
+**Mistral:**
+
+- `mistralai/mistral-large` — Mistral Large
+- `mistralai/mixtral-8x7b-instruct` — Mixtral 8x7B
+
+**Meta:**
+
+- `meta-llama/llama-3-70b-instruct` — Llama 3 70B
+
+**И другие:** OpenRouter поддерживает 100+ моделей от различных провайдеров.
+
+### Выбор Модели
+
+**Стратегия выбора модели:**
+
+1. **По умолчанию:** используется `OPENROUTER_DEFAULT_MODEL`
+2. **По сложности задачи:** система автоматически выбирает модель на основе сложности генерации
+3. **По доступности:** если модель недоступна, используется fallback модель
+4. **По стоимости:** для простых задач используются более дешевые модели
+
+**Пример конфигурации:**
+
+```typescript
+const modelSelection = {
+  simple: "openai/gpt-3.5-turbo", // Простые CRUD операции
+  medium: "openai/gpt-4o", // Средняя сложность
+  complex: "anthropic/claude-3.5-sonnet", // Сложная бизнес-логика
+  fallback: "google/gemini-pro", // Fallback при ошибках
+};
+```
+
+### Процесс Генерации
+
+**Шаги генерации бизнес-логики:**
+
+1. **Построение промпта:**
+   - Загрузка Blueprint инструкций
+   - Добавление контекста (entity, fields, relationships)
+   - Добавление шаблона с маркером `{LLM_GENERATED_METHODS}`
+   - Добавление ограничений и правил валидации
+
+2. **Вызов OpenRouter API:**
+
+   ```typescript
+   const response = await openrouter.chat.completions.create({
+     model: config.defaultModel,
+     messages: [
+       { role: "system", content: systemPrompt },
+       { role: "user", content: userPrompt },
+     ],
+     temperature: 0.7,
+     max_tokens: 2000,
+   });
+   ```
+
+3. **Обработка ответа:**
+   - Извлечение сгенерированного кода
+   - Валидация синтаксиса
+   - Вставка в шаблон на место `{LLM_GENERATED_METHODS}`
+
+4. **Fallback при ошибках:**
+   - Если модель недоступна → попытка с fallback моделью
+   - Если ответ некорректный → повторная попытка с уточненным промптом
+   - Максимум 3 попытки с разными моделями
+
+### Мониторинг и Биллинг
+
+**Отслеживание использования:**
+
+- OpenRouter предоставляет детальную статистику использования
+- Метрики сохраняются в `usage_metrics` таблице:
+  - `llm_tokens_used` — количество использованных токенов
+  - `llm_requests_count` — количество запросов
+  - `llm_cost` — стоимость использования (в USD)
+
+**Интеграция с Billing Service:**
+
+- Автоматический расчет стоимости на основе использования
+- Учет в тарифных планах пользователей
+- Лимиты на количество токенов для разных тарифов
+
+### Безопасность
+
+**Защита API ключей:**
+
+- API ключи хранятся в зашифрованном виде в переменных окружения
+- Использование секретов через систему управления секретами (HashiCorp Vault, AWS Secrets Manager)
+- Ротация ключей через OpenRouter dashboard
+
+**Rate Limiting:**
+
+- Встроенное управление лимитами запросов через OpenRouter
+- Дополнительный rate limiting на уровне Codegen Service
+- Очередь запросов при превышении лимитов
+
+**Валидация ответов:**
+
+- Проверка синтаксиса сгенерированного кода
+- Валидация через TypeScript компилятор
+- Проверка соответствия контрактам
+
+### Обработка Ошибок
+
+**Типы ошибок и обработка:**
+
+| Ошибка                  | Причина                    | Обработка                                      |
+| ----------------------- | -------------------------- | ---------------------------------------------- |
+| **Model Unavailable**   | Модель временно недоступна | Fallback на альтернативную модель              |
+| **Rate Limit Exceeded** | Превышен лимит запросов    | Очередь запросов, retry с exponential backoff  |
+| **Invalid Response**    | Некорректный формат ответа | Повторная попытка с уточненным промптом        |
+| **Timeout**             | Превышено время ожидания   | Retry с более быстрой моделью                  |
+| **API Key Invalid**     | Неверный API ключ          | Логирование ошибки, уведомление администратора |
+
+**Retry механизм:**
+
+- Exponential backoff для повторных попыток
+- Максимум 3 попытки с разными моделями
+- Логирование всех ошибок для анализа
+
+### Примеры Использования
+
+**Генерация простого CRUD сервиса:**
+
+```typescript
+const prompt = `
+Generate business logic for ProductService with the following:
+- Entity: Product
+- Fields: id, name, price, description
+- Operations: create, findById, findAll, update, delete
+`;
+
+const code = await llmService.generate({
+  prompt,
+  model: "openai/gpt-4o",
+  temperature: 0.7,
+});
+```
+
+**Генерация сложной бизнес-логики:**
+
+```typescript
+const prompt = `
+Generate business logic for OrderService with:
+- Complex validation rules
+- Integration with PaymentService
+- Event publishing
+- Error handling
+`;
+
+const code = await llmService.generate({
+  prompt,
+  model: "anthropic/claude-3.5-sonnet",
+  temperature: 0.3, // Более детерминированный ответ
+});
+```
+
+### Интеграция в Tauri Client
+
+**Локальная генерация (опционально):**
+
+Tauri Client может использовать OpenRouter напрямую для локальной генерации без Control Plane:
+
+```rust
+// Rust LLM Service для Tauri Client
+pub struct OpenRouterService {
+    client: reqwest::Client,
+    api_key: String,
+    default_model: String,
+}
+
+impl OpenRouterService {
+    pub async fn generate(
+        &self,
+        prompt: String,
+        model: Option<String>,
+    ) -> Result<String> {
+        let model = model.unwrap_or_else(|| self.default_model.clone());
+
+        let response = self.client
+            .post("https://openrouter.ai/api/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&json!({
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ]
+            }))
+            .send()
+            .await?;
+
+        // Обработка ответа...
+    }
+}
+```
+
+---
+
+## Система метрик (через Runner Agent)
+
+Метрики собираются через Runner Agent на серверах клиентов и отправляются в Control Plane через gRPC.
+
+**Архитектура:**
+
+```
+Client Servers → Runner Agent (Telemetry Collector) → gRPC → Metrics Ingestion Service → TimescaleDB → Frontend
+```
+
+**Сбор метрик:**
+
+- Runner Agent собирает метрики Docker Swarm и системные метрики каждые 10 секунд
+- Отправка в Control Plane через gRPC (типобезопасно через Protobuf)
+- Сохранение в TimescaleDB для временных рядов
+- Real-time отображение в React Flow через SSE
+
+**Типы метрик:**
+
+- Системные: CPU, Memory, Network, Disk
+- Application: RPS, Error Rate, Response Time, Health Status
+- Container: Status, Restart Count, Uptime

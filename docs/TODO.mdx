@@ -1,0 +1,442 @@
+---
+title: "TODO"
+description: "Полный список задач для реализации Axion Meta-Framework: 17 фаз разработки, приоритеты и статусы."
+order: 8
+---
+
+# TODO
+
+## Обзор
+
+Ключевые задачи для реализации Axion Meta-Framework. Полный список задач разбит по фазам разработки.
+
+<Callout type="idea" title="Легенда">
+  **Приоритет:** 🔴 Высокий | 🟡 Средний | 🟢 Низкий **Статус:** ✅ Готово | 🚧
+  В работе | ⏳ Планируется | ❌ Блокер
+</Callout>
+
+---
+
+## Phase 1: Core Infrastructure 🔴
+
+- [x] ✅ Graph Service (NestJS) — CRUD операции для графов
+  - [x] ✅ Database Schema (project_graphs, project_services, database_nodes)
+  - [x] ✅ API endpoints для создания/чтения/обновления графов
+  - [x] ✅ Валидация структуры графа
+  - [x] ✅ Real-time синхронизация через WebSocket
+
+---
+
+## Phase 2: React Flow Frontend 🔴
+
+- [ ] ⏳ React Flow интеграция — базовый редактор графов
+  - Подключение React Flow, сохранение/загрузка графов
+  - Database Node компонент (визуальное отображение, модальное окно)
+  - Связывание Service → Database через edges
+  - ORM Switching UI (конвертация схемы, миграция)
+
+---
+
+## Phase 3: Code Generation System 🔴
+
+- [ ] ⏳ Template Engine — загрузка templates, подстановка переменных
+- [ ] ⏳ Database Node Code Generation — генерация connection, schema, repository на основе ORM
+- [ ] ⏳ Factory Patterns — DatabaseFactory, MessagingFactory, ServiceFactory
+- [ ] ⏳ LLM Integration — построение промптов, вызов LLM API, вставка кода
+- [ ] ⏳ Protobuf Contract Generation — генерация контрактов из графа
+
+---
+
+## Phase 4: Validation System 🟡
+
+- [ ] ⏳ Validation Pipeline (6 уровней)
+  - Structural Validator — проверка структуры файлов
+  - Contract Validator — проверка Protobuf контрактов
+  - TypeScript Validator — `tsc --noEmit`
+  - Build Validator — `bun run build`
+  - Health Check Validator — запуск в Docker, проверка health endpoint
+  - Contract Discovery Validator — валидация при запуске
+
+---
+
+## Phase 5: Database System 🟡
+
+- [ ] ⏳ Database Connection Abstraction — абстракция для разных ORM
+- [ ] ⏳ Repository Pattern — `IRepository<T>` интерфейс и реализация для Drizzle
+- [ ] ⏳ Schema Generation — генерация Drizzle Schema из UI формы
+- [ ] ⏳ ORM Migration — конвертация схемы, backup, миграция данных
+
+---
+
+## 🚀 Phase 6: Deployment System 🔴
+
+- [ ] ⏳ Axion Runner Agent (Rust) — gRPC + Kafka, Docker Swarm Manager, Telemetry Collector
+- [ ] ⏳ SSH Management — установка агента через SSH + BullMQ
+- [ ] ⏳ Control Plane Integration — Runner Management Service, WebSocket Server
+- [ ] ⏳ BullMQ Integration — Deployment Queue, Job Processor, Status Tracking
+- [ ] ⏳ Docker Stack Generation — docker-compose.yml, Dockerfile, .dockerignore
+
+---
+
+## Phase 7: Metrics & Monitoring 🟡
+
+- [ ] ⏳ Metrics Collection — Prometheus Agent, Metrics Collector Service
+- [ ] ⏳ Real-time Display — SSE для метрик, Dashboard
+
+---
+
+## Phase 8: UI/UX Improvements 🟢
+
+- [ ] ⏳ React Flow Enhancements — улучшенная палитра, визуальная индикация, мини-карта
+- [ ] ⏳ Database Node UI — красивое отображение, Schema Viewer
+- [ ] ⏳ Code Preview — показ сгенерированного кода с syntax highlighting
+- [ ] ⏳ Real-time Collaboration — multi-user editing, live updates
+
+---
+
+## 🔐 Phase 9: Security & Isolation 🔴
+
+- [ ] ⏳ Project Isolation — Database, Network, Resource изоляция
+- [ ] ⏳ SSH Security — шифрование ключей, Access Control
+
+---
+
+## 📚 Phase 10: Documentation & Testing 🟡
+
+- [x] ✅ Документация templates системы
+- [ ] ⏳ API документация (OpenAPI/Swagger)
+- [ ] ⏳ Unit/Integration/E2E тесты
+
+---
+
+## Phase 11-17: Advanced Features 🟢
+
+- [ ] ⏳ Multiple Databases per Service
+- [ ] ⏳ Custom ORM Support
+- [ ] ⏳ Blueprint Marketplace
+- [ ] ⏳ Performance Optimization
+- [ ] ⏳ Analytics & Insights
+- [ ] ⏳ Developer Tools (CLI, VS Code Extension)
+- [ ] ⏳ CI/CD Integration
+- [ ] ⏳ Migration & Backward Compatibility
+
+---
+
+## Priority Matrix
+
+### Must Have (MVP)
+
+1. Graph Service (CRUD операции)
+2. React Flow интеграция (базовая)
+3. Database Node компонент
+4. Code Generation (базовая)
+5. Template Engine
+6. Validation System (базовая)
+
+### Should Have
+
+1. ORM Switching
+2. Factory Patterns
+3. SSH Management
+4. Deployment System
+5. Metrics Collection
+
+### Nice to Have
+
+1. Advanced UI features
+2. Analytics
+3. Developer Tools
+4. Third-party Integrations
+
+---
+
+## Progress Tracking
+
+### Overall Progress
+
+- **Phase 1 (Core Infrastructure):** ✅ 100% (Graph Service готов, WebSocket интегрирован)
+- **Phase 2 (React Flow Frontend):** ⏳ 0%
+- **Phase 3 (Code Generation):** ⏳ 0%
+- **Phase 4 (Validation):** ⏳ 0%
+- **Phase 5 (Database System):** ⏳ 0%
+- **Phase 6 (Deployment):** ⏳ 0%
+- **Phase 7 (Metrics):** ⏳ 0%
+- **Phase 8 (UI/UX):** ⏳ 0%
+- **Phase 9 (Security):** ⏳ 0%
+- **Phase 10 (Documentation):** ✅ 30% (документация templates готова)
+- **Phase 11 (Advanced):** ⏳ 0%
+- **Phase 12 (Performance):** ⏳ 0%
+- **Phase 13 (Bug Fixes):** ⏳ 0%
+- **Phase 14 (Analytics):** ⏳ 0%
+- **Phase 15 (DX):** ⏳ 0%
+- **Phase 16 (Integration):** ⏳ 0%
+- **Phase 17 (Migration):** ⏳ 0%
+
+**Total Progress:** ⏳ ~8% (документация + Phase 1 завершена)
+
+---
+
+## 🚀 Quick Start Implementation Order
+
+### Sprint 1: Foundation (2-3 недели) 🔴
+
+**Цель:** Базовая инфраструктура для работы с графами
+
+1. Graph Service (CRUD операции)
+   - Database Schema для графов
+   - API endpoints для создания/чтения/обновления графов
+   - Валидация структуры
+
+2. Database Schema
+   - `project_graphs` таблица
+   - `project_services` таблица
+   - `database_nodes` таблица
+   - Миграции
+
+3. React Flow базовая интеграция
+   - Подключение React Flow
+   - Сохранение графа в БД
+   - Загрузка графа из БД
+
+4. Database Node компонент (UI)
+   - Визуальное отображение
+   - Модальное окно создания
+   - Связывание с сервисами
+
+**Deliverables:**
+
+- Работающий Graph Service
+- React Flow редактор с сохранением
+- Database Node можно создавать и связывать
+
+### Sprint 2: Code Generation (2-3 недели) 🔴
+
+**Цель:** Генерация кода из графа
+
+1. Template Engine
+   - Загрузка templates
+   - Подстановка переменных
+   - Кэширование
+
+2. Variable Substitution
+   - Валидация переменных
+   - Типизация
+   - Обработка ошибок
+
+3. Database Node code generation
+   - Определение ORM из database node
+   - Генерация schema (Drizzle)
+   - Генерация repository (Drizzle)
+   - Генерация connection
+
+4. LLM Integration (базовая)
+   - Построение промпта
+   - Вызов LLM API
+   - Вставка кода в template
+
+**Deliverables:**
+
+- Генерация полного сервиса из графа
+- Поддержка Drizzle
+- LLM генерит бизнес-логику
+
+### Sprint 3: Validation (1-2 недели) 🟡
+
+**Цель:** Валидация сгенерированного кода
+
+1. Structural Validator
+   - Проверка структуры файлов
+   - Проверка обязательных компонентов
+
+2. TypeScript Validator
+   - `tsc --noEmit`
+   - Сбор и форматирование ошибок
+
+3. Build Validator
+   - `bun run build`
+   - Обработка ошибок сборки
+
+**Deliverables:**
+
+- Validation Pipeline работает
+- Отчеты о валидации
+- Обработка ошибок
+
+### Sprint 4: ORM & Factories (1-2 недели) 🟡
+
+**Цель:** Упрощение кода и поддержка переключения ORM
+
+1. ORM Switching
+   - Конвертация схемы
+   - Генерация нового кода
+   - Миграция данных
+
+2. Factory Patterns
+   - DatabaseFactory
+   - MessagingFactory
+   - ServiceFactory
+
+3. Упрощение кода сервисов
+   - Минимум boilerplate
+   - Автоматическая инициализация
+
+4. UI улучшения
+   - ORM switching UI
+   - Schema viewer
+   - Code preview
+
+**Deliverables:**
+
+- Переключение ORM работает
+- Код сервисов упрощен
+- Factory patterns реализованы
+
+### Sprint 5: Deployment (3-4 недели) 🔴
+
+**Цель:** Деплой сгенерированных сервисов с Axion Runner Agent
+
+1. Axion Runner Agent (Core)
+   - Connection Manager (WebSocket)
+   - Docker Compose Manager
+   - Telemetry Collector
+   - Command Executor
+   - Базовая безопасность
+
+2. Control Plane Integration
+   - Runner Management Service
+   - WebSocket Server для агентов
+   - Интеграция с Deployment Service
+   - Интеграция с Metrics Ingestion Service
+
+3. Agent Installation
+   - Скрипт установки
+   - Автоматическая установка через SSH
+   - Docker Compose для агента
+
+4. SSH Management (Legacy, для установки агента)
+   - Хранение ключей
+   - Автоматическая установка агента
+   - Настройка серверов
+
+5. BullMQ Integration
+   - Deployment queue
+   - Job processor (с поддержкой агентов)
+   - Status tracking
+
+6. Docker Stack Generation
+   - docker-compose.yml
+   - Dockerfile для каждого сервиса
+   - .dockerignore
+
+**Deliverables:**
+
+- Axion Runner Agent работает на серверах
+- Деплой через WebSocket к агенту
+- Сбор телеметрии от агентов
+- Автоматическая установка агента
+- Мониторинг деплоев и метрик
+
+### Sprint 6: Polish & Advanced (2-3 недели) 🟢
+
+**Цель:** Доработка и продвинутые фичи
+
+1. Metrics & Monitoring
+2. Real-time collaboration
+3. Advanced UI features
+4. Performance optimization
+
+**Deliverables:**
+
+- Полнофункциональная система
+- Готовность к beta launch
+
+---
+
+## 📚 References
+
+- **[`ARCHITECTURE`](./ARCHITECTURE)** — Полная архитектура системы
+- **[`TECHNICAL_DETAILS`](./TECHNICAL_DETAILS)** — Технические детали
+- **[`CONTRACTS_AND_VALIDATION`](./CONTRACTS_AND_VALIDATION)** — Контракты и валидация
+- **[`COMPARISON`](./COMPARISON)** — Сравнение с CapRover и Convex
+- **[`RUNNER_AGENT`](./RUNNER_AGENT)** — Архитектура Axion Runner Agent
+- **[`templates/DATABASE_NODES`](./templates/DATABASE_NODES)** — Database Nodes
+- **[`templates/EXTENSIBILITY`](./templates/EXTENSIBILITY)** — Расширяемость системы
+- **[`templates/TYPES_AND_CONSTANTS`](./templates/TYPES_AND_CONSTANTS)** — Типы и енамы
+- **[`templates/README`](./templates/README)** — Обзор templates (включает процесс генерации)
+
+---
+
+## Notes
+
+### Важные Решения
+
+1. **Database Nodes** — БД как отдельная нода, не встроена в blueprint
+   - Визуальный выбор БД и ORM через ноды в React Flow
+   - Связывание через edges (как в n8n)
+   - Переключение ORM по клику
+
+2. **ORM Switching** — переключение по клику с автоматической конвертацией
+   - Автоматическая конвертация схемы
+   - Backup перед миграцией
+   - Preview изменений
+
+3. **Factory Patterns** — минимум boilerplate, автоматическая инициализация
+   - DatabaseFactory, MessagingFactory, ServiceFactory
+   - Автоматическая конфигурация из графа
+
+4. **Модульная структура** — компоненты разделены по ORM для масштабируемости
+   - `components/drizzle/` — компоненты для Drizzle
+   - `components/database/base/` — базовые абстракции
+
+5. **Типизация** — все типы централизованы в `TYPES_AND_CONSTANTS.md`
+   - Енамы для всех сущностей
+   - Helper функции
+   - Type guards
+
+6. **Axion Runner Agent** — легковесный агент на серверах клиентов
+   - Управление Docker Compose через WebSocket
+   - Локальный сбор телеметрии и метрик
+   - Автономная работа при проблемах с Control Plane
+   - Эффективное управление контейнерами
+   - Безопасное выполнение команд (whitelist)
+
+### Технический Стек
+
+**Frontend:**
+
+- Next.js 15 + React 19 RSC
+- React Flow для визуального редактора
+- SSE для real-time обновлений
+
+**Backend (SaaS Platform):**
+
+- NestJS Microservices
+- Drizzle ORM для БД
+- Kafka для Event Bus
+- Redis для Service Discovery
+- Traefik Gateway
+
+**Generated Services:**
+
+- ElysiaJS/Hono (легковесный фреймворк)
+- Drizzle ORM (выбор через database node)
+- RabbitMQ для межсервисного общения
+- Protobuf для контрактов
+
+**Deployment:**
+
+- BullMQ для очередей деплоя
+- Axion Runner Agent для управления Docker Compose на серверах
+- WebSocket для связи Control Plane ↔ Agent
+- SSH для начальной установки агента
+- Docker для контейнеризации
+
+**Monitoring:**
+
+- Prometheus для метрик
+- TimescaleDB для time-series данных
+- SSE для real-time отображения
+
+---
+
+_Этот TODO покрывает все аспекты реализации Axion Meta-Framework с учетом всех улучшений._

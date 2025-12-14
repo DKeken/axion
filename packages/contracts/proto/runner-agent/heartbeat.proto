@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "common/common.proto";
+
+// Heartbeat messages
+message HeartbeatRequest {
+  string agent_id = 1;
+  string server_id = 2;
+  AgentHealth health = 3;
+}
+
+message AgentHealth {
+  bool connected = 1;
+  double cpu_usage = 2;
+  int64 memory_usage = 3;
+  int64 disk_usage = 4;
+  int32 active_containers = 5;
+  int64 last_heartbeat = 6;
+}
+
+message HeartbeatResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    HeartbeatData data = 3;
+  }
+}
+
+message HeartbeatData {
+  bool acknowledged = 1;
+  optional UpdateAvailable update_available = 2;
+}
+
+message UpdateAvailable {
+  string version = 1;
+  string download_url = 2;
+  string checksum = 3;
+  bool mandatory = 4;
+}

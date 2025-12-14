@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package axion.codegen;
+
+import "common/common.proto";
+
+// Blueprint messages
+message ListBlueprintsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  optional axion.common.BlueprintCategory category = 2; // Опционально: фильтр по категории
+}
+
+message GetBlueprintRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string blueprint_id = 2;
+}
+
+message Blueprint {
+  string id = 1;
+  string name = 2;
+  axion.common.BlueprintCategory category = 3;
+  string description = 4;
+  string version = 5;
+  BlueprintStructure structure = 6;
+  BlueprintInfrastructure infrastructure = 7;
+  BlueprintContracts contracts = 8;
+  string llm_instructions = 9;
+}
+
+message BlueprintStructure {
+  repeated RequiredFile required_files = 1;
+  map<string, string> templates = 2; // Путь к шаблону -> содержимое
+  repeated LLMGenerationPoint llm_generation_points = 3;
+}
+
+message RequiredFile {
+  string path = 1;
+  bool immutable = 2; // Если true - файл из шаблона не должен изменяться
+  string template_path = 3;
+}
+
+message LLMGenerationPoint {
+  string file_path = 1;
+  string marker = 2; // Маркер где LLM должен вставить код
+  string description = 3; // Описание что генерить
+}
+
+message BlueprintInfrastructure {
+  DatabaseConfig database = 1;
+  CacheConfig cache = 2;
+  QueueConfig queue = 3;
+}
+
+message DatabaseConfig {
+  axion.common.DatabaseType type = 1;
+  string schema_template = 2;
+  map<string, string> ui_form = 3; // JSON Schema для UI формы
+}
+
+message CacheConfig {
+  axion.common.CacheType type = 1;
+  bool enabled = 2;
+}
+
+message QueueConfig {
+  axion.common.QueueType type = 1;
+  bool enabled = 2;
+}
+
+message BlueprintContracts {
+  bool auto_generate = 1;
+  string base_pattern = 2; // '{service-name}.{action}'
+  repeated string default_actions = 3;
+}
+
+message BlueprintResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    Blueprint blueprint = 3;
+  }
+}
+
+message ListBlueprintsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ListBlueprintsData data = 3;
+  }
+}
+
+message ListBlueprintsData {
+  repeated Blueprint blueprints = 1;
+}

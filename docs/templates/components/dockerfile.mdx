@@ -1,0 +1,60 @@
+---
+title: "Component: Dockerfile"
+description: "Dockerfile для сборки образа сервиса. Используется при деплое через Runner Agent."
+order: 1
+---
+
+# Component: Dockerfile
+
+## Описание
+
+Dockerfile для сборки образа сервиса. Используется при деплое через Runner Agent.
+
+**Используется в:** всех генерируемых сервисах
+
+<Callout type="info" title="Интеграция">
+  См. [RUNNER_AGENT](../../RUNNER_AGENT) для архитектуры Runner Agent и процесса
+  деплоя.
+</Callout>
+
+## Конфигурация
+
+- `{SERVICE_NAME}` — имя сервиса
+- `{RUNTIME}` — runtime (bun или node)
+
+## Код
+
+```dockerfile
+FROM oven/bun:latest AS base
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
+
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN bun run build
+
+FROM base AS production
+ENV NODE_ENV=production
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
+
+EXPOSE 3000
+CMD ["bun", "run", "dist/main.js"]
+```
+
+## Checklist
+
+- [ ] Multi-stage build настроен
+- [ ] Зависимости кешируются
+- [ ] Production образ оптимизирован
+- [ ] Health check настроен
+- [ ] Образ совместим с Docker Swarm
+
+---
+
+_Dockerfile генерируется автоматически из шаблона._

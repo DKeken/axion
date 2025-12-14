@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package axion.codegen;
+
+import "common/common.proto";
+import "codegen/generation.proto"; // For ValidationError
+
+// Validate messages
+message ValidateProjectRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  string ai_model = 3; // Опционально: модель для валидации (например, "google/gemini-pro-1.5")
+}
+
+message ValidateServiceRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  string node_id = 3;
+  string ai_model = 4; // Опционально: модель для валидации
+}
+
+message ValidationResult {
+  string service_id = 1;
+  string node_id = 2;
+  axion.common.ValidationStatus status = 3;
+  repeated ValidationError errors = 4;
+  ValidationLevelResults level_results = 5;
+}
+
+message ValidationLevelResults {
+  bool structural_passed = 1;
+  bool contract_passed = 2;
+  bool typescript_passed = 3;
+  bool build_passed = 4;
+  bool health_check_passed = 5;
+  bool contract_discovery_passed = 6;
+}
+
+message ValidateProjectResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ValidateProjectData data = 3;
+  }
+}
+
+message ValidateProjectData {
+  repeated ValidationResult results = 1;
+  int32 total_services = 2;
+  int32 validated = 3;
+  int32 failed = 4;
+}
+
+message ValidateServiceResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ValidationResult data = 3;
+  }
+}

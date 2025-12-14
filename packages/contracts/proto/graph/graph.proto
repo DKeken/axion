@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package axion.graph;
+
+import "common/common.proto";
+
+// Graph messages
+message GetGraphRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+}
+
+message UpdateGraphRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  GraphData graph_data = 3; // JSONB граф
+}
+
+message ListGraphVersionsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  axion.common.Pagination pagination = 3;
+}
+
+message RevertGraphVersionRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  int32 version = 3;
+}
+
+message GraphData {
+  repeated Node nodes = 1;
+  repeated Edge edges = 2;
+}
+
+message Node {
+  string id = 1;
+  axion.common.NodeType type = 2;
+  NodeData data = 3;
+  Position position = 4;
+}
+
+message NodeData {
+  string blueprint_id = 1;
+  map<string, string> config = 2; // JSONB конфигурация
+  string service_name = 3;
+}
+
+message Position {
+  double x = 1;
+  double y = 2;
+}
+
+message Edge {
+  string id = 1;
+  string source = 2; // node.id источника
+  string target = 3; // node.id цели
+  axion.common.EdgeType type = 4;
+}
+
+message GraphVersion {
+  string id = 1;
+  string project_id = 2;
+  int32 version = 3;
+  GraphData graph_data = 4;
+  int64 created_at = 5;
+}
+
+message GraphResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    GraphData graph = 3;
+  }
+}
+
+message ListGraphVersionsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ListGraphVersionsData data = 3;
+  }
+}
+
+message ListGraphVersionsData {
+  repeated GraphVersion versions = 1;
+  axion.common.Pagination pagination = 2;
+}

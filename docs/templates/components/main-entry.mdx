@@ -1,0 +1,79 @@
+---
+title: "Component: Main Entry Point"
+description: "Точка входа приложения. Инициализирует Elysia/Hono приложение, RabbitMQ сервер, регистрирует handlers."
+order: 3
+---
+
+# Component: Main Entry Point
+
+## Описание
+
+Точка входа приложения. Инициализирует Elysia/Hono приложение, RabbitMQ сервер, регистрирует handlers.
+
+**Используется в:** service blueprint
+
+## Конфигурация
+
+- `{SERVICE_NAME}` - имя сервиса (kebab-case)
+- `{PROJECT_ID}` - ID проекта
+- `{PORT}` - порт сервиса (по умолчанию 3000)
+- `{HANDLERS}` - список зарегистрированных handlers
+
+## Код
+
+```typescript
+// src/main.ts
+import { Elysia } from "elysia";
+import { RabbitMQServer } from "./messaging/server";
+import { healthCheck } from "./health/health.check";
+
+// Импорты сервисов (генерируются автоматически)
+{
+  IMPORTS;
+}
+
+const app = new Elysia();
+
+// Health check endpoint
+app.get("/health", healthCheck);
+
+// RabbitMQ сервер для межсервисного общения
+const rabbitMQServer = new RabbitMQServer({
+  url: process.env.RABBITMQ_URL!,
+  vhost: `project_${process.env.PROJECT_ID}`,
+});
+
+// Инициализация сервисов
+{
+  SERVICES_INIT;
+}
+
+// Регистрация RabbitMQ handlers
+{
+  HANDLERS_REGISTRATION;
+}
+
+// Запуск приложения
+const port = parseInt(process.env.PORT || "3000", 10);
+app.listen(port, () => {
+  console.log(`{SERVICE_NAME} started on port ${port}`);
+});
+
+// Запуск RabbitMQ сервера
+rabbitMQServer.start().catch((error) => {
+  console.error("Failed to start RabbitMQ server:", error);
+  process.exit(1);
+});
+```
+
+## LLM Инструкции
+
+**LLM НЕ генерит этот файл** - он создается автоматически из шаблона.
+
+## Checklist
+
+- [ ] Импорты всех сервисов добавлены
+- [ ] Все handlers зарегистрированы
+- [ ] Health check endpoint работает
+- [ ] RabbitMQ сервер запускается
+- [ ] Переменные окружения настроены

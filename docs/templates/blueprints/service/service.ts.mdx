@@ -1,0 +1,118 @@
+---
+title: "LLM Generation Point: Service Business Logic"
+description: "ЭТО ЕДИНСТВЕННОЕ МЕСТО где LLM генерит код для Service."
+order: 2
+---
+
+# LLM Generation Point: Service Business Logic
+
+## Описание
+
+<Callout type="warn" title="Важно">
+**ЭТО ЕДИНСТВЕННОЕ МЕСТО где LLM генерит код для Service.**
+
+LLM генерит только методы бизнес-логики. Вся структура уже определена.
+
+</Callout>
+
+## Конфигурация
+
+- `{FEATURE_NAME}` — имя фичи (PascalCase)
+- `{FEATURE_NAME_LOWER}` — имя фичи (camelCase)
+- `{DESCRIPTION}` — описание что должен делать сервис (от пользователя)
+- `{FIELDS}` — поля сущности (если есть database node)
+- `{RELATIONSHIPS}` — связи с другими сущностями (если есть)
+
+## 📄 Шаблон Файла (Immutable часть)
+
+```typescript
+// src/modules/{FEATURE_NAME_LOWER}/{FEATURE_NAME_LOWER}.service.ts
+{IMPORTS}
+
+export class {FEATURE_NAME}Service {
+  constructor(
+    {DEPENDENCIES}
+  ) {}
+
+  // ============================================
+  // LLM ГЕНЕРИРУЕТ ТОЛЬКО МЕТОДЫ НИЖЕ
+  // ============================================
+
+  {LLM_GENERATED_METHODS}
+
+  // ============================================
+  // Конец LLM генерации
+  // ============================================
+}
+```
+
+**Если есть database node:**
+
+- Импорты: `{FEATURE_NAME}Repository`, `Create{FEATURE_NAME}Dto`, `Update{FEATURE_NAME}Dto`, `{FEATURE_NAME}`
+- Зависимость: `private repository: {FEATURE_NAME}Repository`
+- Стандартные CRUD: `create`, `findById`, `findAll`, `update`, `delete`
+
+**Если нет database node:**
+
+- Импорты: типы из Protobuf (`{Action}Request`, `{Action}Response`)
+- Зависимости: другие сервисы через RabbitMQ client
+- Методы: согласно описанию пользователя
+
+## LLM Инструкции
+
+```markdown
+Ты генерируешь ТОЛЬКО методы бизнес-логики для сервиса.
+
+КОНСТРАНТЫ:
+
+- НЕ меняй импорты
+- НЕ меняй конструктор
+- НЕ добавляй новые зависимости
+- НЕ создавай новые файлы
+- ТОЛЬКО реализуй тела методов
+
+ОПИСАНИЕ СЕРВИСА:
+{DESCRIPTION}
+
+{IF_DATABASE_NODE}
+Стандартные CRUD методы:
+
+1. create(data: Create{FEATURE_NAME}Dto): Promise<{FEATURE_NAME}>
+2. findById(id: string): Promise<{FEATURE_NAME} | null>
+3. findAll(options?): Promise<{ {FEATURE_NAME_LOWER}s: {FEATURE_NAME}[]; total: number }>
+4. update(id: string, data: Update{FEATURE_NAME}Dto): Promise<{FEATURE_NAME} | null>
+5. delete(id: string): Promise<boolean>
+
+ПОЛЯ СУЩНОСТИ:
+{FIELDS_DESCRIPTION}
+
+СВЯЗИ:
+{RELATIONSHIPS_DESCRIPTION}
+{END_IF}
+```
+
+## Пример
+
+```typescript
+// Пример метода create (если есть database node):
+async create(data: CreateProductDto): Promise<Product> {
+  // Валидация
+  if (!data.name || data.name.trim().length === 0) {
+    throw new Error('Product name is required');
+  }
+  // Сохранение через repository
+  return await this.repository.create(data);
+}
+```
+
+## Checklist
+
+- [ ] Все методы реализованы согласно описанию
+- [ ] Используется repository (если есть БД)
+- [ ] Обработка ошибок на месте
+- [ ] Типы из Protobuf используются
+- [ ] CRUD методы реализованы (если есть БД)
+
+---
+
+_LLM генерит только бизнес-логику._

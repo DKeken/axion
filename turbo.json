@@ -1,70 +1,69 @@
 {
-  "$schema": "https://turborepo.com/schema.json",
-  "ui": "stream",
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", ".output/**", "build/**"]
+      "outputs": ["dist/**", ".next/**", "build/**", "*.tsbuildinfo"],
+      "env": ["NODE_ENV"]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+    "generate": {
+      "cache": false,
+      "outputs": ["generated/**"],
+      "env": []
     },
     "dev": {
-      "persistent": true,
       "cache": false,
-      "dependsOn": ["^db:setup"]
+      "persistent": true,
+      "dependsOn": ["generate"],
+      "env": ["NODE_ENV", "PORT"]
     },
     "start": {
       "cache": false,
-      "persistent": true
-    },
-    "start:dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "start:prod": {
+      "persistent": true,
       "dependsOn": ["build"],
-      "cache": false,
-      "persistent": true
+      "env": ["NODE_ENV", "PORT"]
     },
-    "db:generate": {
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "outputs": [],
       "cache": false
     },
-    "db:push": {
-      "cache": false,
-      "dependsOn": ["^db:generate"]
-    },
-    "db:migrate": {
-      "cache": false,
-      "dependsOn": ["^db:generate"]
-    },
-    "db:seed": {
-      "cache": false,
-      "dependsOn": ["^db:push"]
-    },
-    "db:studio": {
-      "cache": false,
-      "persistent": true
-    },
-    "db:setup": {
-      "cache": false,
-      "dependsOn": ["db:generate", "db:build"]
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": ["*.tsbuildinfo"]
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"]
     },
-    "test:e2e": {
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
+    "test:coverage": {
       "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"]
+    },
+    "clean": {
+      "cache": false,
+      "outputs": []
+    },
+    "format": {
+      "outputs": [],
       "cache": false
     },
-    "db:build": {
-      "dependsOn": ["db:generate"],
-      "outputs": ["dist/**"]
+    "format:check": {
+      "outputs": [],
+      "cache": false
     }
   }
 }

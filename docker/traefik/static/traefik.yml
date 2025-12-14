@@ -1,0 +1,35 @@
+# Traefik Static Configuration
+# This file contains entrypoints, providers, and other static settings
+
+entryPoints:
+  web:
+    address: ":80"
+    transport:
+      respondingTimeouts:
+        idleTimeout: 3600s # For WebSocket connections
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        # In dev: allow insecure (self-signed) certificates
+        # In prod: use certResolver with Let's Encrypt
+        options: default
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      tlsChallenge: {}
+      email: admin@axion.dev
+      storage: /letsencrypt/acme.json
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+api:
+  insecure: true # Only for dev, use auth in production
+  dashboard: true
+
+log:
+  level: INFO

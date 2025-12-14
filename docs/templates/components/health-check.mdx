@@ -1,0 +1,58 @@
+---
+title: "Component: Health Check Endpoint"
+description: "Health check endpoint для мониторинга состояния сервиса."
+order: 2
+---
+
+# Component: Health Check Endpoint
+
+## Описание
+
+Health check endpoint для мониторинга состояния сервиса.
+
+**Используется в:** всех сервисах
+
+## Конфигурация
+
+- `{SERVICE_NAME}` - имя сервиса
+- `{CHECKS}` - дополнительные проверки (database, redis, etc.)
+
+## Код
+
+```typescript
+// src/health/health.check.ts
+export async function healthCheck() {
+  const checks = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: '{SERVICE_NAME}',
+    version: process.env.SERVICE_VERSION || '1.0.0',
+    checks: {
+      // Дополнительные проверки
+      {CHECKS}
+    },
+  };
+
+  // Проверяем все зависимости
+  const allHealthy = Object.values(checks.checks).every(
+    (check: any) => check.status === 'up'
+  );
+
+  if (!allHealthy) {
+    checks.status = 'degraded';
+  }
+
+  return checks;
+}
+```
+
+## LLM Инструкции
+
+**LLM НЕ генерит этот файл** - он создается автоматически из шаблона.
+
+## Checklist
+
+- [ ] Endpoint отвечает на `/health`
+- [ ] Все проверки работают
+- [ ] Статус корректно определяется
+- [ ] Метрики доступны

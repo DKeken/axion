@@ -1,0 +1,22 @@
+# Generated files
+generated/
+*.pb.ts
+*.pb.js
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+*.tsbuildinfo

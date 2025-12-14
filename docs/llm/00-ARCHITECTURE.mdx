@@ -1,0 +1,182 @@
+---
+title: "Axion Meta-Framework: Complete Architecture"
+description: "Axion — это мета-фреймворк нового поколения, где React Flow граф является единственным источником истины для всей архитектуры приложения. Визуальное проектирование → автоматическая генерация кода →..."
+order: 0
+---
+
+# Axion Meta-Framework: Complete Architecture
+
+## Executive Summary
+
+Axion — это мета-фреймворк нового поколения, где React Flow граф является единственным источником истины для всей архитектуры приложения. Визуальное проектирование → автоматическая генерация кода → деплой на подключенные серверы через SSH → управление кластерами — всё из единого SaaS-интерфейса.
+
+**Ключевая философия:** Zero Boilerplate, Maximum Control, Visual-First Development.
+
+## Основные цели
+
+1. **Zero Boilerplate** — пользователь не пишет шаблонный код
+2. **Graph as Source of Truth** — граф = архитектура = код
+3. **SaaS-Centric** — всё управление через облачную платформу
+4. **Monetization Ready** — встроенная система подписок и биллинга
+5. **Infrastructure as Code** — автоматическое управление инфраструктурой
+6. **Infinite Scalability** — от одного сервера до глобальных кластеров
+7. **Project Isolation** — каждый проект изолирован через project_id
+8. **Blueprint-First** — пользователь выбирает шаблоны (как в UE5), не создает с нуля
+
+## Принципы архитектуры
+
+- **Declarative** — описываем что, не как
+- **Type-Safe** — end-to-end типизация из графа
+- **Visual-First** — визуальное проектирование первично
+- **Blueprint-Based** — готовые шаблоны сервисов, пользователь выбирает
+- **LLM Only Logic** — LLM генерит только бизнес-логику, не инфраструктуру
+- **UI Forms for Config** — конфигурация через формы, не через LLM
+- **Auto-Generated** — инфраструктура, контракты, схемы генерируются автоматически
+- **Strict Validation** — многоуровневая валидация на всех этапах
+
+## Общая структура системы
+
+Axion состоит из:
+
+- **Control Plane (SaaS)** — Next.js 15 + React 19 RSC frontend, NestJS Microservices backend
+- **Axion CLI** — Bun-based CLI для локальной работы
+- **User's Infrastructure** — SSH серверы клиентов с Axion Runner Agent
+
+## Project Isolation
+
+Каждый проект - полностью изолированный контур:
+
+- Свой `project_id` во всех запросах
+- Свой граф архитектуры (`project.graph_data`)
+- Свои серверы и кластеры
+- Свои деплои (`project_deployments`)
+- Свои метрики и логи
+- Свои лимиты ресурсов
+
+**Критически важно:** `node_id` в `project_services` = `node.id` в React Flow графе. Это связующее звено между визуальным графом и сгенерированным кодом.
+
+## Blueprint System (UE5-style)
+
+Blueprint = готовый шаблон сервиса с предопределенной структурой, где LLM генерит только бизнес-логику.
+
+**Что LLM НЕ генерит:**
+
+1. Инфраструктуру — Docker файлы, конфиги (генерируются автоматически)
+2. Схемы БД — пользователь описывает через UI форму, система генерит
+3. Структуру файлов — определяется Blueprint
+4. Контракты — генерируются автоматически из графа
+
+**Что LLM генерит:**
+ТОЛЬКО бизнес-логику в указанных точках (например, методы в service.ts)
+
+## Полный флоу: От регистрации до деплоя
+
+### Phase 1: Onboarding
+
+1. Регистрация → создание user_id
+2. Создание проекта → создание project_id, пустой граф
+
+### Phase 2: Building Architecture
+
+3. Создание сервиса через Blueprint → React Flow drag & drop, выбор blueprint, форма конфигурации
+4. Создание связей → drag edge между нодами, сохранение в граф
+
+### Phase 3: Code Generation
+
+5. Генерация всего проекта → для каждой ноды: загрузка blueprint, генерация структуры, LLM генерация бизнес-логики, валидация
+
+### Phase 4: Infrastructure Setup
+
+6. Создание кластера (опционально)
+7. Подключение сервера → SSH тест, автоматическая установка Runner Agent через BullMQ
+
+### Phase 5: Deployment (с Axion Runner Agent)
+
+8. Деплой на кластер/сервер → через gRPC + Kafka к Runner Agent, который управляет Docker Swarm локально
+
+### Phase 6: Updates & Management
+
+9. Обновление после деплоя → diff графа, обновление только измененных сервисов, rolling update
+10. Обновление бизнес-логики → LLM чат, регенерация, обновление деплоя
+
+## Database Schema
+
+Основные таблицы:
+
+- `users` — пользователи с subscription_tier
+- `projects` — проекты с graph_data (JSONB)
+- `project_services` — сервисы проекта (связь через node_id)
+- `clusters` — кластеры (группы серверов)
+- `servers` — SSH серверы
+- `project_deployments` — деплои проекта
+
+## API Endpoints
+
+Все с project_id для изоляции:
+
+- `/api/projects` — CRUD проектов
+- `/api/projects/:projectId/graph` — CRUD графов
+- `/api/projects/:projectId/generate` — генерация кода
+- `/api/projects/:projectId/deploy` — деплой
+- `/api/clusters`, `/api/servers` — управление инфраструктурой
+
+## Validation Pipeline
+
+6 уровней валидации:
+
+1. **Structural Validation** — проверка обязательных файлов
+2. **Contract Validation** — проверка Protobuf контрактов
+3. **TypeScript Validation** — `tsc --noEmit`
+4. **Build Validation** — `bun run build`
+5. **Health Check Validation** — запуск в Docker, проверка health endpoint
+6. **Contract Discovery Validation** — валидация при запуске
+
+## Версионирование
+
+Все изменения версионируются:
+
+- Графы → `project_graph_versions`
+- Код → `project_service.code_version`
+- Деплои → `project_deployments`
+
+## Монетизация
+
+Тарифы:
+
+- **Free Tier:** 1 проект, 1 сервер, 3 микросервиса
+- **Pro ($29/мес):** Неограниченные проекты, 5 серверов
+- **Enterprise (Custom):** Всё из Pro + неограниченные серверы
+
+## Различие: SaaS vs Генерируемые Сервисы
+
+**SaaS Платформа (Axion Control Plane):**
+
+- NestJS Microservices
+- Service Discovery (Redis)
+- Kafka Event Bus
+- Multiple Databases (Drizzle ORM)
+- Protobuf контракты
+- Traefik API Gateway
+
+**Генерируемые Сервисы (для клиентов):**
+
+- Легковесный фреймворк (ElysiaJS/Hono)
+- RabbitMQ для межсервисного общения
+- Drizzle ORM для БД
+- Protobuf контракты
+- Минимум зависимостей
+
+## Структура монорепозитория
+
+```
+axion-stack/
+├── apps/
+│   ├── control-plane/     # SaaS платформа
+│   └── cli/                # Axion CLI
+├── packages/
+│   ├── graph-schema/      # JSON Schema для графов
+│   ├── codegen/           # Движок генерации кода
+│   ├── blueprints/        # Blueprint система
+│   └── contracts/         # Protobuf контракты
+└── generated/             # Сгенерированные проекты
+```

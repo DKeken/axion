@@ -1,0 +1,22 @@
+{
+  "name": "@axion-stack/typescript-config",
+  "version": "1.0.0",
+  "description": "Shared TypeScript configuration for Axion Stack monorepo",
+  "private": true,
+  "main": "index.js",
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "strict.json",
+    "node.json"
+  ],
+  "exports": {
+    "./base": "./base.json",
+    "./nextjs": "./nextjs.json",
+    "./strict": "./strict.json",
+    "./node": "./node.json"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

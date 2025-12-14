@@ -1,0 +1,135 @@
+# Auto-generated from docker/services.config.ts
+# DO NOT EDIT - run: bun run docker:generate-traefik-config
+# Mode: dev
+
+http:
+  routers:
+    traefik:
+      rule: Host(`traefik.localhost`)
+      entryPoints:
+        - web
+      service: api@internal
+    graph:
+      rule: PathPrefix(`/api/v1/graph`)
+      entryPoints:
+        - web
+      service: graph-service
+      middlewares:
+        - graph-stripprefix
+    graph-ws:
+      rule: PathPrefix(`/api/v1/graph`)
+      entryPoints:
+        - web
+      service: graph-service
+      middlewares:
+        - graph-stripprefix
+        - graph-ws-headers
+    graph-secure:
+      rule: PathPrefix(`/api/v1/graph`)
+      entryPoints:
+        - websecure
+      service: graph-service
+      middlewares:
+        - graph-stripprefix
+    codegen:
+      rule: PathPrefix(`/api/v1/codegen`)
+      entryPoints:
+        - web
+      service: codegen-service
+      middlewares:
+        - codegen-stripprefix
+    codegen-secure:
+      rule: PathPrefix(`/api/v1/codegen`)
+      entryPoints:
+        - websecure
+      service: codegen-service
+      middlewares:
+        - codegen-stripprefix
+    deployment:
+      rule: PathPrefix(`/api/v1/deployment`)
+      entryPoints:
+        - web
+      service: deployment-service
+      middlewares:
+        - deployment-stripprefix
+    deployment-secure:
+      rule: PathPrefix(`/api/v1/deployment`)
+      entryPoints:
+        - websecure
+      service: deployment-service
+      middlewares:
+        - deployment-stripprefix
+    infrastructure:
+      rule: PathPrefix(`/api/v1/infrastructure`)
+      entryPoints:
+        - web
+      service: infrastructure-service
+      middlewares:
+        - infrastructure-stripprefix
+    infrastructure-secure:
+      rule: PathPrefix(`/api/v1/infrastructure`)
+      entryPoints:
+        - websecure
+      service: infrastructure-service
+      middlewares:
+        - infrastructure-stripprefix
+    billing:
+      rule: PathPrefix(`/api/v1/billing`)
+      entryPoints:
+        - web
+      service: billing-service
+      middlewares:
+        - billing-stripprefix
+    billing-secure:
+      rule: PathPrefix(`/api/v1/billing`)
+      entryPoints:
+        - websecure
+      service: billing-service
+      middlewares:
+        - billing-stripprefix
+  services:
+    graph-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3001
+    codegen-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3002
+    deployment-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3003
+    infrastructure-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3004
+    billing-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3006
+  middlewares:
+    graph-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1/graph
+    graph-ws-headers:
+      headers:
+        customRequestHeaders:
+          Upgrade: websocket
+    codegen-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1/codegen
+    deployment-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1/deployment
+    infrastructure-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1/infrastructure
+    billing-stripprefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1/billing

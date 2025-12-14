@@ -1,0 +1,126 @@
+---
+title: "Component: Drizzle Repository Pattern"
+description: "Repository для работы с базой данных через Drizzle ORM."
+order: 1
+---
+
+# Component: Drizzle Repository Pattern
+
+## Описание
+
+Repository для работы с базой данных через Drizzle ORM.
+
+**Используется в:** сервисах с базой данных (когда выбрана Drizzle в database node)
+
+<Callout type="info" title="Расширяемость">
+  Для добавления других ORM см. [EXTENSIBILITY](../../EXTENSIBILITY)
+</Callout>
+
+## Конфигурация
+
+- `{ENTITY_NAME}` - имя сущности (PascalCase)
+- `{ENTITY_NAME_LOWER}` - имя сущности (camelCase)
+- `{SCHEMA}` - Drizzle schema для сущности
+- `{TABLE_NAME}` - имя таблицы в БД
+
+## Код
+
+```typescript
+// src/database/repository.ts
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { {SCHEMA} } from './schema';
+import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
+import { DatabaseConnection } from './connection';
+
+export class {ENTITY_NAME}Repository {
+  private db: ReturnType<typeof drizzle>;
+
+  constructor(connection: DatabaseConnection) {
+    // Получаем Drizzle client из абстракции
+    this.db = connection.getClient() as ReturnType<typeof drizzle>;
+  }
+
+  async create(data: Create{ENTITY_NAME}Dto): Promise<{ENTITY_NAME}> {
+    const [result] = await this.db
+      .insert({SCHEMA})
+      .values(data)
+      .returning();
+
+    return result;
+  }
+
+  async findById(id: string): Promise<{ENTITY_NAME} | null> {
+    const [result] = await this.db
+      .select()
+      .from({SCHEMA})
+      .where(eq({SCHEMA}.id, id))
+      .limit(1);
+
+    return result || null;
+  }
+
+  async findAll(options?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{ {ENTITY_NAME_LOWER}s: {ENTITY_NAME}[]; total: number }> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const offset = (page - 1) * limit;
+
+    let query = this.db.select().from({SCHEMA});
+
+    // Поиск (если указан)
+    if (options?.search) {
+      query = query.where(
+        or(
+          like({SCHEMA}.name, `%${options.search}%`),
+          // Добавить другие поля для поиска
+        )
+      ) as any;
+    }
+
+    const [results, totalResult] = await Promise.all([
+      query.limit(limit).offset(offset).orderBy(desc({SCHEMA}.created_at)),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from({SCHEMA}),
+    ]);
+
+    return {
+      {ENTITY_NAME_LOWER}s: results,
+      total: Number(totalResult[0].count),
+    };
+  }
+
+  async update(id: string, data: Update{ENTITY_NAME}Dto): Promise<{ENTITY_NAME} | null> {
+    const [result] = await this.db
+      .update({SCHEMA})
+      .set({ ...data, updated_at: new Date() })
+      .where(eq({SCHEMA}.id, id))
+      .returning();
+
+    return result || null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.db
+      .delete({SCHEMA})
+      .where(eq({SCHEMA}.id, id));
+
+    return result.rowCount > 0;
+  }
+}
+```
+
+## LLM Инструкции
+
+**LLM НЕ генерит этот файл** - он создается автоматически из шаблона и схемы БД.
+
+## Checklist
+
+- [ ] Все CRUD методы реализованы
+- [ ] Поиск работает
+- [ ] Пагинация работает
+- [ ] Типы корректны
+- [ ] Обработка ошибок на месте

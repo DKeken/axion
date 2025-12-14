@@ -1,0 +1,143 @@
+---
+title: "Axion Runner Agent: Архитектура и Реализация"
+description: "Axion Runner Agent — критически важный компонент для деплоя и управления проектами на серверах клиентов. Агент написан на Rust для максимальной производительности и надежности, использует gRPC + Ka..."
+order: 3
+---
+
+# Axion Runner Agent: Архитектура и Реализация
+
+## Обзор
+
+Axion Runner Agent — критически важный компонент для деплоя и управления проектами на серверах клиентов. Агент написан на **Rust** для максимальной производительности и надежности, использует **gRPC + Kafka** для типобезопасного общения с Control Plane и управляет контейнерами через **Docker Swarm**.
+
+**Ключевые особенности:**
+
+- Высокая производительность — Rust для минимального потребления ресурсов
+- Один статический бинарник — работает на любом Linux без зависимостей
+- Автоматическая установка — устанавливается при добавлении сервера через SSH + BullMQ
+- Безопасность — проверка целостности, TLS, изоляция, минимальные привилегии
+- Автообновление — безопасное обновление с rollback
+- Observability — structured logging, метрики, health checks
+- Надежность — circuit breaker, retry, graceful shutdown
+- Real-time — мгновенная реакция на команды через gRPC + Kafka
+
+## Архитектура
+
+```
+Control Plane (SaaS)
+├── Deployment Service → gRPC + Kafka
+├── Metrics Ingestion Service → gRPC
+├── Runner Management Service → gRPC
+└── Kafka Event Bus
+
+Client Server
+├── Axion Runner Agent (Rust Binary)
+│   ├── gRPC Client
+│   ├── Kafka Consumer/Producer
+│   ├── Docker Swarm Manager
+│   ├── Telemetry Collector
+│   ├── Log Collector
+│   └── Command Executor
+└── Docker Swarm Stack
+```
+
+## Компоненты Runner Agent
+
+1. **gRPC Client** — подключение к Control Plane, регистрация, heartbeat, отправка метрик
+2. **Kafka Consumer** — подписка на команды от Control Plane, гарантия доставки
+3. **Kafka Producer** — публикация событий деплоя, ошибок, метрик
+4. **Docker Swarm Manager** — управление Swarm stack, rolling updates, health checks, scaling
+5. **Telemetry Collector** — сбор метрик Docker Swarm и системных метрик, отправка через gRPC
+6. **Log Collector** — сбор и ротация логов контейнеров
+7. **Command Executor** — безопасное выполнение команд от Control Plane
+8. **Configuration Manager** — загрузка и hot reload конфигурации
+9. **Metrics Exporter** — экспорт метрик в Prometheus формат
+10. **Backup Manager** — резервное копирование конфигураций проектов
+
+## Безопасность
+
+1. **Аутентификация агента** — уникальный токен для каждого агента, TLS для всех соединений
+2. **Валидация команд** — whitelist разрешенных команд, sanitization параметров, timeout
+3. **Изоляция** — Docker Socket без root прав, отдельная Docker сеть, доступ только к `/opt/axion/`
+4. **Шифрование** — TLS для всех gRPC соединений, Kafka SASL/SSL, encrypted storage
+5. **Автообновление** — проверка целостности (SHA256), graceful shutdown, rollback механизм
+6. **Дополнительные меры** — Seccomp, AppArmor/SELinux, минимальные capabilities, read-only root
+
+## Процесс деплоя с агентом
+
+**Новый процесс (с Runner Agent):**
+
+```
+Control Plane → BullMQ → Worker → gRPC + Kafka → Runner Agent → Docker Swarm
+                                                                    ↓
+                                                          Телеметрия → Control Plane (gRPC)
+```
+
+**Преимущества:**
+
+- gRPC + Protobuf — типобезопасное общение
+- Kafka — надежная доставка команд и событий
+- Docker Swarm — продвинутая оркестрация (rolling updates, health checks, scaling)
+- Rust — максимальная производительность, низкое потребление ресурсов
+- Локальный сбор телеметрии — метрики собираются на сервере
+- Автономная работа — Agent может работать даже при проблемах с Control Plane
+- Real-time мониторинг — метрики и логи в реальном времени
+
+**Детальный процесс:**
+
+1. Control Plane создает задачу деплоя в BullMQ
+2. Deployment Worker обрабатывает задачу
+3. Worker отправляет команду `deploy` через gRPC к Runner Agent
+4. Worker публикует событие деплоя в Kafka (для надежности)
+5. Runner Agent получает команду через gRPC или Kafka
+6. Runner Agent управляет Docker Swarm локально
+7. Runner Agent отправляет статус обратно в Control Plane через Kafka
+8. Runner Agent начинает сбор телеметрии и отправку через gRPC
+
+## Система автообновления
+
+**Компоненты:**
+
+1. Update Manager — управление обновлениями
+2. Version Checker — проверка доступных версий
+3. Download Manager — безопасная загрузка обновлений
+4. Integrity Verifier — проверка целостности (SHA256)
+5. Update Installer — установка обновлений
+6. Rollback Manager — откат при проблемах
+
+**Каналы обновлений:**
+
+- Stable (по умолчанию)
+- Beta
+- Alpha
+
+**Процесс обновления:**
+
+1. Проверка доступных обновлений через gRPC
+2. Загрузка обновления через HTTPS с проверкой TLS и SHA256 checksum
+3. Graceful shutdown — остановка телеметрии, завершение команд
+4. Установка — сохранение backup, атомарная замена бинарника, перезапуск
+5. Rollback — автоматический откат при проблемах
+
+## Требования и совместимость
+
+**Поддерживаемые платформы:**
+
+- Linux (статические бинарники): Ubuntu 18.04+, Debian 9+, CentOS 7+, RHEL 7+, Amazon Linux 2
+- Архитектуры: x86_64 (amd64), aarch64 (arm64)
+
+**Минимальные требования:**
+
+- CPU: 1 core (рекомендуется 2+)
+- Memory: 256MB (рекомендуется 512MB+)
+- Disk: 50MB для бинарника + место для проектов
+- Docker: версия 20.10+ с поддержкой Swarm
+- Network: доступ к Control Plane gRPC и Kafka brokers
+
+**Статическая сборка:**
+
+- Статическая линковка — все библиотеки включены в бинарник
+- musl libc — для максимальной совместимости
+- Нет зависимостей — не требует установки библиотек на сервере
+- Один файл — просто скопировать и запустить
+- Размер: ~5-10MB (сжатый), ~15-20MB (несжатый)

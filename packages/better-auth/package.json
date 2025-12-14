@@ -1,0 +1,46 @@
+{
+  "name": "@axion/better-auth",
+  "version": "1.0.0",
+  "description": "Better Auth integration package for Axion Stack",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./nestjs": {
+      "types": "./dist/nestjs/index.d.ts",
+      "default": "./dist/nestjs/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "default": "./dist/ui/index.js"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axion/database": "workspace:*",
+    "@axion/contracts": "workspace:*",
+    "@thallesp/nestjs-better-auth": "^1.0.0",
+    "better-auth": "^1.3.8",
+    "drizzle-orm": "catalog:"
+  },
+  "peerDependencies": {
+    "better-auth-ui": "^3.2.6"
+  },
+  "peerDependenciesMeta": {
+    "better-auth-ui": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@axion-stack/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

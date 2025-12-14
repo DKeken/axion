@@ -1,0 +1,94 @@
+---
+title: "Contracts & Schema"
+description: "Система контрактов обеспечивает типобезопасность между микросервисами через Protobuf. Все контракты генерируются автоматически из графа."
+order: 0
+---
+
+# Contracts & Schema
+
+## Обзор
+
+Система контрактов обеспечивает типобезопасность между микросервисами через Protobuf. Все контракты генерируются автоматически из графа.
+
+<Callout type="info" title="Автоматическая генерация">
+  Все Protobuf контракты генерируются автоматически из графа архитектуры. Вам не
+  нужно писать их вручную.
+</Callout>
+
+## Структура
+
+```
+proto/
+├── {service-name}.proto           # Protobuf контракт
+└── common/common.proto             # Общие типы
+
+src/generated/                      # Сгенерированные TypeScript типы
+├── {service-name}.pb.ts
+└── common.pb.ts
+```
+
+## Формат контракта
+
+```protobuf
+syntax = "proto3";
+package axion.{service-name};
+
+service {ServiceName}Service {
+  rpc {Action}({Action}Request) returns ({Action}Response);
+}
+
+message {Action}Request {
+  string field = 1;
+}
+
+message {Action}Response {
+  string id = 1;
+}
+```
+
+## Интеграция с RabbitMQ
+
+**MessagePattern:** `{service-name}.{action}` → **Protobuf:** `{ServiceName}Service.{Action}`
+
+```typescript
+rabbitMQServer.registerHandler(
+  "product-service.create",
+  async (data: CreateProductRequest): Promise<ProductResponse> => {
+    return await productService.create(data);
+  }
+);
+```
+
+## Правила генерации
+
+1. **Именование:**
+   - Service Name: kebab-case (`product-service`)
+   - Action Name: camelCase (`createProduct`)
+   - MessagePattern: `{service-name}.{action}`
+   - Protobuf Service: PascalCase (`ProductService`)
+
+2. **Обязательные поля:** `syntax = "proto3"`, `package`, `service`, `rpc`, `message`
+
+3. **Валидация:** Автоматическая через Protobuf при десериализации
+
+4. **Error Responses:** Использовать `oneof result { success, error }`
+
+## Генерация из графа
+
+1. Извлечение из графа — для каждой Service ноды, анализ edges
+2. Генерация Protobuf — создание `{service-name}.proto` с service и rpc методами
+3. Генерация TypeScript — `protoc` для генерации типов в `src/generated/`
+4. Валидация — проверка Protobuf файлов и соответствия MessagePattern
+
+## Checklist
+
+- [ ] Protobuf файл создан для каждого сервиса
+- [ ] Все RPC методы определены
+- [ ] TypeScript типы сгенерированы
+- [ ] MessagePattern соответствуют Protobuf методам
+- [ ] Error handling определен
+- [ ] Валидация проходит
+
+---
+
+_Контракты обеспечивают типобезопасность межсервисного общения._

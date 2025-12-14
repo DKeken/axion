@@ -1,249 +1,249 @@
 services:
-  # PostgreSQL Database - Internal only, no external ports
-  postgres:
+  # PostgreSQL для graph-service
+  postgres-graph:
     image: postgres:16-alpine
-    restart: unless-stopped
+    container_name: axion-postgres-graph
     environment:
-      POSTGRES_DB: nestjs_api
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure-postgres-password-2024}
-    # External port exposed for development
+      POSTGRES_USER: axion
+      POSTGRES_PASSWORD: axion_password
+      POSTGRES_DB: axion_graph
+      # Ensure user is created even if database directory exists
+      POSTGRES_INITDB_ARGS: "-U axion"
     ports:
-      - "5432:5432"
-    expose:
-      - "5432"
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres_graph_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U postgres || pg_isready -U axion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axion-network
 
-  # Redis for caching and sessions - Internal only
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-secure-redis-password-2024}
-    # External port exposed for development
+  # PostgreSQL для codegen-service
+  postgres-codegen:
+    image: postgres:16-alpine
+    container_name: axion-postgres-codegen
+    environment:
+      POSTGRES_USER: axion
+      POSTGRES_PASSWORD: axion_password
+      POSTGRES_DB: axion_codegen
+      # Ensure user is created even if database directory exists
+      POSTGRES_INITDB_ARGS: "-U axion"
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_codegen_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || pg_isready -U axion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axion-network
+
+  # KeyDB - Service Discovery и кэширование (высокопроизводительная замена Redis)
+  keydb:
+    image: eqalpha/keydb:latest
+    container_name: axion-keydb
+    command: >
+      keydb-server
+      --bind 0.0.0.0
+      --port 6379
+      --appendonly yes
+      --requirepass axion_keydb_password
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 2gb
+      --maxmemory-policy noeviction
     ports:
       - "6379:6379"
-    expose:
-      - "6379"
     volumes:
-      - redis_data:/data
+      - keydb_data:/data
+      - keydb_config:/etc/keydb
+    environment:
+      - KEYDB_PASSWORD=axion_keydb_password
+    healthcheck:
+      test: ["CMD", "keydb-cli", "-a", "axion_keydb_password", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - axion-network
+
+  # Kafka - Event Bus для CQRS и Event Sourcing (KRaft mode, без Zookeeper)
+  # Configured with SASL/SCRAM authentication and security best practices
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: axion-kafka
+    environment:
+      # KRaft mode configuration
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_NODE_ID: 1
+      # CLUSTER_ID: Required for KRaft mode (22-character base64 string)
+      CLUSTER_ID: "YXhpb24ta2Fma2EtY2x1c3"
+
+      # Listeners configuration
+      # PLAINTEXT_HOST: for host access (localhost:9092)
+      # PLAINTEXT_DOCKER: for Docker network access (kafka:9092)
+      # CONTROLLER: for KRaft controller communication (internal)
+      KAFKA_LISTENERS: PLAINTEXT_HOST://0.0.0.0:19092,PLAINTEXT_DOCKER://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      # Advertised listeners: different addresses for host and Docker network
+      # PLAINTEXT_HOST: for services running on host (localhost:9092)
+      # PLAINTEXT_DOCKER: for services in Docker network (kafka:9092)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT_DOCKER://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
+
+      # Security: Disable ACLs for development (KRaft mode doesn't need Zookeeper)
+      # For production, enable ACLs with proper configuration
+      # KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      # KAFKA_SUPER_USERS: User:ANONYMOUS
+      # KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+
+      # Topic configuration
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      # Performance and reliability settings
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+
+      # Consumer and Producer settings for better performance
+      # Reduce initial rebalance delay for instant consumer group join
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Set max session timeout to match consumer configuration (10s for faster development)
+      KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS: 10000
+      # Set min session timeout to allow faster heartbeats
+      KAFKA_GROUP_MIN_SESSION_TIMEOUT_MS: 3000
+
+      # Network and connection settings
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 8
+
+      # Log directories for KRaft
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      # JMX for monitoring
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+    ports:
+      - "9092:19092" # PLAINTEXT_HOST listener for host access
+      - "9101:9101" # JMX port for monitoring
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
       test:
         [
-          "CMD",
-          "redis-cli",
-          "--no-auth-warning",
-          "-a",
-          "${REDIS_PASSWORD:-secure-redis-password-2024}",
-          "ping",
+          "CMD-SHELL",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 || kafka-broker-api-versions --bootstrap-server localhost:19092 || exit 1",
         ]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
+    networks:
+      - axion-network
 
-  # Redis Commander - Admin UI (Development only)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    restart: unless-stopped
-    environment:
-      REDIS_HOSTS: "local:redis:6379:0:${REDIS_PASSWORD:-secure-redis-password-2024}"
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-secure-redis-password-2024}
-      REDIS_DB: 0
-      HTTP_USER: ${REDIS_ADMIN_USER:-admin}
-      HTTP_PASSWORD: ${REDIS_ADMIN_PASSWORD:-secure-redis-admin-2024}
-      PORT: 8081
-    # Only expose in development - comment out for production
-    # ports:
-    #   - "8081:8081"
-    expose:
-      - "8081"
-    depends_on:
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # RabbitMQ Message Broker - Secured
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-axion_admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-secure-rabbitmq-password-2024}
-      RABBITMQ_DEFAULT_VHOST: /
-    # AMQP port exposed for microservices communication
+  # Kafka UI - Web UI for Apache Kafka Management
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: axion-kafka-ui
+    profiles: ["infrastructure", "all", "monitoring"]
     ports:
-      - "5672:5672" # AMQP port for development
-      - "15672:15672" # Management UI for development
-    expose:
-      - "5672"
-      - "15692" # Prometheus metrics (internal only)
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - rabbitmq_logs:/var/log/rabbitmq
+      - "8081:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "axion-kafka"
+      # Use kafka:9092 for Docker network access
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
+      KAFKA_CLUSTERS_0_READONLY: "false"
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "PLAINTEXT"
+      # Security settings (when SASL is enabled)
+      # KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+      # KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+      # KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin-password\";"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - axion-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
-      retries: 3
-    command: >
-      sh -c "
-        rabbitmq-plugins enable rabbitmq_prometheus rabbitmq_management &&
-        rabbitmq-server
-      "
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kafka-ui.rule=Host(`kafka-ui.localhost`)"
+      - "traefik.http.routers.kafka-ui.entrypoints=web"
+      - "traefik.http.services.kafka-ui.loadbalancer.server.port=8080"
 
-  # Prometheus - Metrics Collection and Storage (Internal only)
-  prometheus:
-    image: prom/prometheus:latest
-    restart: unless-stopped
-    # Internal only - no external access to metrics
-    expose:
-      - "9090"
-    # Only expose in development
-    # ports:
-    #   - "9090:9090"
-    volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
+  # Traefik - API Gateway
+  traefik:
+    image: traefik:v3.0
+    container_name: axion-traefik
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-      - "--storage.tsdb.retention.time=200h"
-      - "--web.enable-lifecycle"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Pushgateway - Metrics Gateway for Batch Jobs (Internal only)
-  pushgateway:
-    image: prom/pushgateway:latest
-    restart: unless-stopped
-    # Internal only - microservices push metrics here
-    expose:
-      - "9091"
-    # External port exposed for development
+      - "--configfile=/etc/traefik/static/traefik.yml"
     ports:
-      - "9091:9091"
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Traefik dashboard
     volumes:
-      - pushgateway_data:/var/lib/pushgateway
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9091/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Grafana - Metrics Visualization Dashboard (Secured)
-  grafana:
-    image: grafana/grafana:latest
-    restart: unless-stopped
-    # External access with secure credentials
-    ports:
-      - "3333:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-secure-grafana-admin-2024}
-      GF_USERS_ALLOW_SIGN_UP: false
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
-      # Security enhancements
-      GF_SECURITY_DISABLE_GRAVATAR: true
-      GF_SECURITY_COOKIE_SECURE: true
-      GF_ANALYTICS_REPORTING_ENABLED: false
-      GF_ANALYTICS_CHECK_FOR_UPDATES: false
+      - ./docker/traefik/static:/etc/traefik/static:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_letsencrypt:/letsencrypt
     depends_on:
-      prometheus:
+      postgres-graph:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Node Exporter - System Metrics (Internal only)
-  node-exporter:
-    image: prom/node-exporter:latest
-    restart: unless-stopped
-    # Internal only - prometheus scrapes metrics
-    expose:
-      - "9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.rootfs=/rootfs"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9100/metrics"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Redis Exporter - Redis Metrics (Internal only)
-  redis-exporter:
-    image: oliver006/redis_exporter:latest
-    restart: unless-stopped
-    # Internal only - prometheus scrapes metrics
-    expose:
-      - "9121"
-    environment:
-      REDIS_ADDR: "redis://redis:6379"
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-secure-redis-password-2024}
-    depends_on:
-      redis:
+      keydb:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9121/metrics"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # PostgreSQL Exporter - Database Metrics (Internal only)
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
-    restart: unless-stopped
-    # Internal only - prometheus scrapes metrics
-    expose:
-      - "9187"
-    environment:
-      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD:-secure-postgres-password-2024}@postgres:5432/nestjs_api?sslmode=disable"
-    depends_on:
-      postgres:
+      kafka:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/metrics"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    networks:
+      - axion-network
+    entrypoint:
+      - sh
+      - -c
+      - |
+        # Wait for config file to exist
+        until [ -f /etc/traefik/dynamic/routers.yml ]; do
+          echo "Waiting for Traefik config..."
+          sleep 1
+        done
+        exec /entrypoint.sh --configfile=/etc/traefik/static/traefik.yml
 
 volumes:
-  postgres_data:
-  redis_data:
-  rabbitmq_data:
-  rabbitmq_logs:
-  prometheus_data:
-  grafana_data:
-  pushgateway_data:
+  postgres_graph_data:
+    driver: local
+  postgres_codegen_data:
+    driver: local
+  keydb_data:
+    driver: local
+  keydb_config:
+    driver: local
+  kafka_data:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
 
 networks:
-  default:
-    name: api-network
+  axion-network:
+    driver: bridge

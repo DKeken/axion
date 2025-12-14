@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+package axion.common;
+
+// Общие типы для всех сервисов
+
+// Статус операции
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_SUCCESS = 1;
+  STATUS_ERROR = 2;
+  STATUS_PENDING = 3;
+  STATUS_IN_PROGRESS = 4;
+}
+
+// Ошибка
+message Error {
+  string code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+}
+
+// Пагинация
+message Pagination {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total = 3;
+  int32 total_pages = 4;
+}
+
+// Метаданные запроса
+message RequestMetadata {
+  string user_id = 1;
+  string project_id = 2; // Опционально, для изоляции проектов
+  string request_id = 3;
+  int64 timestamp = 4;
+}
+
+// Пустой ответ
+message Empty {}
+
+// Статус валидации
+enum ValidationStatus {
+  VALIDATION_STATUS_UNSPECIFIED = 0;
+  VALIDATION_STATUS_PENDING = 1;
+  VALIDATION_STATUS_VALIDATED = 2;
+  VALIDATION_STATUS_ERROR = 3;
+}
+
+// Статус сервиса
+enum ServiceStatus {
+  SERVICE_STATUS_UNSPECIFIED = 0;
+  SERVICE_STATUS_PENDING = 1;
+  SERVICE_STATUS_GENERATING = 2;
+  SERVICE_STATUS_VALIDATED = 3;
+  SERVICE_STATUS_ERROR = 4;
+  SERVICE_STATUS_DEPLOYED = 5;
+  SERVICE_STATUS_DELETED = 6;
+}
+
+// Статус деплоя
+enum DeploymentStatus {
+  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+  DEPLOYMENT_STATUS_PENDING = 1;
+  DEPLOYMENT_STATUS_IN_PROGRESS = 2;
+  DEPLOYMENT_STATUS_SUCCESS = 3;
+  DEPLOYMENT_STATUS_FAILED = 4;
+  DEPLOYMENT_STATUS_ROLLING_BACK = 5;
+  DEPLOYMENT_STATUS_ROLLED_BACK = 6;
+}
+
+// Статус сервера
+enum ServerStatus {
+  SERVER_STATUS_UNSPECIFIED = 0;
+  SERVER_STATUS_CONNECTED = 1;
+  SERVER_STATUS_DISCONNECTED = 2;
+  SERVER_STATUS_ERROR = 3;
+  SERVER_STATUS_PENDING = 4;
+  SERVER_STATUS_INSTALLING = 5;
+}
+
+// Ответ с ошибкой или успехом
+message Result {
+  oneof result {
+    Error error = 1;
+    bool success = 2;
+  }
+}
+
+// Node types (для графа)
+enum NodeType {
+  NODE_TYPE_UNSPECIFIED = 0;
+  NODE_TYPE_SERVICE = 1;
+  NODE_TYPE_DATABASE = 2;
+  NODE_TYPE_GATEWAY = 3;
+}
+
+// Edge types (для графа)
+enum EdgeType {
+  EDGE_TYPE_UNSPECIFIED = 0;
+  EDGE_TYPE_RABBITMQ = 1;
+  EDGE_TYPE_HTTP = 2;
+  EDGE_TYPE_DATABASE = 3;
+}
+
+// Validation levels
+enum ValidationLevel {
+  VALIDATION_LEVEL_UNSPECIFIED = 0;
+  VALIDATION_LEVEL_STRUCTURAL = 1;
+  VALIDATION_LEVEL_CONTRACT = 2;
+  VALIDATION_LEVEL_TYPESCRIPT = 3;
+  VALIDATION_LEVEL_BUILD = 4;
+  VALIDATION_LEVEL_HEALTH = 5;
+  VALIDATION_LEVEL_CONTRACT_DISCOVERY = 6;
+}
+
+// Blueprint categories
+enum BlueprintCategory {
+  BLUEPRINT_CATEGORY_UNSPECIFIED = 0;
+  BLUEPRINT_CATEGORY_CRUD = 1;
+  BLUEPRINT_CATEGORY_AUTH = 2;
+  BLUEPRINT_CATEGORY_PAYMENT = 3;
+  BLUEPRINT_CATEGORY_NOTIFICATION = 4;
+  BLUEPRINT_CATEGORY_ANALYTICS = 5;
+  BLUEPRINT_CATEGORY_CUSTOM = 6;
+}
+
+// Database types
+enum DatabaseType {
+  DATABASE_TYPE_UNSPECIFIED = 0;
+  DATABASE_TYPE_POSTGRESQL = 1;
+  DATABASE_TYPE_MYSQL = 2;
+}
+
+// Cache types
+enum CacheType {
+  CACHE_TYPE_UNSPECIFIED = 0;
+  CACHE_TYPE_REDIS = 1;
+}
+
+// Queue types
+enum QueueType {
+  QUEUE_TYPE_UNSPECIFIED = 0;
+  QUEUE_TYPE_RABBITMQ = 1;
+}
+
+// Protocol types
+enum ProtocolType {
+  PROTOCOL_TYPE_UNSPECIFIED = 0;
+  PROTOCOL_TYPE_HTTP = 1;
+  PROTOCOL_TYPE_GRPC = 2;
+}
+
+// Currency codes
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  CURRENCY_USD = 1;
+  CURRENCY_EUR = 2;
+  CURRENCY_RUB = 3;
+}
+
+// Deployment stages
+enum DeploymentStage {
+  DEPLOYMENT_STAGE_UNSPECIFIED = 0;
+  DEPLOYMENT_STAGE_BUILDING = 1;
+  DEPLOYMENT_STAGE_PUSHING = 2;
+  DEPLOYMENT_STAGE_DEPLOYING = 3;
+  DEPLOYMENT_STAGE_HEALTH_CHECKING = 4;
+  DEPLOYMENT_STAGE_COMPLETED = 5;
+}
+
+// Update channels
+enum UpdateChannel {
+  UPDATE_CHANNEL_UNSPECIFIED = 0;
+  UPDATE_CHANNEL_STABLE = 1;
+  UPDATE_CHANNEL_BETA = 2;
+  UPDATE_CHANNEL_ALPHA = 3;
+}
+
+// Usage metric types
+enum UsageMetricType {
+  USAGE_METRIC_TYPE_UNSPECIFIED = 0;
+  USAGE_METRIC_TYPE_LLM_TOKENS = 1;
+  USAGE_METRIC_TYPE_PROJECTS_COUNT = 2;
+  USAGE_METRIC_TYPE_SERVERS_COUNT = 3;
+  USAGE_METRIC_TYPE_STORAGE_BYTES = 4;
+}
+
+// Limit types
+enum LimitType {
+  LIMIT_TYPE_UNSPECIFIED = 0;
+  LIMIT_TYPE_PROJECTS = 1;
+  LIMIT_TYPE_SERVERS = 2;
+  LIMIT_TYPE_MICROSERVICES = 3;
+  LIMIT_TYPE_LLM_TOKENS_PER_MONTH = 4;
+  LIMIT_TYPE_STORAGE_BYTES = 5;
+}
+
+// Contract validation error types
+enum ContractErrorType {
+  CONTRACT_ERROR_TYPE_UNSPECIFIED = 0;
+  CONTRACT_ERROR_TYPE_MISSING_CONTRACT = 1;
+  CONTRACT_ERROR_TYPE_MISSING_IMPLEMENTATION = 2;
+  CONTRACT_ERROR_TYPE_TYPE_MISMATCH = 3;
+}

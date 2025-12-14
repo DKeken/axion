@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "common/common.proto";
+
+// Deployment commands
+message DeployProjectCommand {
+  string agent_id = 1;
+  string project_id = 2;
+  string deployment_id = 3;
+  string docker_stack_yml = 4;
+  map<string, string> env_vars = 5;
+  bool force_redeploy = 6;
+}
+
+message DeployProjectResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    DeployProjectData data = 3;
+  }
+}
+
+message DeployProjectData {
+  string deployment_id = 1;
+  bool accepted = 2;
+  string message = 3;
+}
+
+message GetDeploymentStatusRequest {
+  string agent_id = 1;
+  string deployment_id = 2;
+}
+
+message DeploymentStatusResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    DeploymentStatusData data = 3;
+  }
+}
+
+message DeploymentStatusData {
+  string deployment_id = 1;
+  axion.common.DeploymentStatus status = 2;
+  repeated ServiceDeploymentStatus service_statuses = 3;
+  axion.common.DeploymentStage current_stage = 4;
+  int32 progress_percent = 5;
+  string error_message = 6;
+}
+
+message ServiceDeploymentStatus {
+  string service_id = 1;
+  string service_name = 2;
+  axion.common.DeploymentStatus status = 3;
+  int32 replicas = 4;
+  int32 healthy_replicas = 5;
+  string error_message = 6;
+  int64 deployed_at = 7;
+}
+
+message CancelDeploymentRequest {
+  string agent_id = 1;
+  string deployment_id = 2;
+}
+
+message ScaleServiceCommand {
+  string agent_id = 1;
+  string project_id = 2;
+  string service_name = 3;
+  int32 replicas = 4;
+}
+
+message ScaleServiceResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ScaleServiceData data = 3;
+  }
+}
+
+message ScaleServiceData {
+  bool scaled = 1;
+  string message = 2;
+  int32 current_replicas = 3;
+}
+
+message StopProjectCommand {
+  string agent_id = 1;
+  string project_id = 2;
+}
+
+message StopProjectResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    StopProjectData data = 3;
+  }
+}
+
+message StopProjectData {
+  bool stopped = 1;
+  string message = 2;
+}

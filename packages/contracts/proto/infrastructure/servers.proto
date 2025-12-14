@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package axion.infrastructure;
+
+import "common/common.proto";
+
+// Server messages
+message CreateServerRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string host = 2;
+  int32 port = 3;
+  string username = 4;
+  oneof auth {
+    string password = 5;
+    string private_key = 6; // SSH private key (будет зашифрован)
+  }
+  optional string cluster_id = 7; // Опционально: добавить в кластер
+  string name = 8;
+  string description = 9;
+}
+
+message GetServerRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string server_id = 2;
+}
+
+message UpdateServerRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string server_id = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional string cluster_id = 5; // Можно переместить в другой кластер (или null для удаления из кластера)
+}
+
+message DeleteServerRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string server_id = 2;
+}
+
+message ListServersRequest {
+  axion.common.RequestMetadata metadata = 1;
+  optional string cluster_id = 2; // Опционально: фильтр по кластеру
+  axion.common.Pagination pagination = 3;
+}
+
+message Server {
+  string id = 1;
+  string user_id = 2;
+  optional string cluster_id = 3;
+  string host = 4;
+  int32 port = 5;
+  string username = 6;
+  string name = 7;
+  string description = 8;
+  axion.common.ServerStatus status = 9;
+  ServerInfo info = 10; // Информация о сервере (CPU, RAM, etc.)
+  optional string agent_id = 11; // ID Axion Runner Agent (если установлен)
+  int64 last_connected_at = 12;
+  int64 created_at = 13;
+  int64 updated_at = 14;
+}
+
+message ServerInfo {
+  string os = 1; // Операционная система
+  string architecture = 2; // Архитектура (amd64, arm64)
+  int64 total_memory = 3; // Общая память в байтах
+  int64 available_memory = 4; // Доступная память в байтах
+  double cpu_cores = 5; // Количество CPU ядер
+  double cpu_usage = 6; // Использование CPU (%)
+  bool docker_installed = 7;
+  string docker_version = 8;
+}
+
+message ServerResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    Server server = 3;
+  }
+}
+
+message ListServersResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ListServersData data = 3;
+  }
+}
+
+message ListServersData {
+  repeated Server servers = 1;
+  axion.common.Pagination pagination = 2;
+}
+
+message TestServerConnectionRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string server_id = 2; // Для существующего сервера
+  optional ServerConnectionInfo connection_info = 3; // Для тестирования перед созданием
+}
+
+message ServerConnectionInfo {
+  string host = 1;
+  int32 port = 2;
+  string username = 3;
+  oneof auth {
+    string password = 4;
+    string private_key = 5;
+  }
+}
+
+message TestServerConnectionResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ServerConnectionTestResult data = 3;
+  }
+}
+
+message ServerConnectionTestResult {
+  bool connected = 1;
+  bool docker_available = 2;
+  ServerInfo server_info = 3;
+  string error_message = 4;
+}

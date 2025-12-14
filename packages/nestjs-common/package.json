@@ -1,0 +1,35 @@
+{
+  "name": "@axion/nestjs-common",
+  "version": "1.0.0",
+  "description": "Common NestJS utilities and guards for Axion Stack microservices",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axion/contracts": "workspace:*",
+    "@axion/shared": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "rxjs": "catalog:"
+  },
+  "devDependencies": {
+    "@axion-stack/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:"
+  }
+}

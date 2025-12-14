@@ -1,0 +1,70 @@
+---
+title: "Component: Drizzle Connection"
+description: "Реализация подключения к БД через Drizzle ORM."
+order: 0
+---
+
+# Component: Drizzle Connection
+
+## Описание
+
+Реализация подключения к БД через Drizzle ORM.
+
+**Используется в:** `database/base/connection.md` для Drizzle
+
+<Callout type="info" title="Расширяемость">
+  Для добавления других ORM см. [EXTENSIBILITY](../../EXTENSIBILITY)
+</Callout>
+
+## 📄 Код
+
+```typescript
+// src/database/drizzle/connection.ts
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { sql } from "drizzle-orm";
+
+export function createDrizzleConnection(databaseUrl: string) {
+  const connection = postgres(databaseUrl, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+
+  return drizzle(connection);
+}
+
+// ВАЖНО: Для правильного закрытия connection нужно хранить его отдельно
+// или использовать wrapper класс, который хранит и drizzle, и postgres connection
+// Пример wrapper:
+// export class DrizzleConnectionWrapper {
+//   private postgresConn: ReturnType<typeof postgres>;
+//   private drizzleDb: ReturnType<typeof drizzle>;
+//
+//   constructor(databaseUrl: string) {
+//     this.postgresConn = postgres(databaseUrl, {...});
+//     this.drizzleDb = drizzle(this.postgresConn);
+//   }
+//
+//   getDrizzle() { return this.drizzleDb; }
+//   async disconnect() { await this.postgresConn.end(); }
+// }
+
+export async function drizzleHealthCheck(
+  connection: ReturnType<typeof drizzle>
+) {
+  await connection.execute(sql`SELECT 1`);
+}
+
+export async function drizzleDisconnect(db: ReturnType<typeof drizzle>) {
+  // ВАЖНО: Drizzle не предоставляет прямой доступ к postgres connection
+  // Нужно использовать wrapper класс (см. комментарий выше)
+  // или хранить postgres connection отдельно при создании
+  // Альтернатива: использовать внутренний API (не рекомендуется)
+  // const connection = (db as any).client;
+  // if (connection && typeof connection.end === 'function') {
+  //   await connection.end();
+  // }
+  // Рекомендуется: использовать wrapper класс в DatabaseConnection
+}
+```

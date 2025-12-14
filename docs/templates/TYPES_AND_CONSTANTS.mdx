@@ -1,0 +1,437 @@
+---
+title: "Types, Enums & Constants"
+description: "Централизованные типы, енамы и константы для системы генерации кода. Используются в templates, валидации и генерации."
+order: 4
+---
+
+# Types, Enums & Constants
+
+## Обзор
+
+Централизованные типы, енамы и константы для системы генерации кода. Используются в templates, валидации и генерации.
+
+<Callout type="info" title="Важно">
+  Все типы централизованы здесь для обеспечения консистентности во всей системе
+  генерации кода.
+</Callout>
+
+## Blueprint Types
+
+### Blueprint ID
+
+```typescript
+export enum BlueprintType {
+  SERVICE = "service", // Единый blueprint для всех генерируемых сервисов (ElysiaJS/Hono)
+  // Примечание: API Gateway - это Traefik (управляется Runner Agent), не генерируется через templates
+}
+
+export type BlueprintId = BlueprintType | string; // Для кастомных blueprints
+```
+
+### Blueprint Category
+
+```typescript
+export enum BlueprintCategory {
+  CRUD = "crud",
+  AUTH = "auth",
+  PAYMENT = "payment",
+  NOTIFICATION = "notification",
+  ANALYTICS = "analytics",
+  CUSTOM = "custom",
+}
+```
+
+### Service Type
+
+```typescript
+export enum ServiceType {
+  GENERATED = "generated", // Генерируемые сервисы (ElysiaJS/Hono)
+}
+```
+
+## Validation Levels
+
+```typescript
+export enum ValidationLevel {
+  STRUCTURAL = "structural",
+  CONTRACT = "contract",
+  TYPESCRIPT = "typescript",
+  BUILD = "build",
+  HEALTH = "health",
+  CONTRACT_DISCOVERY = "discovery",
+}
+
+export const VALIDATION_LEVELS: ValidationLevel[] = [
+  ValidationLevel.STRUCTURAL,
+  ValidationLevel.CONTRACT,
+  ValidationLevel.TYPESCRIPT,
+  ValidationLevel.BUILD,
+  ValidationLevel.HEALTH,
+  ValidationLevel.CONTRACT_DISCOVERY,
+];
+
+export interface ValidationResult {
+  valid: boolean;
+  level: ValidationLevel;
+  errors?: string[];
+  warnings?: string[];
+  metadata?: Record<string, unknown>;
+}
+```
+
+## Component Types
+
+```typescript
+export enum ComponentType {
+  MAIN_ENTRY = "main-entry",
+  RABBITMQ_SERVER = "rabbitmq-server",
+  RABBITMQ_CLIENT = "rabbitmq-client",
+  HEALTH_CHECK = "health-check",
+  REPOSITORY = "repository",
+  DRIZZLE_SCHEMA = "drizzle-schema",
+  DRIZZLE_REPOSITORY = "drizzle-repository",
+  DATABASE_CONNECTION = "database-connection",
+  PROTOBUF_SERVICE = "protobuf-service",
+  CONFIG = "config",
+  DOCKERFILE = "dockerfile",
+  // Для расширения: можно добавлять новые типы компонентов
+  // Например: TYPEORM_SCHEMA = "typeorm-schema"
+}
+
+export const REQUIRED_COMPONENTS: Record<BlueprintType, ComponentType[]> = {
+  [BlueprintType.SERVICE]: [
+    ComponentType.MAIN_ENTRY,
+    ComponentType.RABBITMQ_SERVER,
+    ComponentType.HEALTH_CHECK,
+    // БД компоненты добавляются опционально через database node
+  ],
+};
+```
+
+## LLM Generation Points
+
+```typescript
+export enum LLMGenerationPoint {
+  SERVICE_METHODS = "service-methods", // Бизнес-логика в service.ts
+  HANDLER_LOGIC = "handler-logic", // Логика в handlers (редко)
+}
+
+export interface LLMGenerationConfig {
+  point: LLMGenerationPoint;
+  file: string; // Путь к файлу
+  template: string; // Путь к template
+  constraints: string[]; // Ограничения для LLM
+  instructions: string; // Инструкции для LLM
+}
+```
+
+## Database Types
+
+```typescript
+export enum DatabaseType {
+  POSTGRESQL = "postgresql",
+  MYSQL = "mysql",
+}
+
+export enum ORMType {
+  DRIZZLE = "drizzle",
+  // Для расширения: можно добавлять новые ORM
+  // Например: TYPEORM = "typeorm", SEQUELIZE = "sequelize"
+  // См. EXTENSIBILITY.md для инструкций по добавлению новых ORM
+}
+
+export enum FieldType {
+  STRING = "string",
+  NUMBER = "number",
+  BOOLEAN = "boolean",
+  DATE = "date",
+  UUID = "uuid",
+  TEXT = "text",
+  JSON = "json",
+}
+
+export interface FieldConfig {
+  name: string;
+  type: FieldType;
+  required: boolean;
+  unique?: boolean;
+  defaultValue?: unknown;
+  validation?: Record<string, unknown>;
+}
+
+export interface DatabaseNodeData {
+  databaseType: DatabaseType;
+  orm: ORMType;
+  connectionName: string;
+  projectId: string;
+  config?: {
+    host?: string;
+    port?: number;
+    database?: string;
+  };
+}
+
+export const ORM_TEMPLATES: Record<ORMType, ComponentType[]> = {
+  [ORMType.DRIZZLE]: [
+    ComponentType.DRIZZLE_SCHEMA,
+    ComponentType.DRIZZLE_REPOSITORY,
+  ],
+  // Для расширения: добавляй новые ORM здесь
+  // См. EXTENSIBILITY.md для инструкций
+};
+
+export function getORMComponents(orm: ORMType): ComponentType[] {
+  return ORM_TEMPLATES[orm] || [];
+}
+```
+
+## Message Patterns
+
+```typescript
+export enum MessagePatternType {
+  REQUEST_RESPONSE = "request-response",
+  PUBLISH_SUBSCRIBE = "publish-subscribe",
+  ONE_WAY = "one-way",
+}
+
+export interface MessagePattern {
+  service: string;
+  action: string;
+  type: MessagePatternType;
+  requestType: string;
+  responseType: string;
+}
+```
+
+## Resilience Patterns
+
+```typescript
+export enum ResiliencePattern {
+  RETRY = "retry",
+  CIRCUIT_BREAKER = "circuit-breaker",
+  TIMEOUT = "timeout",
+  FALLBACK = "fallback",
+  GRACEFUL_SHUTDOWN = "graceful-shutdown",
+  HEALTH_CHECK = "health-check",
+}
+
+export enum CircuitBreakerState {
+  CLOSED = "closed",
+  OPEN = "open",
+  HALF_OPEN = "half-open",
+}
+
+export enum HealthStatus {
+  HEALTHY = "healthy",
+  DEGRADED = "degraded",
+  UNHEALTHY = "unhealthy",
+}
+```
+
+## Validation Status
+
+```typescript
+export enum ValidationStatus {
+  PENDING = "pending",
+  RUNNING = "running",
+  PASSED = "passed",
+  FAILED = "failed",
+  SKIPPED = "skipped",
+}
+
+export interface ValidationReport {
+  serviceName: string;
+  blueprint: BlueprintType;
+  status: ValidationStatus;
+  steps: ValidationStep[];
+  startedAt: Date;
+  completedAt?: Date;
+  duration?: number;
+}
+
+export interface ValidationStep {
+  level: ValidationLevel;
+  status: ValidationStatus;
+  result: ValidationResult;
+  duration?: number;
+}
+```
+
+## 🔗 Contract Types
+
+```typescript
+export enum ContractType {
+  REQUEST = "request",
+  RESPONSE = "response",
+  EVENT = "event",
+}
+
+export interface ProtobufContract {
+  service: string;
+  method: string;
+  type: ContractType;
+  message: string;
+  fields: FieldConfig[];
+}
+```
+
+## 🚀 Deployment Types
+
+```typescript
+export enum DeploymentStatus {
+  PENDING = "pending",
+  BUILDING = "building",
+  DEPLOYING = "deploying",
+  RUNNING = "running",
+  FAILED = "failed",
+  STOPPED = "stopped",
+}
+
+export enum ServerStatus {
+  ONLINE = "online",
+  OFFLINE = "offline",
+  MAINTENANCE = "maintenance",
+}
+```
+
+## Template Variables
+
+```typescript
+export enum VariableType {
+  STRING = "string",
+  NUMBER = "number",
+  BOOLEAN = "boolean",
+  ARRAY = "array",
+  OBJECT = "object",
+  CODE = "code", // Генерируемый код
+}
+
+export interface TemplateVariable {
+  name: string;
+  type: VariableType;
+  required: boolean;
+  description: string;
+  defaultValue?: unknown;
+  blueprint?: BlueprintType[]; // В каких blueprints используется
+}
+```
+
+## Framework Types
+
+```typescript
+export enum FrameworkType {
+  ELYSIA = "elysia",
+  HONO = "hono",
+}
+
+export const FRAMEWORK_BY_BLUEPRINT: Record<BlueprintType, FrameworkType> = {
+  [BlueprintType.SERVICE]: FrameworkType.ELYSIA,
+};
+```
+
+## Configuration Constants
+
+```typescript
+export const DEFAULT_CONFIG = {
+  PORT: 3000,
+  RABBITMQ_QUEUE_PREFIX: "axion",
+  HEALTH_CHECK_INTERVAL: 30000, // 30 seconds
+  CIRCUIT_BREAKER_THRESHOLD: 5,
+  CIRCUIT_BREAKER_TIMEOUT: 60000, // 1 minute
+  RETRY_MAX_ATTEMPTS: 3,
+  RETRY_INITIAL_DELAY: 500,
+  TIMEOUT_DEFAULT: 5000, // 5 seconds
+} as const;
+
+export const VALIDATION_TIMEOUTS: Record<ValidationLevel, number> = {
+  [ValidationLevel.STRUCTURAL]: 1000,
+  [ValidationLevel.CONTRACT]: 2000,
+  [ValidationLevel.TYPESCRIPT]: 10000,
+  [ValidationLevel.BUILD]: 30000,
+  [ValidationLevel.HEALTH]: 60000,
+  [ValidationLevel.CONTRACT_DISCOVERY]: 30000,
+};
+```
+
+## 📁 File Paths
+
+```typescript
+export const TEMPLATE_PATHS = {
+  BLUEPRINTS: "templates/blueprints",
+  COMPONENTS: "templates/components",
+  RULES: "templates/rules",
+  EXAMPLES: "templates/examples",
+} as const;
+
+export const GENERATED_PATHS = {
+  SERVICES: "apps/_services",
+  PROTO: "proto",
+  SCHEMA: "src/database/schema.ts",
+  REPOSITORY: "src/database/repository.ts",
+  SERVICE: "src/modules/{entity}/{entity}.service.ts",
+  HANDLER: "src/modules/{entity}/{entity}.handler.ts",
+  MAIN: "src/main.ts",
+} as const;
+```
+
+## Helper Functions
+
+```typescript
+// Type guards
+export function isBlueprintType(value: string): value is BlueprintType {
+  return Object.values(BlueprintType).includes(value as BlueprintType);
+}
+
+export function isValidationLevel(value: string): value is ValidationLevel {
+  return Object.values(ValidationLevel).includes(value as ValidationLevel);
+}
+
+export function isComponentType(value: string): value is ComponentType {
+  return Object.values(ComponentType).includes(value as ComponentType);
+}
+
+// Getters
+export function getRequiredComponents(
+  blueprint: BlueprintType
+): ComponentType[] {
+  return REQUIRED_COMPONENTS[blueprint] || [];
+}
+
+export function getFrameworkType(blueprint: BlueprintType): FrameworkType {
+  return FRAMEWORK_BY_BLUEPRINT[blueprint] || FrameworkType.ELYSIA;
+}
+
+export function getValidationTimeout(level: ValidationLevel): number {
+  return VALIDATION_TIMEOUTS[level] || 5000;
+}
+```
+
+## 📚 Usage Examples
+
+```typescript
+// Использование в генерации
+import {
+  BlueprintType,
+  ComponentType,
+  getRequiredComponents,
+  getFrameworkType,
+} from "./types";
+
+const blueprint = BlueprintType.SERVICE;
+const components = getRequiredComponents(blueprint);
+const framework = getFrameworkType(blueprint);
+
+// Использование в валидации
+import { ValidationLevel, VALIDATION_LEVELS, ValidationStatus } from "./types";
+
+for (const level of VALIDATION_LEVELS) {
+  const result = await validate(level);
+  if (result.status === ValidationStatus.FAILED) {
+    break;
+  }
+}
+```
+
+---
+
+_Все типы, енамы и константы централизованы здесь для консистентности и масштабируемости._

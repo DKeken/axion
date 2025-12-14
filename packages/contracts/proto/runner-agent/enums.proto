@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package axion.runner;
+
+// Metric types
+enum MetricType {
+  METRIC_TYPE_UNSPECIFIED = 0;
+  METRIC_TYPE_COUNTER = 1;
+  METRIC_TYPE_GAUGE = 2;
+  METRIC_TYPE_HISTOGRAM = 3;
+  METRIC_TYPE_SUMMARY = 4;
+}

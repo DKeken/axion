@@ -1,25 +1,52 @@
 {
-  "name": "@repo/contracts",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@axion/contracts",
+  "version": "1.0.0",
+  "description": "Protobuf contracts for Axion Control Plane services",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./generated": {
+      "types": "./generated/index.d.ts",
+      "default": "./generated/index.ts"
+    },
+    "./constants": {
+      "types": "./src/constants/index.ts",
+      "default": "./src/constants/index.ts"
+    },
+    "./contract-utils": {
+      "types": "./src/contract-utils.ts",
+      "default": "./src/contract-utils.ts"
+    },
+    "./validation": {
+      "types": "./src/validation/index.ts",
+      "default": "./src/validation/index.ts"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "default": "./src/types/index.ts"
+    }
+  },
   "scripts": {
-    "dev": "echo '@repo/contracts dev mode (no-op)'",
-    "build": "echo '@repo/contracts build mode (no-op)'",
-    "check-types": "tsc --noEmit --project tsconfig.json",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+    "generate": "bun run generate:types",
+    "generate:types": "mkdir -p generated && find proto -name '*.proto' -type f | xargs protoc --plugin=protoc-gen-ts_proto=$(pwd)/scripts/protoc-gen-ts_proto.mjs --ts_proto_out=./generated --ts_proto_opt=nestJs=true,esModuleInterop=true,outputServices=generic-definitions,outputClientImpl=false,useOptionals=messages --proto_path=./proto",
+    "clean": "rm -rf generated"
   },
   "dependencies": {
-    "@ts-rest/core": "^3.30.5",
-    "zod": "^3.24.1",
-    "@repo/database": "workspace:*"
+    "@grpc/grpc-js": "^1.10.9",
+    "protobufjs": "^7.3.2"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "eslint": "^9.32.0",
-    "typescript": "5.8.3"
+    "@types/node": "catalog:",
+    "ts-proto": "^2.4.0",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@nestjs/microservices": "catalog:"
   }
 }

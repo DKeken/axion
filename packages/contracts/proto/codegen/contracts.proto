@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package axion.codegen;
+
+import "common/common.proto";
+
+// Contract Discovery messages
+message DiscoverContractsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  string node_id = 3; // Опционально: для конкретного сервиса
+}
+
+message DiscoverContractsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    DiscoverContractsData data = 3;
+  }
+}
+
+message DiscoverContractsData {
+  repeated DiscoveredContract contracts = 1;
+}
+
+message DiscoveredContract {
+  string service_name = 1;
+  string message_pattern = 2; // '{service-name}.{action}'
+  string request_type = 3; // Имя Protobuf message для request
+  string response_type = 4; // Имя Protobuf message для response
+  bool has_protobuf_contract = 5;
+  bool has_implementation = 6;
+}
+
+message ValidateContractsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  string node_id = 3; // Опционально: для конкретного сервиса
+}
+
+message ValidateContractsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ValidateContractsData data = 3;
+  }
+}
+
+message ValidateContractsData {
+  bool all_valid = 1;
+  repeated ContractValidationError errors = 2;
+  repeated ContractValidationWarning warnings = 3;
+}
+
+message ContractValidationError {
+  string service_name = 1;
+  string message_pattern = 2;
+  axion.common.ContractErrorType error_type = 3;
+  string message = 4;
+}
+
+message ContractValidationWarning {
+  string service_name = 1;
+  string message_pattern = 2;
+  string message = 3;
+}

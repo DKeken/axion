@@ -1,5 +1,22 @@
-// Prisma Client and types
-export { PrismaClient, Prisma, type User, type RefreshToken, type Session } from '@prisma/client';
+/**
+ * @axion/database - Database connection and setup utilities
+ */
 
-// Zod generated schemas - re-export with path
-export * as generated from './generated/zod';
+// Export postgres utilities
+export {
+  createDatabaseConnection,
+  createDrizzleInstance,
+  createPostgresConnection,
+} from "./postgres/index";
+
+// Export repositories
+export * from "./repositories/base.repository";
+export {
+  applyPagination,
+  calculateOffset,
+} from "./repositories/pagination.helpers";
+export {
+  transformProjectToContract,
+  transformGraphVersionToContract,
+  transformProjectServiceToContract,
+} from "./repositories/transformers";

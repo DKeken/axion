@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "runner-agent/enums.proto";
+
+// Metrics messages
+message SendMetricsRequest {
+  string agent_id = 1;
+  string server_id = 2;
+  MetricsBatch metrics = 3;
+}
+
+message MetricsBatch {
+  int64 timestamp = 1;
+  repeated Metric metrics = 2;
+}
+
+message Metric {
+  string name = 1;
+  MetricType type = 2;
+  oneof value {
+    double double_value = 3;
+    int64 int_value = 4;
+    string string_value = 5;
+  }
+  map<string, string> labels = 6;
+}
+
+message StreamMetricsRequest {
+  string agent_id = 1;
+  string server_id = 2;
+}

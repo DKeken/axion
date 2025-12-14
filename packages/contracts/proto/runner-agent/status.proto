@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package axion.runner;
+
+import "common/common.proto";
+
+// Agent status messages
+message GetAgentStatusRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string agent_id = 2;
+}
+
+message AgentStatusResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    AgentStatusData data = 3;
+  }
+}
+
+message AgentStatusData {
+  string agent_id = 1;
+  string server_id = 2;
+  bool connected = 3;
+  int64 last_heartbeat = 4;
+  AgentMetrics metrics = 5;
+  repeated DeployedProjectInfo deployed_projects = 6;
+  string version = 7;
+}
+
+message AgentMetrics {
+  double cpu_usage = 1;
+  int64 memory_usage = 2;
+  int64 disk_usage = 3;
+  int32 active_containers = 4;
+}
+
+message DeployedProjectInfo {
+  string project_id = 1;
+  string deployment_id = 2;
+  repeated string service_names = 3;
+  int32 total_containers = 4;
+  int32 healthy_containers = 5;
+}
+
+message ListAgentsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  optional string server_id = 2;
+  axion.common.Pagination pagination = 3;
+}
+
+message ListAgentsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ListAgentsData data = 3;
+  }
+}
+
+message ListAgentsData {
+  repeated AgentStatusData agents = 1;
+  axion.common.Pagination pagination = 2;
+}

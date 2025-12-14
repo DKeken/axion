@@ -1,0 +1,58 @@
+---
+title: "Component: Configuration"
+description: "Конфигурация сервиса через environment variables."
+order: 0
+---
+
+# Component: Configuration
+
+## Описание
+
+Конфигурация сервиса через environment variables.
+
+**Используется в:** всех сервисах
+
+## Конфигурация
+
+- `{SERVICE_NAME}` — имя сервиса
+- `{REQUIRED_ENV_VARS}` — список обязательных переменных окружения
+
+## Код
+
+```typescript
+// src/config/index.ts
+export const config = {
+  service: {
+    name: "{SERVICE_NAME}",
+    port: parseInt(process.env.PORT || "3000", 10),
+  },
+  rabbitmq: {
+    url: process.env.RABBITMQ_URL!,
+    vhost: `project_${process.env.PROJECT_ID}`,
+  },
+  database: {
+    url: process.env.DATABASE_URL!,
+  },
+  validate() {
+    const required = ["RABBITMQ_URL", "PROJECT_ID", { REQUIRED_ENV_VARS }];
+    const missing = required.filter((key) => !process.env[key]);
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required environment variables: ${missing.join(", ")}`
+      );
+    }
+  },
+};
+
+config.validate();
+```
+
+## Checklist
+
+- [ ] Все переменные окружения определены
+- [ ] Валидация работает
+- [ ] Значения по умолчанию установлены
+
+---
+
+_Конфигурация генерируется автоматически из шаблона._

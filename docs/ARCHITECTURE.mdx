@@ -1,0 +1,1509 @@
+---
+title: "Архитектура Axion"
+description: "Полная архитектура Axion Meta-Framework — мета-фреймворка, где React Flow граф является единственным источником истины для всей архитектуры приложения."
+order: 2
+---
+
+# Архитектура Axion
+
+Axion — это мета-фреймворк нового поколения, где **React Flow граф является единственным источником истины** для всей архитектуры приложения. Визуальное проектирование → автоматическая генерация кода → деплой на подключенные серверы — всё из единого SaaS-интерфейса.
+
+<Callout type="idea" title="Ключевая философия">
+  **Zero Boilerplate, Maximum Control, Visual-First Development**
+</Callout>
+
+---
+
+## Цели и принципы
+
+### Основные цели
+
+| Цель                         | Описание                                                     |
+| ---------------------------- | ------------------------------------------------------------ |
+| **Zero Boilerplate**         | Пользователь не пишет шаблонный код                          |
+| **Graph as Source of Truth** | Граф = архитектура = код                                     |
+| **SaaS-Centric**             | Всё управление через облачную платформу                      |
+| **Monetization Ready**       | Встроенная система подписок и биллинга                       |
+| **Infrastructure as Code**   | Автоматическое управление инфраструктурой                    |
+| **Infinite Scalability**     | От одного сервера до глобальных кластеров                    |
+| **Project Isolation**        | Каждый проект изолирован через `project_id`                  |
+| **Blueprint-First**          | Пользователь выбирает шаблоны (как в UE5), не создает с нуля |
+
+### Принципы архитектуры
+
+| Принцип                 | Описание                           | Пример                                                                 |
+| ----------------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| **Declarative**         | Описываем что, не как              | Пользователь описывает структуру БД через форму, система генерит схему |
+| **Type-Safe**           | End-to-end типизация из графа      | Все типы генерируются автоматически из графа, нет ручной типизации     |
+| **Visual-First**        | Визуальное проектирование первично | Всё начинается с React Flow графа, код генерируется из него            |
+| **Blueprint-Based**     | Готовые шаблоны сервисов           | Пользователь выбирает blueprint (CRUD, Auth), не создает с нуля        |
+| **LLM Only Logic**      | LLM генерит только бизнес-логику   | Инфраструктура, контракты, схемы генерируются автоматически            |
+| **UI Forms for Config** | Конфигурация через формы           | Схемы БД настраиваются через UI формы, не через LLM промпты            |
+| **Auto-Generated**      | Автоматическая генерация           | Инфраструктура, контракты, схемы генерируются без участия LLM          |
+| **Strict Validation**   | Многоуровневая валидация           | 6 уровней валидации на всех этапах генерации и деплоя                  |
+
+---
+
+## Архитектура системы
+
+### Общая структура
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Axion Control Plane (SaaS)                        │
+│                                                                       │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Frontend: Next.js 15 + React 19 RSC                         │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  React Flow Visual Editor                                │  │  │
+│  │  │  - Drag & Drop сервисов                                  │  │  │
+│  │  │  - Визуальные связи (RabbitMQ, HTTP, DB)                 │  │  │
+│  │  │  - Контекстное меню для создания                         │  │  │
+│  │  │  - Real-time синхронизация                                │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Infrastructure Dashboard                                │  │  │
+│  │  │  - Список серверов и кластеров                           │  │  │
+│  │  │  - SSH подключения                                       │  │  │
+│  │  │  - Мониторинг инстансов                                  │  │  │
+│  │  │  - React Flow граф инфраструктуры                        │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  LLM Code Generation Chat                                │  │  │
+│  │  │  - Генерация бизнес-логики из описания                  │  │  │
+│  │  │  - Редактирование через чат                              │  │  │
+│  │  │  - Автоматическая интеграция в граф                      │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                       │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Backend: NestJS Microservices + Traefik Gateway              │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Gateway Service                                        │  │  │
+│  │  │  - Service Discovery (Redis)                            │  │  │
+│  │  │  - Request Routing                                      │  │  │
+│  │  │  - Protocol Translation (HTTP/gRPC)                      │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Graph Service                                          │  │  │
+│  │  │  - CRUD графов (Drizzle ORM)                            │  │  │
+│  │  │  - Версионирование                                      │  │  │
+│  │  │  - Real-time синхронизация (SSE)                         │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Codegen Service                                         │  │  │
+│  │  │  - LLM Integration (OpenRouter)                         │  │  │
+│  │  │  - Blueprint System                                      │  │  │
+│  │  │  - Template Engine (Handlebars)                         │  │  │
+│  │  │  - Type Generation (TypeScript AST)                     │  │  │
+│  │  │  - Contract Generation (Protobuf)                         │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │
+│  │  │  Deployment Service                                     │  │  │
+│  │  │  - BullMQ Queue                                         │  │  │
+│  │  │  - SSH Connection Manager                                │  │  │
+│  │  │  - Cluster Manager                                       │  │  │
+│  │  │  - Load Distribution                                     │  │  │
+│  │  │  - Health Monitoring                                     │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Infrastructure Service                                 │  │  │
+│  │  │  - Server Management                                    │  │  │
+│  │  │  - System Requirements Calculator                        │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Billing Service                                        │  │  │
+│  │  │  - Stripe Integration                                   │  │  │
+│  │  │  - Usage Tracking                                       │  │  │
+│  │  │  - Resource Limits                                      │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Kafka Event Bus                                        │  │  │
+│  │  │  - Event Sourcing                                       │  │  │
+│  │  │  - CQRS Events                                          │  │  │
+│  │  │  - Service Communication                                │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓ API
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Axion CLI (Bun-based)                            │
+│  - axion init          → Создать проект из графа                   │
+│  - axion sync          → Синхронизация с Control Plane             │
+│  - axion generate      → Локальная генерация кода                  │
+│  - axion deploy        → Деплой на серверы                          │
+│  - axion server:add    → Добавить SSH сервер                        │
+│  - axion cluster:create → Создать кластер                          │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓ SSH / API
+┌─────────────────────────────────────────────────────────────────────┐
+│              User's Infrastructure (SSH Servers)                     │
+│  Clusters (группы серверов) → Deployed Services                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Клиенты: веб и desktop
+
+Axion поддерживает **два типа клиентов** для работы с платформой:
+
+### 1. Веб-клиент
+
+**Next.js 15 + React 19 RSC приложение**
+
+<Callout type="idea" title="Веб-клиент идеален для">
+  - Production проектов - Командной работы - Управления инфраструктурой -
+  Облачного хранения проектов
+</Callout>
+
+| Возможность           | Описание                                     |
+| --------------------- | -------------------------------------------- |
+| **Доступ**            | Через браузер на любой платформе             |
+| **Облачная работа**   | Полная интеграция с Control Plane            |
+| **Совместная работа** | Real-time синхронизация между пользователями |
+| **Production деплой** | Управление серверами и кластерами            |
+| **Мониторинг**        | Централизованный мониторинг всех проектов    |
+
+| Технология   | Назначение                               |
+| ------------ | ---------------------------------------- |
+| Next.js 15   | App Router для SSR и routing             |
+| React 19 RSC | Server Components для производительности |
+| React Flow   | Визуальный редактор графов               |
+| SSE          | Real-time обновления без WebSocket       |
+| TypeScript   | End-to-end типобезопасность              |
+
+**Использование:**
+
+- Production проекты
+- Командная работа
+- Управление инфраструктурой
+- Облачное хранение проектов
+
+### 2. Tauri Desktop клиент
+
+**Нативное desktop приложение на Tauri v2 (Rust + React)**
+
+<Callout type="warn" title="Уникальная фича">
+  **Локальный режим** — работа без установки сервера. Runner Agent работает
+  локально на вашем компьютере.
+</Callout>
+
+| Возможность                    | Описание                                             |
+| ------------------------------ | ---------------------------------------------------- |
+| **Нативное приложение**        | Работает на Windows, macOS, Linux                    |
+| **Локальный режим**            | Работа без установки сервера (уникальная фича)       |
+| **Нативная интеграция**        | Прямое общение с Runner Agent через IPC/Unix sockets |
+| **Высокая производительность** | Нативные компоненты на Rust                          |
+| **Локальное кэширование**      | Быстрый доступ к проектам через SQLite               |
+| **Единый UI**                  | Тот же React Flow редактор, что и в веб-версии       |
+| **Интеграция с Control Plane** | Использование SaaS для генерации кода                |
+
+| Сценарий использования       | Описание                                                  |
+| ---------------------------- | --------------------------------------------------------- |
+| **Локальная разработка**     | Разработка и тестирование проектов на своем компьютере    |
+| **Быстрое прототипирование** | Мгновенный локальный деплой и тестирование                |
+| **Эксперименты**             | Безопасное тестирование без влияния на production серверы |
+| **Разработка без сервера**   | Не нужно настраивать SSH для разработки                   |
+
+Подробнее: [Tauri Client](./TAURI_CLIENT)
+
+**Нативная интеграция с Runner Agent:**
+
+Оба компонента написаны на **Rust**, что позволяет им общаться напрямую:
+
+| Механизм коммуникации   | Платформа   | Преимущества                                         |
+| ----------------------- | ----------- | ---------------------------------------------------- |
+| **Unix Domain Sockets** | Linux/macOS | Быстрая локальная коммуникация, минимальная задержка |
+| **Named Pipes**         | Windows     | Аналог Unix sockets для Windows                      |
+| **gRPC локально**       | Все         | Типобезопасное общение через Protobuf (опционально)  |
+
+**Режимы работы:**
+
+| Режим                   | Описание                                       | Использование                           |
+| ----------------------- | ---------------------------------------------- | --------------------------------------- |
+| **Локальный (Offline)** | Полностью автономная работа без Control Plane  | Локальная разработка, эксперименты      |
+| **Гибридный (Hybrid)**  | Локальная работа с опциональной синхронизацией | Разработка локально + production деплой |
+| **Облачный (Cloud)**    | Полная интеграция с Control Plane              | Как веб-версия, полная функциональность |
+
+**Технологии:**
+
+| Компонент         | Технология            | Назначение                            |
+| ----------------- | --------------------- | ------------------------------------- |
+| **Backend**       | Tauri v2 (Rust)       | Нативные компоненты, IPC коммуникация |
+| **Frontend**      | React 19 + TypeScript | UI, React Flow редактор               |
+| **Хранение**      | SQLite                | Локальное кэширование проектов        |
+| **Коммуникация**  | IPC/Unix Sockets      | Нативная интеграция с Runner Agent    |
+| **Синхронизация** | Опциональная          | Интеграция с Control Plane            |
+
+**Сравнение клиентов:**
+
+| Функция                                | Веб-Клиент          | Tauri Клиент                  |
+| -------------------------------------- | ------------------- | ----------------------------- |
+| **Доступ**                             | Браузер             | Desktop приложение            |
+| **Локальный режим**                    | ❌                  | ✅ **Уникальная фича**        |
+| **Нативная интеграция с Runner Agent** | ❌                  | ✅ **IPC/Unix Sockets**       |
+| **Офлайн работа**                      | ❌                  | ✅                            |
+| **Приватность данных**                 | Облако              | Локально (SQLite)             |
+| **Совместная работа**                  | ✅ Real-time        | ✅ Опциональная синхронизация |
+| **Production деплой**                  | ✅                  | ✅ (через синхронизацию)      |
+| **Производительность**                 | Зависит от браузера | Высокая (нативный Rust)       |
+
+Подробнее: **[`TAURI_CLIENT.md`](./TAURI_CLIENT)** ⭐ — Детальная архитектура Tauri клиента с локальным режимом и нативной интеграцией с Runner Agent.
+
+---
+
+## Project Isolation: проект как изолированный контур
+
+### Концепция
+
+<Callout type="info" title="Изоляция проектов">
+  Каждый проект — полностью изолированный контур с собственной инфраструктурой и
+  ресурсами.
+</Callout>
+
+**Уровни изоляции:**
+
+- Свой `project_id` во всех запросах
+- Свой граф архитектуры (`project.graph_data`)
+- Свои серверы и кластеры (связанные через `user_id`)
+- Свои деплои (`project_deployments`)
+- Свои метрики и логи
+- Свои лимиты ресурсов
+
+### Концепция Кластера
+
+**Кластер = просто группа серверов (как папка):**
+
+- Кластер не является отдельной сущностью с собственной инфраструктурой
+- Это просто способ группировки серверов для удобства управления
+- При деплое на кластер система распределяет инстансы сервисов по серверам в кластере
+- Можно деплоить на конкретный сервер или на весь кластер (распределение нагрузки)
+- Сервер может быть в кластере или без кластера
+
+### Связь Node ID с Project Services
+
+**Критически важно:** `node_id` в `project_services` = `node.id` в React Flow графе
+
+Это связующее звено между визуальным графом и сгенерированным кодом.
+
+```typescript
+// Граф хранится в project.graph_data
+interface AxionGraph {
+  nodes: Array<{
+    id: string; // Это node_id в project_services (React Flow генерит уникальный ID)
+    type: 'service' | 'database' | 'gateway' | ...;
+    data: {
+      blueprintId: string;
+      config: BlueprintConfig;
+      serviceName: string;
+    };
+    position: { x: number; y: number };
+  }>;
+  edges: Array<{
+    id: string;
+    source: string; // node_id источника
+    target: string; // node_id цели
+    type: 'rabbitmq' | 'http' | 'database';
+  }>;
+}
+
+// При генерации кода:
+// 1. Проходим по всем nodes в графе
+for (const node of graph.nodes.filter(n => n.type === 'service')) {
+  // 2. Используем node.id как node_id
+  const projectService = await db.project_services.findFirst({
+    where: {
+      project_id: projectId,
+      node_id: node.id, // КРИТИЧНО: должно совпадать
+    },
+  });
+
+  // 3. Если нет - создаем
+  // 4. Генерируем код на основе node.data
+}
+```
+
+### Валидация Node ID
+
+```typescript
+// При сохранении графа проверяем уникальность
+function validateGraph(graph: AxionGraph): boolean {
+  const nodeIds = graph.nodes.map((n) => n.id);
+  const uniqueIds = new Set(nodeIds);
+  if (nodeIds.length !== uniqueIds.size) {
+    throw new Error("Duplicate node IDs in graph");
+  }
+  return true;
+}
+```
+
+### Синхронизация Графа с Services
+
+```typescript
+async function syncGraphWithServices(projectId: string, graph: AxionGraph) {
+  const serviceNodes = graph.nodes.filter((n) => n.type === "service");
+
+  for (const node of serviceNodes) {
+    let projectService = await db.project_services.findFirst({
+      where: {
+        project_id: projectId,
+        node_id: node.id,
+      },
+    });
+
+    if (!projectService) {
+      // Создаем новую запись
+      projectService = await createProjectService(projectId, node);
+    } else {
+      // Обновляем конфигурацию если изменилась
+      if (
+        JSON.stringify(projectService.config) !==
+        JSON.stringify(node.data.config)
+      ) {
+        await updateProjectService(projectService.id, node.data);
+      }
+    }
+  }
+
+  // Удаляем сервисы которых нет в графе
+  const nodeIds = serviceNodes.map((n) => n.id);
+  await db.project_services.updateMany({
+    where: {
+      project_id: projectId,
+      node_id: { notIn: nodeIds },
+    },
+    data: {
+      status: "deleted",
+    },
+  });
+}
+```
+
+---
+
+## Blueprint System
+
+### Концепция
+
+<Callout type="idea" title="Как в Unreal Engine 5">
+  Blueprint = готовый шаблон сервиса с предопределенной структурой, где LLM
+  генерит только бизнес-логику.
+</Callout>
+
+### Структура Blueprint
+
+```typescript
+interface ServiceBlueprint {
+  id: string; // 'service' (единственный blueprint для генерируемых сервисов)
+  name: string;
+  category:
+    | "crud"
+    | "auth"
+    | "payment"
+    | "notification"
+    | "analytics"
+    | "custom";
+  description: string;
+  version: string;
+
+  // Предопределенная структура
+  structure: {
+    requiredFiles: RequiredFile[]; // Обязательные файлы (immutable)
+    templates: Record<string, string>; // Handlebars шаблоны
+    llmGenerationPoints: LLMGenerationPoint[]; // Где LLM может генерить
+  };
+
+  // Предопределенная инфраструктура
+  infrastructure: {
+    database?: {
+      type: "postgresql" | "mysql";
+      schemaTemplate: string;
+      uiForm: UISchemaForm; // Форма для пользователя
+    };
+    cache?: { type: "redis"; enabled: boolean };
+    queue?: { type: "rabbitmq"; enabled: boolean };
+  };
+
+  // Контракты (генерируются автоматически)
+  contracts: {
+    autoGenerate: boolean;
+    basePattern: string; // '{service-name}.{action}'
+    defaultActions: string[];
+  };
+
+  // LLM инструкции
+  llmInstructions: string; // Что именно генерить LLM
+}
+```
+
+### Разделение ответственности
+
+| Компонент            | Кто генерит           | Как                                                          |
+| -------------------- | --------------------- | ------------------------------------------------------------ |
+| **Инфраструктура**   | Система автоматически | Docker файлы, конфиги генерируются из шаблонов               |
+| **Схемы БД**         | Система из UI формы   | Пользователь заполняет форму, система генерит Drizzle schema |
+| **Структура файлов** | Blueprint             | Предопределена в Blueprint структуре                         |
+| **Контракты**        | Система из графа      | Анализ edges между сервисами, генерация Protobuf             |
+| **Бизнес-логика**    | LLM                   | Только методы в указанных точках генерации                   |
+
+### Что генерит LLM
+
+**ТОЛЬКО бизнес-логику в указанных точках:**
+
+```typescript
+// src/modules/product/product.service.ts
+@Injectable()
+export class ProductService {
+  // ЭТО ГЕНЕРИТ LLM:
+  async createProduct(data: CreateProductDto): Promise<Product> {
+    // Бизнес-логика создания продукта
+    // LLM генерит ТОЛЬКО эту часть
+  }
+
+  // ВСЕ ОСТАЛЬНОЕ - из шаблона Blueprint
+}
+```
+
+### Процесс Генерации с Blueprint
+
+```typescript
+async function generateServiceFromBlueprint(
+  blueprintId: string,
+  config: BlueprintConfig,
+  projectId: string,
+  nodeId: string
+) {
+  // 1. Загружаем blueprint
+  const blueprint = await loadBlueprint(blueprintId);
+
+  // 2. Заполняем шаблоны данными пользователя
+  const filledTemplates = fillTemplates(blueprint.structure.templates, config);
+
+  // 3. Генерируем структуру файлов
+  const fileStructure = generateFileStructure(
+    blueprint.structure.requiredFiles,
+    config
+  );
+
+  // 4. LLM генерит ТОЛЬКО бизнес-логику
+  const businessLogic = await generateBusinessLogic(
+    blueprint.llmGenerationPoints,
+    config,
+    blueprint.llmInstructions
+  );
+
+  // 5. Объединяем
+  const finalCode = mergeCode(fileStructure, businessLogic);
+
+  // 6. Генерируем контракты автоматически
+  const contracts = generateContracts(blueprint.contracts, config);
+
+  // 7. Генерируем схему БД (если есть, из UI формы)
+  if (blueprint.infrastructure.database) {
+    const schema = generateDatabaseSchema(
+      blueprint.infrastructure.database.schemaTemplate,
+      config
+    );
+  }
+
+  // 8. Сохраняем в project_services
+  await db.project_services.upsert({
+    where: {
+      project_id_node_id: { project_id: projectId, node_id: nodeId },
+    },
+    create: {
+      project_id: projectId,
+      node_id: nodeId,
+      service_name: config.serviceName,
+      blueprint_id: blueprintId,
+      config: config,
+      generated_code_path: `apps/_services/${config.serviceName}`,
+      status: "pending",
+    },
+    update: {
+      config: config,
+      code_version: { increment: 1 },
+      status: "pending",
+    },
+  });
+
+  return { files: finalCode, contracts, schema };
+}
+```
+
+---
+
+## Полный флоу: от регистрации до деплоя
+
+### Phase 1: Onboarding
+
+```
+1. Регистрация
+   User → Sign Up
+   ↓
+   Backend:
+   - Создает user_id
+   - subscription_tier: 'free'
+   ↓
+   Frontend: Redirect to Dashboard
+
+2. Создание Проекта
+   User → Create Project
+   ↓
+   Backend:
+   - Создает project_id
+   - Связывает с user_id
+   - Создает пустой граф: { nodes: [], edges: [] }
+   ↓
+   Frontend: Opens React Flow Editor
+   URL: /projects/{project_id}/graph
+```
+
+### Phase 2: Building Architecture
+
+```
+3. Создание Сервиса через Blueprint
+
+   React Flow → Drag & Drop "Service" ноду
+   ↓
+   Модальное окно:
+   - Выбор Blueprint (CRUD, Auth, Payment, etc.)
+   - Service Name
+   ↓
+   Если CRUD Service:
+   - Форма: Entity Name, Fields (через UI)
+   - Preview Database Schema
+   ↓
+   Backend:
+   1. Создает node_id (uuid)
+   2. Сохраняет ноду в граф (project.graph_data.nodes)
+   3. Создает project_service:
+      - node_id = node.id
+      - blueprint_id
+      - config = данные из формы
+      - status = 'pending'
+   4. Запускает генерацию (async)
+   ↓
+   Frontend:
+   - Нода появляется с статусом "Generating..."
+   - После: "Generated ✅" или "Error ❌"
+
+4. Создание Связей
+
+   React Flow → Drag edge между нодами
+   ↓
+   Backend:
+   - Сохраняет edge в граф
+   - При следующей генерации:
+     * Анализирует edges
+     * Генерит контракты с учетом связей
+     * Добавляет клиенты в app.module.ts
+```
+
+### Phase 3: Code Generation
+
+````
+5. Генерация Всего Проекта
+
+   User → "Generate All"
+   ↓
+   POST /api/projects/:projectId/generate
+   ↓
+   Backend:
+   Для каждой ноды типа 'service' в графе:
+   1. Загружает project_service по node_id
+   2. Загружает Blueprint
+   3. Генерит структуру из шаблонов
+   4. Генерит схему БД (если нужно, из config)
+   5. LLM генерит бизнес-логику
+   6. Валидация через Validation Pipeline
+   7. Обновляет project_service:
+      - status = 'validated' или 'error'
+      - generated_code_path
+      - code_version++
+   ↓
+   После генерации всех:
+   1. Генерит общие файлы проекта:
+
+      **turbo.json:**
+      ```json
+      {
+        "tasks": {
+          "build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**"]
+          },
+          "dev": {
+            "persistent": true,
+            "cache": false
+          }
+        }
+      }
+      ```
+
+      **package.json (root):**
+      ```json
+      {
+        "workspaces": [
+          "apps/*",
+          "apps/_services/*",
+          "packages/*"
+        ],
+        "scripts": {
+          "dev": "turbo run dev",
+          "build": "turbo run build"
+        }
+      }
+      ```
+
+      **docker-compose.yml:**
+      - Все сервисы из графа
+      - Инфраструктура (PostgreSQL, Redis, RabbitMQ) если нужна
+      - Сети из edges
+
+   2. Генерит контракты в @repo/contracts:
+      - Анализирует edges между сервисами
+      - Для каждого edge создает соответствующие контракты
+      - Учитывает направление связи (source → target)
+      - Генерит типы для всех DTO
+
+   3. Генерит Docker Compose файлы (для деплоя):
+      - Если деплой на кластер: отдельный compose для каждого сервера
+      - Если деплой на сервер: один compose со всеми сервисами
+      - Сети из edges
+      - Зависимости из edges (depends_on)
+      - Health checks для каждого сервиса
+
+   4. Сохраняет в generated/{project_id}/
+   ↓
+   Frontend: Показывает результаты валидации
+   - Для каждого сервиса: статус валидации
+   - Общие ошибки если есть
+   - Кнопка "Download Code" если все успешно
+   - Кнопка "Deploy" становится активной
+````
+
+### Phase 4: Infrastructure Setup
+
+```
+6. Создание Кластера (опционально, можно позже)
+
+   User → Infrastructure Dashboard → "Create Cluster"
+   ↓
+   Форма: Name, Description
+   ↓
+   Backend:
+   - Создает кластер (просто папку для группировки)
+   - Сохраняет в clusters (user_id)
+   ↓
+   Frontend: Cluster появляется в графе инфраструктуры (пустой)
+
+7. Подключение Сервера
+
+   User → Infrastructure Dashboard → "Add Server"
+   ↓
+   Форма:
+   - Host, Port, Username, SSH Key/Password
+   - Cluster (опционально) - выбрать кластер или оставить без кластера
+   ↓
+   Backend (Infrastructure Service):
+   1. Тестирует SSH подключение
+   2. Проверяет Docker
+   3. Сохраняет в servers (user_id, cluster_id если выбран)
+   4. **Создает задачу установки агента в BullMQ:**
+      - Queue: `agent-installation`
+      - Job: `install-agent`
+      - Data: { serverId, host, port, username, privateKey }
+   5. Worker обрабатывает задачу:
+      - Подключается через SSH
+      - Определяет архитектуру сервера
+      - Генерирует токен агента
+      - Загружает статический бинарник агента
+      - Устанавливает systemd service
+      - Запускает агента
+      - Регистрирует агента в Control Plane
+   6. Обновляет статус сервера: `pending` → `installing` → `connected`
+   ↓
+   Frontend: Server появляется в графе инфраструктуры
+   - Показывает прогресс установки агента (SSE)
+   - Если в кластере - внутри кластера
+   - Если без кластера - отдельно
+   - После установки: статус "Connected" с метриками агента
+```
+
+### Phase 5: Deployment (с Axion Runner Agent)
+
+**Ключевое изменение:** Деплой теперь идет через **Axion Runner Agent**, а не напрямую через SSH. Это обеспечивает постоянное соединение, локальный сбор телеметрии и автономную работу.
+
+````
+8. Деплой на Кластер/Сервер
+
+   User → "Deploy"
+   ↓
+   POST /api/projects/:projectId/deploy
+   Body: { cluster_id: '...' } или { server_id: '...' }
+   ↓
+   Backend (Deployment Service):
+   1. Загружает все project_services со status='validated'
+   2. Для каждого сервиса:
+      - Собирает Docker образ
+      - Push в registry (или на сервер)
+
+   3. Определение целевых серверов:
+      - Если cluster_id: получает все серверы из кластера
+      - Если server_id: получает конкретный сервер
+      - Проверяет что на каждом сервере установлен Axion Runner Agent
+
+   4. Генерация Docker Compose:
+      - Если кластер: генерит отдельный docker-compose.yml для каждого сервера
+        (распределение инстансов сервисов по серверам для load balancing)
+      - Если сервер: генерит один docker-compose.yml со всеми сервисами
+      - Учитывает edges из графа (сети, зависимости)
+      - Добавляет health checks для каждого сервиса
+
+   5. Отправка через Runner Agent (gRPC + Kafka):
+      - Для каждого сервера:
+        * Проверяет gRPC соединение с Agent
+        * Отправляет команду `deploy` через gRPC:
+          ```protobuf
+          message DeployCommand {
+            string project_id = 1;
+            string stack_name = 2;
+            string docker_stack_yml = 3;
+            map<string, string> env_vars = 4;
+          }
+          ```
+        * Публикует событие деплоя в Kafka (для надежности):
+          - Топик: `runner.commands.{agent_id}`
+          - Гарантия доставки, ordering
+        * Agent получает команду через gRPC или Kafka и:
+          - Сохраняет docker-stack.yml в /opt/axion/projects/{project_id}/
+          - Сохраняет .env файл
+          - Выполняет `docker stack deploy` локально (Docker Swarm)
+          - Управляет rolling updates, health checks, scaling
+          - Отправляет статус обратно в Control Plane через Kafka
+
+   6. Мониторинг деплоя (через Agent):
+      - Health checks каждого сервиса (Agent проверяет через Docker Swarm)
+      - Проверка MessagePattern (через Agent)
+      - Получение телеметрии от Agent в реальном времени через gRPC:
+        * CPU, Memory, Network метрики
+        * Статус сервисов в Swarm (replicas, health)
+        * Логи сервисов
+      - Распределение нагрузки (если кластер)
+
+   7. Обновление статусов:
+      - project_services: status='deployed'
+      - project_deployment: создается запись с конфигурацией
+      - servers: обновляется last_deployed_at
+   ↓
+   Frontend: Показывает прогресс в real-time через SSE
+   - Если кластер: показывает статус на каждом сервере
+   - Если сервер: показывает статус всех сервисов
+   - Метрики от Agent в реальном времени (gRPC → SSE)
+   - Визуальные индикаторы здоровья на нодах в React Flow
+````
+
+**Преимущества Runner Agent:**
+
+- ✅ **gRPC + Protobuf** — типобезопасное общение (уже используется в системе)
+- ✅ **Kafka** — надежная доставка команд и событий, гарантия доставки
+- ✅ **Docker Swarm** — продвинутая оркестрация (rolling updates, health checks, scaling)
+- ✅ **Rust** — максимальная производительность, низкое потребление ресурсов
+- ✅ **Локальный сбор телеметрии** — метрики собираются на сервере и отправляются в Control Plane
+- ✅ **Автономная работа** — Agent может работать даже при проблемах с Control Plane
+- ✅ **Real-time мониторинг** — метрики и логи в реальном времени через gRPC
+
+Подробнее: [`RUNNER_AGENT.md`](./RUNNER_AGENT)
+
+### Phase 6: Updates & Management
+
+```
+9. Обновление После Деплоя
+
+   User изменяет граф (добавляет/удаляет ноды, меняет связи)
+   ↓
+   PUT /api/projects/:projectId/graph
+   Body: { graph_data: newGraph }
+   ↓
+   Backend:
+   1. Загружает текущий граф из project.graph_data
+   2. Определяет diff:
+      const diff = {
+        newNodes: newGraph.nodes.filter(n =>
+          !currentGraph.nodes.some(cn => cn.id === n.id)
+        ),
+        modifiedNodes: newGraph.nodes.filter(n => {
+          const current = currentGraph.nodes.find(cn => cn.id === n.id);
+          return current && JSON.stringify(current.data) !== JSON.stringify(n.data);
+        }),
+        deletedNodes: currentGraph.nodes.filter(cn =>
+          !newGraph.nodes.some(n => n.id === cn.id)
+        ),
+        newEdges: newGraph.edges.filter(e =>
+          !currentGraph.edges.some(ce => ce.id === e.id)
+        ),
+        deletedEdges: currentGraph.edges.filter(ce =>
+          !newGraph.edges.some(e => e.id === ce.id)
+        ),
+      };
+   3. Для новых нод:
+      - Создает project_service
+      - Запускает генерацию кода
+   4. Для измененных нод:
+      - Обновляет config в project_service
+      - code_version++
+      - Регенерирует код если нужно
+   5. Для удаленных нод:
+      - Обновляет project_service: status='deleted'
+   6. Вызывает syncGraphWithServices() для синхронизации
+   7. Сохраняет новый граф
+   8. Создает версию в project_graph_versions
+   ↓
+   Если деплой активен:
+   - Для измененных: rolling update
+   - Для новых: добавление в stack
+   - Для удаленных: graceful shutdown и удаление
+
+10. Обновление Бизнес-логики
+
+    User → Нода → "Edit Business Logic"
+    ↓
+    LLM чат → описание изменений
+    ↓
+    Backend:
+    1. Загружает текущий код сервиса
+    2. LLM генерит обновленную логику (только в указанных точках)
+    3. Валидация изменений
+    4. Обновляет код (code_version++)
+    5. Обновляет project_service:
+       - status = 'validated'
+       - code_version++
+    6. Если сервис задеплоен:
+       - Пересобирает Docker образ
+       - Обновляет деплой (rolling update)
+       - Health checks перед завершением
+   ↓
+   Frontend: Показывает статус обновления
+```
+
+---
+
+## Database Schema
+
+### Основные таблицы
+
+| Таблица                    | Назначение                      | Ключевые поля                                                  |
+| -------------------------- | ------------------------------- | -------------------------------------------------------------- |
+| **users**                  | Пользователи платформы          | `id`, `email`, `subscription_tier`, `stripe_customer_id`       |
+| **projects**               | Проекты (изолированные контуры) | `id`, `user_id`, `graph_data` (JSONB), `graph_version`         |
+| **project_graph_versions** | Версии графов проекта           | `id`, `project_id`, `version`, `graph_data`                    |
+| **project_services**       | Сервисы проекта (из графа)      | `id`, `project_id`, `node_id`, `blueprint_id`, `status`        |
+| **clusters**               | Группы серверов                 | `id`, `user_id`, `name`                                        |
+| **servers**                | SSH серверы                     | `id`, `user_id`, `cluster_id`, `host`, `encrypted_private_key` |
+| **project_deployments**    | Деплои проекта                  | `id`, `project_id`, `cluster_id`/`server_id`, `status`         |
+| **usage_metrics**          | Метрики использования           | `id`, `user_id`, `projects_count`, `llm_tokens_used`           |
+
+### Детальная структура
+
+#### users
+
+| Поле                 | Тип          | Описание              |
+| -------------------- | ------------ | --------------------- |
+| `id`                 | UUID         | Первичный ключ        |
+| `email`              | VARCHAR(255) | Уникальный email      |
+| `subscription_tier`  | VARCHAR(50)  | free, pro, enterprise |
+| `stripe_customer_id` | VARCHAR(255) | ID в Stripe           |
+| `created_at`         | TIMESTAMP    | Дата создания         |
+
+#### projects
+
+| Поле                    | Тип          | Описание                     |
+| ----------------------- | ------------ | ---------------------------- |
+| `id`                    | UUID         | Первичный ключ               |
+| `user_id`               | UUID         | Связь с пользователем        |
+| `name`                  | VARCHAR(255) | Имя проекта                  |
+| `graph_data`            | JSONB        | React Flow граф (AxionGraph) |
+| `graph_version`         | INTEGER      | Версия графа                 |
+| `infrastructure_config` | JSONB        | Конфигурация инфраструктуры  |
+
+#### project_services
+
+| Поле           | Тип          | Описание                                        |
+| -------------- | ------------ | ----------------------------------------------- |
+| `id`           | UUID         | Первичный ключ                                  |
+| `project_id`   | UUID         | Связь с проектом                                |
+| `node_id`      | VARCHAR(255) | = node.id в графе (критично!)                   |
+| `service_name` | VARCHAR(255) | Имя сервиса                                     |
+| `blueprint_id` | VARCHAR(255) | ID blueprint                                    |
+| `config`       | JSONB        | Конфигурация пользователя                       |
+| `status`       | VARCHAR(50)  | pending, generating, validated, error, deployed |
+| `code_version` | INTEGER      | Версия кода                                     |
+
+#### servers
+
+| Поле                    | Тип          | Описание                             |
+| ----------------------- | ------------ | ------------------------------------ |
+| `id`                    | UUID         | Первичный ключ                       |
+| `user_id`               | UUID         | Владелец сервера                     |
+| `cluster_id`            | UUID         | Опциональная связь с кластером       |
+| `host`                  | VARCHAR(255) | IP или домен                         |
+| `encrypted_private_key` | TEXT         | Зашифрованный SSH ключ (AES-256-GCM) |
+| `status`                | VARCHAR(50)  | connected, disconnected, error       |
+
+### Индексы
+
+| Индекс                            | Таблица          | Поля         | Назначение                          |
+| --------------------------------- | ---------------- | ------------ | ----------------------------------- |
+| `idx_projects_user_id`            | projects         | `user_id`    | Быстрый поиск проектов пользователя |
+| `idx_project_services_project_id` | project_services | `project_id` | Поиск сервисов проекта              |
+| `idx_project_services_node_id`    | project_services | `node_id`    | Связь с графом                      |
+| `idx_servers_user_id`             | servers          | `user_id`    | Поиск серверов пользователя         |
+| `idx_servers_cluster_id`          | servers          | `cluster_id` | Серверы в кластере                  |
+
+---
+
+## API Endpoints
+
+<Callout type="info" title="Изоляция проектов">
+  Все endpoints с `project_id` автоматически фильтруются по `user_id` для
+  обеспечения изоляции проектов.
+</Callout>
+
+### Projects
+
+| Метод    | Endpoint                   | Описание                     |
+| -------- | -------------------------- | ---------------------------- |
+| `GET`    | `/api/projects`            | Список проектов пользователя |
+| `POST`   | `/api/projects`            | Создать проект               |
+| `GET`    | `/api/projects/:projectId` | Получить проект              |
+| `PUT`    | `/api/projects/:projectId` | Обновить проект              |
+| `DELETE` | `/api/projects/:projectId` | Удалить проект               |
+
+### Graph
+
+| Метод  | Endpoint                                  | Описание                |
+| ------ | ----------------------------------------- | ----------------------- |
+| `GET`  | `/api/projects/:projectId/graph`          | Получить граф           |
+| `PUT`  | `/api/projects/:projectId/graph`          | Обновить граф           |
+| `GET`  | `/api/projects/:projectId/graph/versions` | История версий          |
+| `POST` | `/api/projects/:projectId/graph/revert`   | Откат версии            |
+| `WS`   | `/api/projects/:projectId/graph/sync`     | WebSocket синхронизация |
+
+### Code Generation
+
+| Метод  | Endpoint                                    | Описание                 |
+| ------ | ------------------------------------------- | ------------------------ |
+| `POST` | `/api/projects/:projectId/generate`         | Генерация всего проекта  |
+| `POST` | `/api/projects/:projectId/generate/:nodeId` | Генерация одного сервиса |
+
+### Services
+
+| Метод | Endpoint                                    | Описание        |
+| ----- | ------------------------------------------- | --------------- |
+| `GET` | `/api/projects/:projectId/services`         | Список сервисов |
+| `GET` | `/api/projects/:projectId/services/:nodeId` | Получить сервис |
+
+### Deployments
+
+| Метод  | Endpoint                                   | Описание        |
+| ------ | ------------------------------------------ | --------------- |
+| `POST` | `/api/projects/:projectId/deploy`          | Деплой проекта  |
+| `GET`  | `/api/projects/:projectId/deployments`     | Список деплоев  |
+| `GET`  | `/api/projects/:projectId/deployments/:id` | Получить деплой |
+
+### Infrastructure
+
+| Метод    | Endpoint                           | Описание                                             |
+| -------- | ---------------------------------- | ---------------------------------------------------- |
+| `GET`    | `/api/clusters`                    | Список кластеров (user_id)                           |
+| `POST`   | `/api/clusters`                    | Создать кластер                                      |
+| `PUT`    | `/api/clusters/:clusterId`         | Обновить кластер                                     |
+| `DELETE` | `/api/clusters/:clusterId`         | Удалить кластер                                      |
+| `GET`    | `/api/clusters/:clusterId/servers` | Серверы в кластере                                   |
+| `GET`    | `/api/servers`                     | Список серверов (user_id, опционально cluster_id)    |
+| `POST`   | `/api/servers`                     | Добавить сервер (cluster_id опционально)             |
+| `PUT`    | `/api/servers/:serverId`           | Обновить сервер (можно переместить в другой кластер) |
+| `DELETE` | `/api/servers/:serverId`           | Удалить сервер                                       |
+
+### Проверка Доступа
+
+```typescript
+// Middleware для всех project endpoints
+async function checkProjectAccess(
+  userId: string,
+  projectId: string
+): Promise<boolean> {
+  const project = await db.projects.findFirst({
+    where: {
+      id: projectId,
+      user_id: userId, // Изоляция
+    },
+  });
+
+  return !!project;
+}
+```
+
+---
+
+## Validation Pipeline
+
+### 6 уровней валидации
+
+| Уровень                   | Что проверяет                                        | Как работает                                    | Результат                                                    |
+| ------------------------- | ---------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| **1. Structural**         | Обязательные файлы из Blueprint, immutable файлы     | Проверка структуры директорий и файлов          | ✅ Все файлы на месте → переход к следующему уровню          |
+| **2. Contract**           | Соответствие MessagePattern и Protobuf контрактов    | Парсинг AST, сравнение с контрактами            | ✅ Все контракты соответствуют → переход к следующему уровню |
+| **3. TypeScript**         | Корректность типов                                   | `tsc --noEmit`                                  | ✅ Нет ошибок типов → переход к следующему уровню            |
+| **4. Build**              | Компиляция кода                                      | `bun run build`                                 | ✅ Сборка успешна → переход к следующему уровню              |
+| **5. Health Check**       | Запуск сервиса, health endpoint, MessagePattern      | Запуск в Docker, проверка endpoints             | ✅ Сервис работает → переход к следующему уровню             |
+| **6. Contract Discovery** | Валидация при запуске через ContractDiscoveryService | Проверка всех зарегистрированных MessagePattern | ✅ Все контракты валидны → валидация завершена               |
+
+### Отказоустойчивость
+
+| Паттерн               | Описание                                  | Применение                               |
+| --------------------- | ----------------------------------------- | ---------------------------------------- |
+| **Retry**             | Exponential backoff для повторных попыток | Внешние зависимости (БД, RabbitMQ, API)  |
+| **Circuit Breaker**   | Защита от каскадных сбоев                 | При проблемах с внешними сервисами       |
+| **Timeout**           | Ограничение времени выполнения            | Все асинхронные операции                 |
+| **Fallback**          | Альтернативные стратегии при сбое         | БД недоступна → использовать кеш         |
+| **Graceful Shutdown** | Корректное завершение работы              | Закрытие соединений, завершение запросов |
+| **Health Checks**     | Мониторинг с деградацией                  | HEALTHY → DEGRADED → UNHEALTHY           |
+
+Подробнее: [`templates/rules/validation-system`](./templates/rules/validation-system) и [`templates/rules/resilience-patterns`](./templates/rules/resilience-patterns)
+
+---
+
+## Связь сервисов в коде
+
+### Как сервисы знают друг о друге
+
+```typescript
+// При генерации кода система анализирует edges:
+
+// Граф:
+{
+  nodes: [
+    { id: 'node-1', data: { serviceName: 'product-service' } },
+    { id: 'node-2', data: { serviceName: 'category-service' } },
+  ],
+  edges: [
+    {
+      source: 'node-1',
+      target: 'node-2',
+      type: 'rabbitmq',
+    },
+  ],
+}
+
+// Генерация для product-service:
+// 1. Находит edges где source = 'node-1'
+const outgoingEdges = graph.edges.filter(e => e.source === 'node-1');
+
+// 2. Для каждого edge определяет целевой сервис
+for (const edge of outgoingEdges) {
+  const targetNode = graph.nodes.find(n => n.id === edge.target);
+  const targetServiceName = targetNode.data.serviceName;
+
+  // 3. Генерит клиент в app.module.ts:
+  // ClientsModule.register([{
+  //   name: `${targetServiceName.toUpperCase()}_SERVICE`,
+  //   transport: Transport.RMQ,
+  //   options: {
+  //     urls: [process.env.RABBITMQ_URL],
+  //     queue: `axion.${'{'}targetServiceName{'}'}.service`,
+  //   },
+  // }])
+}
+
+// 4. Генерит контракты с учетом связей
+// 5. В Docker Stack файле добавляет зависимости
+```
+
+### Генерация Контрактов с Учетом Связей
+
+```typescript
+function generateContractsFromGraph(graph: AxionGraph) {
+  const contracts = {};
+
+  // Для каждого сервиса
+  for (const node of graph.nodes.filter((n) => n.type === "service")) {
+    const serviceName = node.data.serviceName;
+    const outgoingEdges = graph.edges.filter((e) => e.source === node.id);
+    const incomingEdges = graph.edges.filter((e) => e.target === node.id);
+
+    // Генерируем контракты для действий этого сервиса
+    // Учитываем:
+    // - outgoingEdges: какие сервисы вызывает этот сервис
+    // - incomingEdges: кто вызывает этот сервис
+    contracts[serviceName] = generateServiceContracts(
+      node,
+      outgoingEdges,
+      incomingEdges
+    );
+  }
+
+  return contracts;
+}
+```
+
+---
+
+## Версионирование
+
+### Версии Графа
+
+```typescript
+// При каждом изменении графа:
+1. Сохраняется в project_graph_versions
+2. project.graph_version инкрементируется
+3. Можно откатиться к предыдущей версии
+```
+
+### Версии Кода
+
+```typescript
+// При каждом изменении кода сервиса:
+1. project_service.code_version инкрементируется
+2. Можно откатиться к предыдущей версии
+```
+
+### Версии Деплоя
+
+```typescript
+// При каждом деплое:
+1. Создается project_deployment
+2. Сохраняется snapshot графа и кода
+3. Можно откатиться к предыдущему деплою
+```
+
+---
+
+## Монетизация
+
+### Тарифы
+
+| Функция            | Free Tier | Pro ($29/мес) | Enterprise (Custom) |
+| ------------------ | --------- | ------------- | ------------------- |
+| **Проекты**        | 1         | Неограниченно | Неограниченно       |
+| **Серверы**        | 1         | 5             | Неограниченно       |
+| **Микросервисы**   | 3         | Неограниченно | Неограниченно       |
+| **Мониторинг**     | Базовый   | Продвинутый   | Продвинутый         |
+| **Поддержка**      | Community | Приоритетная  | Dedicated           |
+| **Инфраструктура** | Shared    | Shared        | Dedicated           |
+| **SLA**            | -         | -             | Гарантии            |
+
+### Revenue Streams
+
+| Источник дохода          | Описание                | Применение                         |
+| ------------------------ | ----------------------- | ---------------------------------- |
+| **Subscription Fees**    | Основные тарифы         | Free, Pro, Enterprise подписки     |
+| **Usage-based Billing**  | Оплата по использованию | LLM tokens, storage для Enterprise |
+| **Enterprise Contracts** | Кастомные решения       | Индивидуальные контракты           |
+
+---
+
+## Критические моменты
+
+| Момент                         | Проблема                                           | Решение                                   | Последствия при ошибке           |
+| ------------------------------ | -------------------------------------------------- | ----------------------------------------- | -------------------------------- |
+| **1. Node ID уникальность**    | Дублирующиеся ID в графе                           | Валидация при сохранении графа            | Ошибка при генерации кода        |
+| **2. Связь Node ID**           | `node_id` в `project_services` ≠ `node.id` в графе | Всегда вызывать `syncGraphWithServices()` | Сервис не найден при генерации   |
+| **3. Генерация контрактов**    | Контракты не учитывают edges                       | Анализ edges при генерации                | Несоответствие контрактов и кода |
+| **4. Обновление после деплоя** | Некорректный diff графа                            | Определение diff, rolling update          | Некорректное обновление сервисов |
+| **5. Версионирование**         | Отсутствие версий                                  | Версионирование графов, кода, деплоев     | Невозможность отката             |
+
+### Детали
+
+#### 1. Node ID уникальность
+
+```typescript
+function validateGraph(graph: AxionGraph): boolean {
+  const nodeIds = graph.nodes.map((n) => n.id);
+  const uniqueIds = new Set(nodeIds);
+  if (nodeIds.length !== uniqueIds.size) {
+    throw new Error("Duplicate node IDs in graph");
+  }
+  return true;
+}
+```
+
+#### 2. Связь Node ID с Project Service
+
+<Callout type="warn" title="Критично">
+  `node_id` в `project_services` ДОЛЖЕН совпадать с `node.id` в графе. Всегда
+  вызывается `syncGraphWithServices()` при сохранении графа.
+</Callout>
+
+#### 3. Генерация контрактов
+
+Контракты генерируются с учетом `edges` между сервисами. Если edge изменен → контракты нужно регенерировать.
+
+#### 4. Обновление графа после деплоя
+
+| Действие         | Описание                                    |
+| ---------------- | ------------------------------------------- |
+| Определить diff  | Корректное сравнение старого и нового графа |
+| Обновить сервисы | Только измененные сервисы                   |
+| Rolling update   | Постепенное обновление без простоя          |
+| Health checks    | Проверка работоспособности после обновления |
+
+#### 5. Версионирование
+
+| Тип        | Хранение                       | Откат                          |
+| ---------- | ------------------------------ | ------------------------------ |
+| **Графы**  | `project_graph_versions`       | Откат к любой версии графа     |
+| **Код**    | `project_service.code_version` | Откат к предыдущей версии кода |
+| **Деплои** | `project_deployments`          | Откат к предыдущему деплою     |
+
+---
+
+## Структура монорепозитория
+
+### Axion Platform (этот репозиторий)
+
+```
+axion-stack/
+├── apps/
+│   ├── control-plane/              # SaaS платформа
+│   │   ├── frontend/               # Next.js 15 + React 19
+│   │   │   ├── app/
+│   │   │   │   ├── (dashboard)/
+│   │   │   │   │   ├── projects/  # Список проектов
+│   │   │   │   │   ├── projects/[id]/graph  # React Flow редактор
+│   │   │   │   │   ├── servers/   # Управление серверами
+│   │   │   │   │   └── clusters/  # Управление кластерами
+│   │   │   │   └── api/           # API routes
+│   │   │   └── components/
+│   │   │       ├── flow/          # React Flow компоненты
+│   │   │       └── nodes/         # Кастомные ноды
+│   │   └── backend/                # NestJS Microservices API
+│   │       ├── routes/
+│   │       │   ├── projects.ts    # CRUD проектов
+│   │       │   ├── graph.ts       # CRUD графов
+│   │       │   ├── codegen.ts     # Генерация кода
+│   │       │   ├── deploy.ts      # Деплой
+│   │       │   └── servers.ts     # Управление серверами
+│   │       ├── services/
+│   │       │   ├── graph.service.ts
+│   │       │   ├── codegen.service.ts
+│   │       │   ├── blueprint.service.ts
+│   │       │   ├── ssh.service.ts
+│   │       │   └── docker.service.ts
+│   │       └── db/                # Drizzle schema
+│   │
+│   ├── tauri-client/              # Axion Tauri Desktop Client ⭐
+│   │   ├── src/                   # React Frontend
+│   │   │   ├── components/
+│   │   │   │   ├── flow/          # React Flow редактор
+│   │   │   │   ├── project-manager/
+│   │   │   │   ├── codegen-ui/
+│   │   │   │   └── local-runner/
+│   │   │   ├── hooks/
+│   │   │   └── stores/            # State management
+│   │   ├── src-tauri/             # Rust Backend
+│   │   │   ├── src/
+│   │   │   │   ├── commands/      # Tauri commands
+│   │   │   │   │   ├── projects.rs
+│   │   │   │   │   ├── codegen.rs
+│   │   │   │   │   ├── runner.rs
+│   │   │   │   │   └── sync.rs
+│   │   │   │   ├── services/      # Rust services
+│   │   │   │   │   ├── project_service.rs
+│   │   │   │   │   ├── codegen_service.rs
+│   │   │   │   │   ├── runner_agent_client.rs
+│   │   │   │   │   ├── llm_service.rs
+│   │   │   │   │   └── sync_service.rs
+│   │   │   │   └── database/      # SQLite
+│   │   │   │       └── schema.rs
+│   │   │   └── Cargo.toml
+│   │   └── package.json
+│   │
+│   └── cli/                        # Axion CLI
+│       ├── src/
+│       │   ├── commands/
+│       │   │   ├── init.ts
+│       │   │   ├── sync.ts
+│       │   │   ├── generate.ts
+│       │   │   ├── deploy.ts
+│       │   │   ├── server.ts
+│       │   │   └── cluster.ts
+│       │   └── services/
+│       │       ├── api-client.ts
+│       │       └── codegen.ts
+│       └── package.json
+│
+├── packages/
+│   ├── graph-schema/               # JSON Schema для графов
+│   │   └── src/
+│   │       ├── graph.schema.ts
+│   │       ├── node-types.ts
+│   │       └── edge-types.ts
+│   │
+│   ├── codegen/                    # Движок генерации кода
+│   │   ├── src/
+│   │   │   ├── generators/
+│   │   │   │   ├── nestjs.service.ts
+│   │   │   │   ├── nestjs.module.ts
+│   │   │   │   ├── contracts.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   ├── docker.ts
+│   │   │   │   └── project.ts      # Генерация общих файлов
+│   │   │   ├── validators/         # Система валидации
+│   │   │   │   ├── structural.validator.ts
+│   │   │   │   ├── contract.validator.ts
+│   │   │   │   ├── typescript.validator.ts
+│   │   │   │   ├── build.validator.ts
+│   │   │   │   ├── health.validator.ts
+│   │   │   │   └── contract-discovery.validator.ts
+│   │   │   ├── validation-pipeline.ts
+│   │   │   ├── templates/         # Handlebars шаблоны
+│   │   │   └── llm/                # LLM интеграция
+│   │   │       ├── blueprint-loader.ts
+│   │   │       └── code-generator.ts
+│   │   └── package.json
+│   │
+│   ├── blueprints/                 # Blueprint система
+│   │   ├── src/
+│   │   │   ├── blueprints/
+│   │   │   │   ├── service.blueprint.ts
+│   │   │   │   ├── auth-service.blueprint.ts
+│   │   │   │   └── ...
+│   │   │   ├── templates/
+│   │   │   │   ├── nestjs-microservice-main.hbs
+│   │   │   │   ├── nestjs-feature-module.hbs
+│   │   │   │   └── ...
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   ├── contracts/                 # Protobuf контракты (генерируются)
+│   │   └── proto/
+│   │       ├── {service-name}.proto
+│   │       └── generated/        # TypeScript типы
+│   │
+│   └── infrastructure/             # SSH, Docker утилиты
+│       ├── src/
+│       │   ├── ssh/
+│       │   ├── docker/
+│       │   └── monitoring/
+│       └── package.json
+│
+├── docs/
+│   ├── ARCHITECTURE.md            # ⭐ Главный документ
+│   ├── README.md                   # Навигация по документации
+│   └── templates/                 # Шаблоны для генерации кода
+│
+└── generated/                      # Сгенерированные проекты (gitignored)
+    └── {project-id}/
+        ├── apps/
+        │   ├── _services/
+        │   │   ├── {service-1}/
+        │   │   ├── {service-2}/
+        │   │   └── ...
+        │   └── gateway/
+        ├── packages/
+        │   ├── common/
+        │   ├── contracts/
+        │   ├── database/
+        │   └── infrastructure/
+        ├── turbo.json
+        ├── package.json
+        └── docker-compose.yml
+```
+
+### Сгенерированный Проект (generated/\{project_id\}/)
+
+Структура полностью соответствует стандартной монорепе на Turborepo, но генерируется автоматически из графа.
+
+---
+
+## 🚀 Roadmap
+
+Детальный план реализации с задачами и приоритетами: [`TODO.md`](./TODO)
+
+---
+
+## 📚 Дополнительная Документация
+
+### Специфичные Детали
+
+- **[`TECHNICAL_DETAILS.md`](./TECHNICAL_DETAILS)** ⭐ - Ключевые технические детали: изоляция, деплой, SSH, метрики, архитектура сервисов
+- **[`CONTRACTS_AND_VALIDATION.md`](./CONTRACTS_AND_VALIDATION)** - Детали системы контрактов и валидации
+- **[`COMPARISON.md`](./COMPARISON)** - Сравнение Axion с CapRover и Convex, анализ недостающих функций
+- **[`RUNNER_AGENT.md`](./RUNNER_AGENT)** ⭐ - Архитектура Axion Runner Agent для управления Docker Swarm на серверах
+
+  **Интегрирован в процесс деплоя** (см. Phase 5 выше). Агент написан на **Rust**, использует **gRPC + Kafka** для общения с Control Plane и управляет **Docker Swarm** для продвинутой оркестрации контейнеров. Обеспечивает постоянное соединение, локальный сбор телеметрии, эффективное управление контейнерами и **автоматическое обновление** с проверкой целостности и rollback механизмом.
+
+- **[`templates/`](./templates/)** - Шаблоны для генерации кода (blueprints, components, rules)
+
+### Быстрый Старт
+
+1. Прочитайте этот документ полностью
+2. Изучите нужные детали в специфичных документах
+3. Используйте LLM blueprints при реализации
+
+---
+
+## Checklist реализации
+
+### Критические Компоненты
+
+- [ ] Project Isolation через project_id
+- [ ] Синхронизация графа с project_services (syncGraphWithServices)
+- [ ] Blueprint System с готовыми шаблонами
+- [ ] LLM генерит только бизнес-логику
+- [ ] UI Forms для схем БД
+- [ ] Автоматическая генерация контрактов из edges
+- [ ] Validation Pipeline (6 уровней)
+- [ ] Версионирование (графы, код, деплои)
+- [ ] Diff механизм для обновлений
+- [ ] Rolling update при изменениях
+- [ ] Генерация общих файлов проекта (turbo.json, package.json)
+- [ ] Генерация Docker Stack с учетом edges
+- [ ] Health checks для всех сервисов
+- [ ] Мониторинг и метрики
+
+---
+
+## Ключевые инновации
+
+1. **Graph as Source of Truth** - граф = единственный источник истины
+2. **Blueprint System (UE5-style)** - пользователь выбирает шаблоны
+3. **Project Isolation** - каждый проект изолирован
+4. **LLM Only Logic** - LLM генерит только бизнес-логику
+5. **UI Forms for Schema** - схемы БД через формы
+6. **Auto-Generated Everything** - инфраструктура, контракты, схемы
+7. **Strict Validation** - многоуровневая проверка
+8. **Visual Infrastructure as Code** - визуальное проектирование = код
+9. **Упрощенная Архитектура Сервисов** - генерируемые сервисы используют легковесный фреймворк (ElysiaJS/Hono), не NestJS
+10. **SaaS на NestJS Microservices** - платформа использует NestJS с Service Discovery, Kafka, Multiple DB, Protobuf, SSE, Better Auth, Traefik Gateway
+11. **Tauri Desktop Client с Локальным Режимом** ⭐ - нативное desktop приложение с работой без установки сервера (Runner Agent локально на компьютере) и нативной интеграцией через IPC/Unix Sockets
+
+### Различие: SaaS vs Генерируемые Сервисы
+
+| Компонент             | SaaS Платформа (Control Plane) | Генерируемые Сервисы                    |
+| --------------------- | ------------------------------ | --------------------------------------- |
+| **Фреймворк**         | NestJS Microservices           | ElysiaJS/Hono (легковесный)             |
+| **Service Discovery** | Redis                          | Не требуется                            |
+| **Event Bus**         | Kafka                          | RabbitMQ                                |
+| **База данных**       | Multiple PostgreSQL (Drizzle)  | Одна БД на сервис (Drizzle)             |
+| **Контракты**         | Protobuf                       | Protobuf                                |
+| **Gateway**           | Traefik API Gateway            | Не требуется (управляется Runner Agent) |
+| **Auth**              | Better Auth                    | Не требуется                            |
+| **Real-time**         | SSE                            | Не требуется                            |
+| **Deployment**        | BullMQ                         | Управляется через Runner Agent          |
+| **Зависимости**       | Много (enterprise-grade)       | Минимум                                 |
+| **Структура**         | Сложная (микросервисы)         | Простая                                 |
+
+<Callout type="info" title="Почему разные подходы">
+  SaaS платформа требует надежности и масштабируемости (NestJS). Генерируемые
+  сервисы должны быть простыми и быстрыми (ElysiaJS/Hono).
+</Callout>
+
+Подробнее: [TECHNICAL_DETAILS](./TECHNICAL_DETAILS)
+
+---
+
+_Этот документ является основным источником истины для архитектуры Axion._

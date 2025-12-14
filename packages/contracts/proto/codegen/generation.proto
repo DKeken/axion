@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package axion.codegen;
+
+import "common/common.proto";
+
+// Generate messages
+message GenerateProjectRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  bool force_regenerate = 3; // Принудительная регенерация всех сервисов
+  string ai_model = 4; // Опционально: модель для генерации (например, "anthropic/claude-3.5-sonnet")
+}
+
+message GenerateServiceRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  string node_id = 3; // ID ноды в графе
+  bool force_regenerate = 4;
+  string ai_model = 5; // Опционально: модель для генерации (например, "openai/gpt-4-turbo")
+}
+
+message GenerationResult {
+  string service_id = 1;
+  string node_id = 2;
+  string service_name = 3;
+  axion.common.ServiceStatus status = 4;
+  string generated_code_path = 5;
+  repeated ValidationError validation_errors = 6;
+  int32 code_version = 7;
+}
+
+message GenerateProjectResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    GenerateProjectData data = 3;
+  }
+}
+
+message GenerateProjectData {
+  repeated GenerationResult results = 1;
+  int32 total_services = 2;
+  int32 successful = 3;
+  int32 failed = 4;
+}
+
+message GenerateServiceResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    GenerationResult data = 3;
+  }
+}
+
+// Shared validation error (used in generation)
+message ValidationError {
+  axion.common.ValidationLevel level = 1;
+  string message = 2;
+  string file = 3;
+  int32 line = 4;
+  int32 column = 5;
+}

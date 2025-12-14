@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package axion.codegen;
+
+import "common/health.proto";
+import "codegen/generation.proto";
+import "codegen/validation.proto";
+import "codegen/blueprints.proto";
+import "codegen/contracts.proto";
+
+// Codegen Service - генерация кода из графа
+
+service CodegenService {
+  // Генерация кода
+  rpc GenerateProject(GenerateProjectRequest) returns (GenerateProjectResponse);
+  rpc GenerateService(GenerateServiceRequest) returns (GenerateServiceResponse);
+  
+  // Валидация
+  rpc ValidateProject(ValidateProjectRequest) returns (ValidateProjectResponse);
+  rpc ValidateService(ValidateServiceRequest) returns (ValidateServiceResponse);
+  
+  // Blueprints
+  rpc ListBlueprints(ListBlueprintsRequest) returns (ListBlueprintsResponse);
+  rpc GetBlueprint(GetBlueprintRequest) returns (BlueprintResponse);
+  
+  // Contract Discovery (для валидации)
+  rpc DiscoverContracts(DiscoverContractsRequest) returns (DiscoverContractsResponse);
+  rpc ValidateContracts(ValidateContractsRequest) returns (ValidateContractsResponse);
+  
+  // Health Check
+  rpc HealthCheck(axion.common.HealthCheckRequest) returns (axion.common.HealthCheckResponse);
+}

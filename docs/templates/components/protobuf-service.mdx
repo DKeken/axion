@@ -1,0 +1,48 @@
+---
+title: "Component: Protobuf Service Definition"
+description: "Protobuf определение сервиса. Генерируется автоматически из графа."
+order: 4
+---
+
+# Component: Protobuf Service Definition
+
+## Описание
+
+Protobuf определение сервиса. Генерируется автоматически из графа.
+
+**Используется в:** всех сервисах
+
+<Callout type="info" title="Автоматическая генерация">
+  Protobuf контракты генерируются автоматически из графа архитектуры. Вам не
+  нужно писать их вручную.
+</Callout>
+
+## Конфигурация
+
+- `{SERVICE_NAME}` — kebab-case
+- `{SERVICE_NAME_PASCAL}` — PascalCase
+- `{ACTIONS}` — список действий из графа
+
+## Код
+
+```protobuf
+// proto/{SERVICE_NAME}.proto
+syntax = "proto3";
+package axion.{SERVICE_NAME};
+
+service {SERVICE_NAME_PASCAL}Service {
+  {ACTIONS}
+}
+
+{ACTION_MESSAGES}
+```
+
+## Checklist
+
+- [ ] Все RPC методы определены
+- [ ] Все message типы определены
+- [ ] Типы корректны
+
+---
+
+_Protobuf генерируется автоматически из графа._

@@ -1,0 +1,706 @@
+# Правила для работы с типами в Axion Stack
+
+## КРИТИЧЕСКИЕ ПРАВИЛА
+
+### 1. ВСЕГДА используй типы из Protobuf контрактов
+
+**НЕ ДЕЛАЙ:**
+- ❌ Хардкод типов в сервисах/контроллерах
+- ❌ Локальные type definitions для данных из контрактов
+- ❌ Дублирование типов из proto файлов
+
+**ДЕЛАЙ:**
+- ✅ Импортируй типы из `@axion/contracts` (они генерируются из proto)
+- ✅ Используй `GraphData`, `Node`, `Edge` и другие типы из `@axion/contracts`
+- ✅ Если типа нет в contracts - добавь его в proto файл и сгенерируй
+
+### 2. Генерация типов
+
+Все типы генерируются из Protobuf файлов:
+```bash
+cd packages/contracts
+bun run generate
+```
+
+Типы экспортируются через `packages/contracts/src/index.ts`:
+```typescript
+export type { GraphData, Node, Edge } from "../generated/graph/graph";
+```
+
+### 3. Использование в коде
+
+```typescript
+// ✅ ПРАВИЛЬНО - типы
+import { type GraphData, type Node, type Edge } from "@axion/contracts";
+
+// ✅ ПРАВИЛЬНО - enums
+import { ServiceStatus, NodeType, EdgeType } from "@axion/contracts";
+
+// ❌ НЕПРАВИЛЬНО - хардкод типов
+type GraphData = { nodes: [...], edges: [...] };
+
+// ❌ НЕПРАВИЛЬНО - хардкод enum значений
+return "SERVICE_STATUS_PENDING"; // НЕТ! Используй ServiceStatus.SERVICE_STATUS_PENDING
+```
+
+### 4. Enums из Protobuf
+
+Все enum значения должны использоваться из Protobuf:
+```typescript
+// ✅ ПРАВИЛЬНО
+import { ServiceStatus } from "@axion/contracts";
+return ServiceStatus.SERVICE_STATUS_PENDING;
+
+// ❌ НЕПРАВИЛЬНО
+return "SERVICE_STATUS_PENDING";
+```
+
+### 5. Проверка перед коммитом
+
+Перед коммитом убедись что:
+- Все типы импортируются из `@axion/contracts`
+- Все enum значения используются из Protobuf (не строковые литералы)
+- Нет локальных определений типов для данных из контрактов
+- `bun type-check` проходит успешно
+
+---
+
+## NestJS микросервисы и MessagePattern
+
+### 1. Структура контроллеров
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ ПРАВИЛЬНО - контроллер делегирует в сервис
+@Controller()
+export class GraphController {
+  private readonly logger = new Logger(GraphController.name);
+
+  constructor(private readonly graphService: GraphService) {}
+
+  @MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+  async createProject(@Payload() data: CreateProjectRequest) {
+    this.logger.log(`Received ${GRAPH_SERVICE_PATTERNS.CREATE_PROJECT}`);
+    return this.graphService.createProject(data);
+  }
+}
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Бизнес-логика в контроллере
+- ❌ Прямая работа с базой данных из контроллера
+- ❌ Хардкод MessagePattern строк вместо констант из `@axion/contracts`
+
+### 2. MessagePattern константы
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ ПРАВИЛЬНО - используй константы из contracts
+import { GRAPH_SERVICE_PATTERNS } from "@axion/contracts";
+
+@MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ НЕПРАВИЛЬНО - хардкод паттернов
+@MessagePattern("graph-service.create-project")
+```
+
+### 3. Payload типизация
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ ПРАВИЛЬНО - типизированные payload
+async createProject(
+  @Payload()
+  data: {
+    metadata: unknown;
+    name: string;
+    infrastructureConfig?: Record<string, string>;
+  }
+)
+```
+
+### 4. Логирование в контроллерах
+
+Всегда логируй входящие запросы:
+```typescript
+this.logger.log(`Received ${GRAPH_SERVICE_PATTERNS.CREATE_PROJECT}`);
+```
+
+---
+
+## Структура сервисов и бизнес-логика
+
+### 1. Разделение ответственности
+
+**ДЕЛАЙ:**
+- ✅ Main Service (координатор) - делегирует вызовы специализированным сервисам
+- ✅ Специализированные сервисы (ProjectsService, GraphOperationsService и т.д.)
+- ✅ Repository - только работа с БД
+- ✅ Helpers - переиспользуемая логика
+
+**НЕ ДЕЛАЙ:**
+- ❌ Вся логика в одном сервисе
+- ❌ Бизнес-логика в Repository
+- ❌ Прямые SQL запросы в сервисах
+
+### 2. Структура модуля
+
+```typescript
+@Module({
+  controllers: [GraphController],
+  providers: [
+    // Main coordinator
+    GraphService,
+    // Specialized services
+    ProjectsService,
+    GraphOperationsService,
+    // Repositories
+    ProjectRepository,
+    GraphRepository,
+  ],
+})
+export class GraphModule {}
+```
+
+### 3. Dependency Injection
+
+**ДЕЛАЙ:**
+```typescript
+@Injectable()
+export class ProjectsService {
+  constructor(private readonly projectRepository: ProjectRepository) {}
+}
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Создание инстансов через `new`
+- ❌ Импорт db напрямую в сервисы (используй Repository)
+
+---
+
+## Работа с базой данных (Drizzle ORM)
+
+### 1. Repository Pattern
+
+**ДЕЛАЙ:**
+```typescript
+@Injectable()
+export class ProjectRepository {
+  async create(data: CreateProject): Promise<Project> {
+    const [project] = await db.insert(projects).values(data).returning();
+    return project;
+  }
+
+  async findById(id: string): Promise<Project | null> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id))
+      .limit(1);
+    return project || null;
+  }
+}
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Прямые запросы к `db` из сервисов
+- ❌ Бизнес-логика в Repository
+- ❌ Типы из Drizzle напрямую (используй типы из schema)
+
+### 2. Database Connection
+
+**ДЕЛАЙ:**
+```typescript
+// Используй shared utility
+import { createDatabaseConnection } from "@axion/database";
+import * as schema from "./schema";
+
+const { client, db } = createDatabaseConnection(connectionString, schema);
+export { client, db };
+```
+
+### 3. Schema и типы
+
+**ДЕЛАЙ:**
+```typescript
+// В schema.ts
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // ...
+});
+
+export type Project = typeof projects.$inferSelect;
+export type CreateProject = typeof projects.$inferInsert;
+export type UpdateProject = Partial<CreateProject>;
+```
+
+### 4. Обновление записей
+
+**ДЕЛАЙ:**
+```typescript
+async update(id: string, data: UpdateProject): Promise<Project | null> {
+  const [updated] = await db
+    .update(projects)
+    .set({
+      ...data,
+      [projects.updatedAt.name]: sql`now()`, // ✅ Автоматическое обновление updated_at
+    })
+    .where(eq(projects.id, id))
+    .returning();
+  return updated || null;
+}
+```
+
+### 5. Пагинация
+
+**ДЕЛАЙ:**
+```typescript
+async findByUserId(
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{ projects: Project[]; total: number }> {
+  const offset = (page - 1) * limit;
+  const allProjects = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, userId));
+  
+  const total = allProjects.length;
+  const paginated = allProjects.slice(offset, offset + limit);
+  
+  return { projects: paginated, total };
+}
+```
+
+---
+
+## Обработка ошибок и ответов
+
+### 1. Единая система обработки ошибок
+
+**ДЕЛАЙ:**
+```typescript
+import { handleServiceError } from "@axion/shared";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@axion/contracts";
+
+// Базовое использование
+try {
+  const project = await this.repository.create(data);
+  return createSuccessResponse(project);
+} catch (error) {
+  return handleServiceError(this.logger, "creating project", error);
+}
+
+// С контекстом для лучшего логирования
+catch (error) {
+  return handleServiceError(this.logger, "getting project", error, {
+    resourceType: "Project",
+    resourceId: id,
+    userId: context.userId,
+  });
+}
+```
+
+**Что делает handleServiceError:**
+- ✅ Автоматически классифицирует ошибки (Database, Validation, NotFound, etc.)
+- ✅ Правильно логирует с нужным уровнем (warn для validation, error для internal)
+- ✅ Конвертирует в Protobuf-compatible формат
+- ✅ Обрабатывает PostgreSQL/Drizzle ошибки автоматически
+
+**НЕ ДЕЛАЙ:**
+- ❌ НЕ обрабатывай ошибки вручную - пусть система их классифицирует
+- ❌ НЕ используй try-catch без handleServiceError
+- ❌ НЕ создавай свои error classes - используй существующие из @axion/shared
+- ❌ НЕ логируй ошибки вручную - handleServiceError делает это автоматически
+
+### 2. Response utilities
+
+**ДЕЛАЙ:**
+```typescript
+// Успешный ответ - отправляй данные напрямую
+return createSuccessResponse(project);
+return createSuccessResponse({ projects, pagination });
+
+// Ошибка валидации
+return createErrorResponse(createValidationError("field is required", "field"));
+
+// Ошибка not found
+return createErrorResponse(createNotFoundError("Project", projectId));
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Прямое создание объектов ответа
+- ❌ Строковые литералы для кодов ошибок
+- ❌ **НЕ ДЕЛАЙ лишний маппинг данных** - отправляй данные из repository напрямую
+- ❌ НЕ используй `.map()` для преобразования данных перед отправкой
+- ❌ НЕ преобразуй поля вручную (например, `createdAt.getTime()`) - отправляй объекты как есть
+
+### 3. Валидация входных данных
+
+**ДЕЛАЙ:**
+```typescript
+import { getUserIdFromMetadata } from "@axion/contracts";
+
+const userId = getUserIdFromMetadata(data.metadata);
+if (!userId) {
+  return createErrorResponse(
+    createValidationError("user_id is required in metadata")
+  );
+}
+```
+
+### 4. Проверка существования ресурсов
+
+**ДЕЛАЙ:**
+```typescript
+const project = await this.repository.findById(projectId);
+if (!project) {
+  return createErrorResponse(
+    createNotFoundError("Project", projectId)
+  );
+}
+```
+
+---
+
+## Безопасность и доступ
+
+### 1. Project Access Verification
+
+**ДЕЛАЙ:**
+```typescript
+import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
+
+const access = await verifyProjectAccess(
+  this.projectRepository,
+  projectId,
+  metadata
+);
+if (!access.success) return access.response;
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Пропуск проверки доступа к проекту
+- ❌ Прямая проверка без использования helper
+
+### 2. Metadata extraction
+
+**ДЕЛАЙ:**
+```typescript
+import { getUserIdFromMetadata } from "@axion/contracts";
+
+const userId = getUserIdFromMetadata(data.metadata);
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ Прямой доступ к metadata без проверки
+const userId = (data.metadata as any).user_id;
+```
+
+---
+
+## Логирование
+
+### 1. Logger в сервисах
+
+**ДЕЛАЙ:**
+```typescript
+@Injectable()
+export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
+  async create(data: CreateProjectRequest) {
+    this.logger.log("Creating project");
+    // ...
+  }
+}
+```
+
+### 2. Логирование ошибок
+
+**ДЕЛАЙ:**
+```typescript
+// Используй handleServiceError - он логирует автоматически
+catch (error) {
+  return handleServiceError(this.logger, "creating project", error);
+}
+```
+
+**НЕ ДЕЛАЙ:**
+- ❌ console.log/console.error
+- ❌ Логирование без контекста
+
+---
+
+## Структура файлов и папок
+
+### 1. Структура модуля NestJS
+
+```
+src/
+├── {module}/
+│   ├── {module}.module.ts      # Module definition
+│   ├── {module}.controller.ts  # MessagePattern handlers
+│   ├── {module}.service.ts     # Main coordinator service
+│   ├── services/               # Specialized services
+│   │   ├── {feature}.service.ts
+│   ├── repositories/           # Database repositories
+│   │   ├── {entity}.repository.ts
+│   ├── helpers/                # Reusable helpers
+│   │   ├── {helper}.helper.ts
+│   └── dto/                    # DTOs (если нужны)
+│       ├── {dto}.dto.ts
+├── database/
+│   ├── schema.ts               # Drizzle schema
+│   ├── connection.ts           # DB connection
+│   └── index.ts
+└── main.ts
+```
+
+### 2. Naming conventions
+
+- **Файлы:** kebab-case (`project.repository.ts`)
+- **Классы:** PascalCase (`ProjectRepository`)
+- **Переменные/функции:** camelCase (`createProject`)
+- **Константы:** UPPER_SNAKE_CASE (`GRAPH_SERVICE_PATTERNS`)
+- **Таблицы БД:** snake_case (`project_graph_versions`)
+
+---
+
+## Миграции базы данных
+
+### 1. Генерация миграций
+
+**ДЕЛАЙ:**
+```bash
+cd apps/graph-service
+bun run migrate:generate  # Генерирует миграции из schema
+```
+
+### 2. Применение миграций
+
+```bash
+bun run migrate          # Применяет миграции
+bun run migrate:push     # Push schema (dev only)
+```
+
+### 3. Schema changes
+
+**ДЕЛАЙ:**
+- ✅ Изменяй schema.ts
+- ✅ Генерируй миграцию через `migrate:generate`
+- ✅ Проверяй сгенерированный SQL
+- ✅ Применяй миграцию
+
+**НЕ ДЕЛАЙ:**
+- ❌ Прямые изменения в БД без миграций
+- ❌ Ручное редактирование SQL миграций (кроме крайних случаев)
+
+---
+
+## Monorepo и зависимости
+
+### 1. Использование workspace packages
+
+**ДЕЛАЙ:**
+```typescript
+import { GraphData } from "@axion/contracts";
+import { handleServiceError } from "@axion/shared";
+import { createDatabaseConnection } from "@axion/database";
+```
+
+### 2. Package.json dependencies
+
+**ДЕЛАЙ:**
+```json
+{
+  "dependencies": {
+    "@axion/contracts": "workspace:*",
+    "@axion/shared": "workspace:*",
+    "@axion/database": "workspace:*"
+  }
+}
+```
+
+### 3. Не дублируй код между пакетами
+
+**ДЕЛАЙ:**
+- ✅ Общую логику в `@axion/shared`
+- ✅ Контракты и типы в `@axion/contracts`
+- ✅ Database utilities в `@axion/database`
+
+**НЕ ДЕЛАЙ:**
+- ❌ Дублирование helper функций
+- ❌ Локальные копии типов из contracts
+
+---
+
+## TypeScript и типизация
+
+### 1. Strict typing
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ Явная типизация возвращаемых значений
+async findById(id: string): Promise<Project | null> {
+  // ...
+}
+
+// ✅ Type guards для проверки типов
+if (isSuccessResponse(response)) {
+  const data = response.result.data;
+}
+```
+
+### 2. Использование type imports
+
+**ДЕЛАЙ:**
+```typescript
+import { type GraphData, type Node } from "@axion/contracts";
+import { type ProjectRepository } from "@/graph/repositories/project.repository";
+```
+
+### 3. Типы из Drizzle schema
+
+**ДЕЛАЙ:**
+```typescript
+import {
+  type Project,
+  type CreateProject,
+  type UpdateProject,
+} from "@/database/schema";
+```
+
+### 4. Запрет динамических импортов
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ Динамические импорты для обхода проблем с инициализацией модулей
+const { client } = await import("@/database/connection");
+const module = await import("@/some/module");
+```
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ Обычные статические импорты на уровне модуля
+import { client } from "@/database/connection";
+import { SomeModule } from "@/some/module";
+
+// ✅ Если нужно обработать ошибку подключения - делай это в try-catch при использовании
+try {
+  await client`SELECT 1`;
+} catch (error) {
+  // Обработка ошибки
+}
+```
+
+**Почему:**
+- Динамические импорты усложняют код и скрывают проблемы с инициализацией
+- Статические импорты позволяют TypeScript и bundler'ам правильно анализировать зависимости
+- Ошибки инициализации должны быть явными и обрабатываться на уровне модуля, а не скрываться через динамические импорты
+
+---
+
+## Тестирование (будущее)
+
+### 1. Unit tests
+
+- Тестируй бизнес-логику в сервисах
+- Мокай Repository
+- Используй тестовые утилиты из `@axion/shared` (когда будут)
+
+### 2. Integration tests
+
+- Тестируй MessagePattern handlers
+- Используй test database
+- Проверяй полный flow от контроллера до БД
+
+---
+
+## Better Auth и аутентификация
+
+### 1. Использование Better Auth
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ Серверная сторона (NestJS)
+import { AxionAuthModule } from "@axion/better-auth/nestjs";
+import { createBetterAuth } from "@axion/better-auth";
+
+// ✅ Клиентская сторона (React/Next.js)
+import { SignInForm, UserButton } from "@axion/better-auth/ui";
+import { useSession } from "better-auth/react";
+```
+
+### 2. TypeScript Path Aliases
+
+**КРИТИЧЕСКИ ВАЖНО:** Всегда используй path aliases вместо относительных путей (`../`, `../../`).
+
+**ДЕЛАЙ:**
+```typescript
+// ✅ Использование aliases
+import { Button } from "@/components/button";
+import { useAuth } from "@/hooks/use-auth";
+import { authClient } from "@/lib/auth-client";
+import { db } from "@/database";
+import { ProjectRepository } from "@/graph/repositories/project.repository";
+import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ Относительные пути - ЗАПРЕЩЕНО
+import { Button } from "../../components/button";
+import { db } from "../../database";
+import { ProjectRepository } from "../repositories/project.repository";
+import { verifyProjectAccess } from "../helpers/project-access.helper";
+```
+
+### 3. Available Aliases
+
+Базовые aliases настроены в `typescript-config`:
+- `@/*` - корень src/app (или src/ для сервисов)
+- `@/components/*` - компоненты
+- `@/lib/*` - библиотеки/утилиты
+- `@/utils/*` - утилиты
+- `@/hooks/*` - React hooks
+- `@/types/*` - TypeScript типы
+- `@/config/*` - конфигурации
+- `@/graph/*` - модули graph (для graph-service)
+- `@/database/*` - database модули
+- `@/health/*` - health модули
+
+**Для NestJS сервисов:**
+- `@/database` → `src/database`
+- `@/graph/repositories` → `src/graph/repositories`
+- `@/graph/services` → `src/graph/services`
+- `@/graph/helpers` → `src/graph/helpers`
+
+---
+
+## Чеклист перед коммитом
+
+- [ ] Все типы импортируются из `@axion/contracts`
+- [ ] Все enum значения используются из Protobuf
+- [ ] Нет хардкода MessagePattern - используются константы
+- [ ] Все ошибки обрабатываются через `handleServiceError`
+- [ ] Все ответы через `createSuccessResponse` / `createErrorResponse`
+- [ ] Проверка доступа к проекту через `verifyProjectAccess`
+- [ ] Логирование через Logger (не console)
+- [ ] Repository pattern используется для работы с БД
+- [ ] Использование path aliases вместо относительных путей
+- [ ] Нет дублирования кода между пакетами
+- [ ] Нет циклических зависимостей
+- [ ] Нет лишнего маппинга данных - отправляй данные из repository напрямую
+- [ ] `bun type-check` проходит успешно
+- [ ] `bun lint` проходит успешно

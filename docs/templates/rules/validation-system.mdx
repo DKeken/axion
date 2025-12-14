@@ -1,0 +1,77 @@
+---
+title: "Validation System"
+description: "Система валидации сгенерированных сервисов. Обеспечивает что LLM не сделала ошибок и сервис работает."
+order: 2
+---
+
+# Validation System
+
+## Обзор
+
+Система валидации сгенерированных сервисов. Обеспечивает что LLM не сделала ошибок и сервис работает.
+
+<Callout type="info" title="Связанные документы">
+  - **Типы:** См. [TYPES_AND_CONSTANTS](../TYPES_AND_CONSTANTS) для
+  `ValidationLevel`, `ValidationStatus`, `ValidationResult` - **Общая
+  информация:** См. [CONTRACTS_AND_VALIDATION](../../CONTRACTS_AND_VALIDATION)
+  для полного описания системы валидации
+</Callout>
+
+## Validation Pipeline (6 уровней)
+
+Валидация выполняется последовательно. Если один уровень не проходит, следующие не выполняются.
+
+| Уровень                      | Описание                                                      | Команда/Метод                     |
+| ---------------------------- | ------------------------------------------------------------- | --------------------------------- |
+| **1. Structural Validation** | Проверка обязательных файлов из Blueprint                     | Проверка структуры директорий     |
+| **2. Contract Validation**   | Все MessagePattern имеют контракты, все контракты реализованы | Парсинг AST, сравнение с Protobuf |
+| **3. TypeScript Validation** | Проверка типов                                                | `tsc --noEmit`                    |
+| **4. Build Validation**      | Компиляция                                                    | `bun run build`                   |
+| **5. Health Check**          | Запуск в Docker, проверка health endpoint и MessagePattern    | Docker + HTTP запросы             |
+| **6. Contract Discovery**    | Валидация при запуске через ContractDiscoveryService          | Проверка при запуске сервиса      |
+
+## Компоненты
+
+| Компонент                        | Описание                                                                  | Функция                       |
+| -------------------------------- | ------------------------------------------------------------------------- | ----------------------------- |
+| **Structural Validator**         | Проверяет наличие всех обязательных файлов                                | Проверка структуры директорий |
+| **Contract Validator**           | Парсит AST кода, извлекает MessagePattern, сравнивает с Protobuf          | Сравнение контрактов          |
+| **TypeScript Validator**         | Выполняет `tsc --noEmit` для проверки типов                               | Проверка типов                |
+| **Build Validator**              | Выполняет `bun run build` для проверки компиляции                         | Проверка сборки               |
+| **Health Check Validator**       | Запускает сервис в Docker, проверяет health endpoint и все MessagePattern | Проверка работоспособности    |
+| **Contract Discovery Validator** | Проверяет что ContractDiscoveryService успешно валидирует все контракты   | Валидация при запуске         |
+
+## Validation Pipeline
+
+```typescript
+// Последовательное выполнение всех уровней
+for (const level of VALIDATION_LEVELS) {
+  const result = await validate(level);
+  if (!result.valid) {
+    return { valid: false, errors: result.errors };
+  }
+}
+```
+
+## Отказоустойчивость
+
+| Паттерн               | Описание                                  | Применение                         |
+| --------------------- | ----------------------------------------- | ---------------------------------- |
+| **Retry**             | Exponential backoff для повторных попыток | Внешние зависимости                |
+| **Circuit Breaker**   | Защита от каскадных сбоев                 | При проблемах с внешними сервисами |
+| **Timeout**           | Ограничение времени выполнения            | Все асинхронные операции           |
+| **Graceful Shutdown** | Корректное завершение работы              | Закрытие соединений                |
+
+## Checklist
+
+- [ ] Structural validation проходит
+- [ ] Contract validation проходит
+- [ ] TypeScript компилируется
+- [ ] Build успешен
+- [ ] Health check отвечает
+- [ ] Все MessagePattern работают
+- [ ] Contract discovery валидация проходит
+
+---
+
+_Система валидации гарантирует качество сгенерированного кода._

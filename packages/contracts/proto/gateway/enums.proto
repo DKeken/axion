@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package axion.gateway;
+
+// Load balancing strategy
+enum LoadBalancingStrategy {
+  LOAD_BALANCING_STRATEGY_UNSPECIFIED = 0;
+  LOAD_BALANCING_STRATEGY_ROUND_ROBIN = 1;
+  LOAD_BALANCING_STRATEGY_LEAST_CONNECTIONS = 2;
+}

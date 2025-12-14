@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package axion.deployment;
+
+import "common/common.proto";
+import "common/health.proto";
+import "deployment/deployment.proto";
+import "deployment/management.proto";
+import "deployment/rollback.proto";
+
+// Deployment Service - деплой проектов
+
+service DeploymentService {
+  // Деплой
+  rpc DeployProject(DeployProjectRequest) returns (DeployProjectResponse);
+  rpc CancelDeployment(CancelDeploymentRequest) returns (axion.common.Empty);
+  
+  // Управление деплоями
+  rpc GetDeployment(GetDeploymentRequest) returns (DeploymentResponse);
+  rpc ListDeployments(ListDeploymentsRequest) returns (ListDeploymentsResponse);
+  rpc GetDeploymentStatus(GetDeploymentStatusRequest) returns (DeploymentStatusResponse);
+  
+  // Rollback
+  rpc RollbackDeployment(RollbackDeploymentRequest) returns (RollbackDeploymentResponse);
+  
+  // Health Check
+  rpc HealthCheck(axion.common.HealthCheckRequest) returns (axion.common.HealthCheckResponse);
+}

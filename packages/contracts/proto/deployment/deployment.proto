@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package axion.deployment;
+
+import "common/common.proto";
+
+// Deploy messages
+message DeployProjectRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string project_id = 2;
+  oneof target {
+    string cluster_id = 3;
+    string server_id = 4;
+  }
+  map<string, string> env_vars = 5; // Переменные окружения для сервисов
+  bool force_redeploy = 6; // Принудительный редеплой всех сервисов
+}
+
+message DeployProjectResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    Deployment deployment = 3;
+  }
+}
+
+message CancelDeploymentRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string deployment_id = 2;
+}
+
+// Deployment types (shared with management and rollback)
+message ServiceDeploymentStatus {
+  string service_id = 1;
+  string node_id = 2;
+  string service_name = 3;
+  axion.common.DeploymentStatus status = 4;
+  string server_id = 5; // На каком сервере задеплоен (если кластер)
+  string error_message = 6;
+  int64 deployed_at = 7;
+}
+
+message DeploymentConfig {
+  string docker_compose_yml = 1; // Сгенерированный docker-compose.yml
+  map<string, string> dockerfiles = 2; // service_name -> dockerfile path
+  map<string, string> docker_images = 3; // service_name -> docker image
+  repeated string service_dependencies = 4; // Порядок деплоя (из edges графа)
+}
+
+message Deployment {
+  string id = 1;
+  string project_id = 2;
+  oneof target {
+    string cluster_id = 3;
+    string server_id = 4;
+  }
+  axion.common.DeploymentStatus status = 5;
+  repeated ServiceDeploymentStatus service_statuses = 6;
+  map<string, string> env_vars = 7;
+  DeploymentConfig config = 8;
+  int64 started_at = 9;
+  int64 completed_at = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}

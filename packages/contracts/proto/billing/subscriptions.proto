@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package axion.billing;
+
+import "common/common.proto";
+import "billing/enums.proto";
+
+// Subscription messages
+message GetSubscriptionRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string user_id = 2;
+}
+
+message UpdateSubscriptionRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string user_id = 2;
+  SubscriptionTier tier = 3;
+  string stripe_subscription_id = 4; // Если обновление через Stripe
+}
+
+message CancelSubscriptionRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string user_id = 2;
+}
+
+message Subscription {
+  string user_id = 1;
+  SubscriptionTier tier = 2;
+  string stripe_customer_id = 3;
+  optional string stripe_subscription_id = 4;
+  SubscriptionStatus status = 5;
+  int64 current_period_start = 6;
+  int64 current_period_end = 7;
+  bool cancel_at_period_end = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
+}
+
+message SubscriptionResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    Subscription subscription = 3;
+  }
+}

@@ -1,0 +1,45 @@
+---
+title: "Component: RabbitMQ Handler"
+description: "Handler для обработки RabbitMQ сообщений. Генерируется автоматически на основе Protobuf контрактов."
+order: 0
+---
+
+# Component: RabbitMQ Handler
+
+## Описание
+
+Handler для обработки RabbitMQ сообщений. Генерируется автоматически на основе Protobuf контрактов.
+
+<Callout type="info" title="Автоматическая генерация">
+  **LLM НЕ генерит этот файл** — создается автоматически на основе Protobuf
+  контрактов.
+</Callout>
+
+## Конфигурация
+
+- `{FEATURE_NAME}` — имя фичи
+- `{FEATURE_NAME_LOWER}` — имя фичи (camelCase)
+- `{HANDLERS}` — список handlers из Protobuf
+
+## Код
+
+```typescript
+// src/modules/{FEATURE_NAME_LOWER}/{FEATURE_NAME_LOWER}.handler.ts
+import { {FEATURE_NAME}Service } from './{FEATURE_NAME_LOWER}.service';
+import { {Action}Request, {Action}Response } from '../../generated/{service-name}.pb';
+
+export class {FEATURE_NAME}Handler {
+  constructor(private service: {FEATURE_NAME}Service) {}
+  // Handlers регистрируются в main.ts автоматически
+}
+```
+
+## Checklist
+
+- [ ] Все handlers зарегистрированы
+- [ ] Типы из Protobuf используются
+- [ ] Обработка ошибок на месте
+
+---
+
+_Handler генерируется автоматически из Protobuf контрактов._
