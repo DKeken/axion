@@ -19,5 +19,11 @@ export * from "./controllers/base-controller";
 // Health module
 export * from "./health/health.module";
 
+// BullMQ module
+export * from "./bullmq";
+
+// SSH module
+export * from "./ssh";
+
 // Bootstrap
 export * from "./bootstrap/bootstrap";

@@ -3,6 +3,7 @@ import {
   INFRASTRUCTURE_SERVICE_PATTERNS,
   type InstallAgentResponse,
 } from "@axion/contracts";
+import { QUEUE_NAMES } from "@axion/nestjs-common";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
@@ -15,7 +16,7 @@ import type { AgentInstallationJobPayload } from "@/deployment/services/types";
  * Agent Installation Processor
  * Обрабатывает задачи установки агентов из очереди BullMQ
  */
-@Processor("agent-installation-queue")
+@Processor(QUEUE_NAMES.AGENT_INSTALLATION)
 @Injectable()
 export class AgentInstallationProcessor extends WorkerHost {
   private readonly logger = new Logger(AgentInstallationProcessor.name);

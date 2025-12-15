@@ -19,13 +19,17 @@
   "dependencies": {
     "@axion/contracts": "workspace:*",
     "@axion/shared": "workspace:*",
+    "@nestjs/bullmq": "^10.2.3",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
-    "rxjs": "catalog:"
+    "bullmq": "catalog:",
+    "rxjs": "catalog:",
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@axion-stack/typescript-config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/ssh2": "^1.15.5",
     "typescript": "catalog:"
   },
   "peerDependencies": {

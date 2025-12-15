@@ -18,6 +18,16 @@ import type {
   ListClustersResponse,
   ListClustersData,
 } from "../../generated/infrastructure/clusters";
+import type {
+  InstallAgentResponse,
+  AgentInstallationResult,
+  AgentStatusResponse,
+  AgentStatus,
+} from "../../generated/infrastructure/agents";
+import type {
+  ConfigureServerResponse,
+  ServerConfigurationResult,
+} from "../../generated/infrastructure/servers";
 import type { Pagination } from "../../generated/common/common";
 
 /**
@@ -92,6 +102,42 @@ export function createListClustersResponse(
 export function createTestServerConnectionResponse(
   result: ServerConnectionTestResult
 ): TestServerConnectionResponse {
+  return {
+    status: Status.STATUS_SUCCESS,
+    data: result,
+  };
+}
+
+/**
+ * Create InstallAgentResponse with correct structure: { status, error? | data? }
+ */
+export function createInstallAgentResponse(
+  result: AgentInstallationResult
+): InstallAgentResponse {
+  return {
+    status: Status.STATUS_SUCCESS,
+    data: result,
+  };
+}
+
+/**
+ * Create AgentStatusResponse with correct structure: { status, error? | agentStatus? }
+ */
+export function createAgentStatusResponse(
+  agentStatus: AgentStatus
+): AgentStatusResponse {
+  return {
+    status: Status.STATUS_SUCCESS,
+    agentStatus,
+  };
+}
+
+/**
+ * Create ConfigureServerResponse with correct structure: { status, error? | data? }
+ */
+export function createConfigureServerResponse(
+  result: ServerConfigurationResult
+): ConfigureServerResponse {
   return {
     status: Status.STATUS_SUCCESS,
     data: result,

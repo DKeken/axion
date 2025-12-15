@@ -19,7 +19,7 @@ Infrastructure Service предоставляет функциональност
 - ✅ Update Server - обновление данных сервера
 - ✅ Delete Server - удаление сервера
 - ✅ List Servers - список серверов пользователя (с фильтрацией по кластеру)
-- ⏳ Test Server Connection - проверка SSH подключения (заглушка, требует реализации)
+- ✅ Test Server Connection - проверка SSH подключения через BullMQ SSH очередь
 
 ### Cluster Management
 
@@ -34,7 +34,7 @@ Infrastructure Service предоставляет функциональност
 
 - ⏳ Ping Server - проверка доступности сервера (требует реализации)
 - ⏳ Check Docker - проверка наличия Docker (требует реализации)
-- ⏳ Check Agent Status - проверка статуса Runner Agent (требует реализации)
+- ✅ Check Agent Status - проверка статуса Runner Agent (BullMQ + SSH командa)
 
 ## Архитектура
 
@@ -115,6 +115,53 @@ src/
 - `infrastructure-service.testServerConnection` - проверка подключения
 
 ## Environment Variables
+
+### Обязательные переменные
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `KAFKA_BROKERS` - Kafka brokers для Event Bus
+- `SSH_ENCRYPTION_MASTER_KEY` - **ОБЯЗАТЕЛЬНО в production** - master key для шифрования SSH ключей и паролей (минимум 32 байта)
+
+### Опциональные переменные
+
+- `PORT` - HTTP server port (по умолчанию: 3004)
+- `NODE_ENV` - окружение (development/production)
+
+### SSH Encryption
+
+**ВНИМАНИЕ:** В production окружении переменная `SSH_ENCRYPTION_MASTER_KEY` обязательна. Без неё сервис не запустится.
+
+**Генерация master key:**
+
+```bash
+# Генерация безопасного ключа (32+ байт)
+openssl rand -base64 32
+
+# Или через Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+**Безопасное хранение:**
+
+- Никогда не коммитьте master key в git
+- Используйте secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.)
+- Храните ключ отдельно от кода приложения
+- Регулярно ротируйте ключ (используйте встроенный helper для ротации)
+
+### SSH Key Rotation (рекомендуется проводить оффлайн)
+
+1. Получите текущий `SSH_ENCRYPTION_MASTER_KEY` (old).
+2. Сгенерируйте новый безопасный ключ (см. пример выше).
+3. Внутри Nest контекста вызовите сервис (пример через bootstrap скрипт или Nest CLI):
+
+```ts
+// псевдокод внутри bootstrap скрипта
+const infra = app.get(InfrastructureService);
+await infra.rotateSshKeys(process.env.OLD_KEY!, process.env.NEW_KEY!);
+```
+
+4. Обновите переменную `SSH_ENCRYPTION_MASTER_KEY` на новый ключ и перезапустите сервис.
+5. Убедитесь, что новые соединения работают (testConnection).
 
 ```env
 # Database (отдельная БД для infrastructure-service)

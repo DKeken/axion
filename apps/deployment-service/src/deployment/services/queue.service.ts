@@ -1,3 +1,8 @@
+import {
+  DEFAULT_QUEUE_OPTIONS,
+  QUEUE_NAMES,
+  type QueueOptions,
+} from "@axion/nestjs-common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
@@ -5,18 +10,8 @@ import { Queue } from "bullmq";
 import type {
   DeploymentJobPayload,
   AgentInstallationJobPayload,
-  QueueOptions,
 } from "@/deployment/services/types";
-
-const DEFAULT_QUEUE_OPTIONS: QueueOptions = {
-  attempts: 3,
-  backoff: {
-    type: "exponential",
-    delay: 2000,
-  },
-  removeOnComplete: true,
-  removeOnFail: false,
-};
+import { RequestMetadata } from "@axion/contracts";
 
 /**
  * Queue Service
@@ -27,9 +22,9 @@ export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
   constructor(
-    @InjectQueue("deployment-queue")
+    @InjectQueue(QUEUE_NAMES.DEPLOYMENT)
     private readonly deploymentQueue: Queue<DeploymentJobPayload>,
-    @InjectQueue("agent-installation-queue")
+    @InjectQueue(QUEUE_NAMES.AGENT_INSTALLATION)
     private readonly agentInstallationQueue: Queue<AgentInstallationJobPayload>
   ) {}
 
@@ -45,11 +40,11 @@ export class QueueService {
 
     try {
       const job = await this.deploymentQueue.add(
-        "deploy",
+        QUEUE_NAMES.DEPLOYMENT,
         {
           deploymentId,
           ...data,
-        } as DeploymentJobPayload,
+        } satisfies DeploymentJobPayload,
         {
           attempts: options.attempts,
           backoff: {
@@ -59,7 +54,7 @@ export class QueueService {
           },
           removeOnComplete: options.removeOnComplete,
           removeOnFail: options.removeOnFail,
-        }
+        } satisfies QueueOptions
       );
 
       this.logger.log(
@@ -127,18 +122,18 @@ export class QueueService {
    */
   async createAgentInstallationJob(
     serverId: string,
-    metadata: unknown,
+    metadata: RequestMetadata | undefined,
     options: QueueOptions = DEFAULT_QUEUE_OPTIONS
   ): Promise<string> {
     this.logger.log(`Creating agent installation job for server ${serverId}`);
 
     try {
       const job = await this.agentInstallationQueue.add(
-        "install-agent",
+        QUEUE_NAMES.AGENT_INSTALLATION,
         {
           serverId,
           metadata,
-        } as AgentInstallationJobPayload,
+        } satisfies AgentInstallationJobPayload,
         {
           attempts: options.attempts,
           backoff: {
@@ -148,7 +143,7 @@ export class QueueService {
           },
           removeOnComplete: options.removeOnComplete,
           removeOnFail: options.removeOnFail,
-        }
+        } satisfies QueueOptions
       );
 
       this.logger.log(

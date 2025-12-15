@@ -122,3 +122,26 @@ message ServerConnectionTestResult {
   ServerInfo server_info = 3;
   string error_message = 4;
 }
+
+message ConfigureServerRequest {
+  axion.common.RequestMetadata metadata = 1;
+  string server_id = 2;
+  optional bool setup_firewall = 3; // Опционально: настроить firewall
+  optional bool install_docker = 4; // Опционально: установить Docker если не установлен
+}
+
+message ConfigureServerResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    ServerConfigurationResult data = 3;
+  }
+}
+
+message ServerConfigurationResult {
+  bool directories_created = 1;
+  bool user_created = 2;
+  bool docker_installed = 3;
+  bool firewall_configured = 4;
+  string configuration_log = 5;
+}

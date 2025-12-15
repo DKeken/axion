@@ -108,4 +108,72 @@ export class ServerRepository extends BaseRepository<
       .returning();
     return updated || null;
   }
+
+  /**
+   * Update agent ID and optionally status
+   */
+  async updateAgentId(
+    id: string,
+    agentId: string | null,
+    status?: Server["status"] | null
+  ): Promise<Server | null> {
+    const updateData: UpdateServer = {
+      agentId,
+      updatedAt: new Date(),
+    };
+
+    if (status !== undefined && status !== null) {
+      updateData.status = status;
+    }
+
+    const [updated] = await this.db
+      .update(this.table)
+      .set({
+        ...updateData,
+        [servers.updatedAt.name]: sql`now()`,
+      })
+      .where(eq(servers.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  /**
+   * Получение зашифрованных SSH данных для ротации ключей
+   */
+  async listCredentialsForRotation(): Promise<
+    Array<{
+      id: string;
+      encryptedPrivateKey: string | null;
+      encryptedPassword: string | null;
+    }>
+  > {
+    return this.db
+      .select({
+        id: servers.id,
+        encryptedPrivateKey: servers.encryptedPrivateKey,
+        encryptedPassword: servers.encryptedPassword,
+      })
+      .from(this.table);
+  }
+
+  /**
+   * Обновление зашифрованных SSH данных после ротации
+   */
+  async updateEncryptedCredentials(
+    id: string,
+    encryptedPrivateKey: string | null,
+    encryptedPassword: string | null
+  ): Promise<Server | null> {
+    const [updated] = await this.db
+      .update(this.table)
+      .set({
+        encryptedPrivateKey,
+        encryptedPassword,
+        [servers.updatedAt.name]: sql`now()`,
+      })
+      .where(eq(servers.id, id))
+      .returning();
+
+    return updated || null;
+  }
 }

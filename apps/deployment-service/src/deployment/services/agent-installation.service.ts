@@ -1,6 +1,7 @@
 import {
   INFRASTRUCTURE_SERVICE_NAME,
   INFRASTRUCTURE_SERVICE_PATTERNS,
+  RequestMetadata,
   type InstallAgentResponse,
 } from "@axion/contracts";
 import { BaseService } from "@axion/shared";
@@ -69,7 +70,7 @@ export class AgentInstallationService extends BaseService {
     // Создаем задачу в очереди
     const jobId = await this.queueService.createAgentInstallationJob(
       serverId,
-      metadata
+      metadata as unknown as RequestMetadata
     );
 
     this.logger.log(

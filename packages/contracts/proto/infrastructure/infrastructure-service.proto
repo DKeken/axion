@@ -31,6 +31,9 @@ service InfrastructureService {
   rpc InstallAgent(InstallAgentRequest) returns (InstallAgentResponse);
   rpc GetAgentStatus(GetAgentStatusRequest) returns (AgentStatusResponse);
   
+  // Server Configuration
+  rpc ConfigureServer(ConfigureServerRequest) returns (ConfigureServerResponse);
+  
   // Health Check
   rpc HealthCheck(axion.common.HealthCheckRequest) returns (axion.common.HealthCheckResponse);
 }

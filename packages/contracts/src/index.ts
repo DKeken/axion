@@ -159,6 +159,9 @@ export type {
   TestServerConnectionResponse,
   ServerConnectionTestResult,
   ServerConnectionInfo,
+  ConfigureServerRequest,
+  ConfigureServerResponse,
+  ServerConfigurationResult,
 } from "../generated/infrastructure/servers";
 
 export type {

@@ -12,6 +12,9 @@ import {
   type ListServersRequest,
   type UpdateServerRequest,
   type TestServerConnectionRequest,
+  type InstallAgentRequest,
+  type GetAgentStatusRequest,
+  type ConfigureServerRequest,
 } from "@axion/contracts";
 import {
   MessagePatternWithLog,
@@ -87,5 +90,22 @@ export class InfrastructureController {
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.TEST_SERVER_CONNECTION)
   async testServerConnection(@Payload() data: TestServerConnectionRequest) {
     return this.infrastructureService.testServerConnection(data);
+  }
+
+  // Agent Installation
+  @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.INSTALL_AGENT)
+  async installAgent(@Payload() data: InstallAgentRequest) {
+    return this.infrastructureService.installAgent(data);
+  }
+
+  @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.GET_AGENT_STATUS)
+  async getAgentStatus(@Payload() data: GetAgentStatusRequest) {
+    return this.infrastructureService.getAgentStatus(data);
+  }
+
+  // Server Configuration
+  @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.CONFIGURE_SERVER)
+  async configureServer(@Payload() data: ConfigureServerRequest) {
+    return this.infrastructureService.configureServer(data);
   }
 }

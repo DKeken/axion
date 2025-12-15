@@ -1,19 +1,10 @@
-/**
- * Internal types for deployment services
- * Используются только внутри deployment-service
- * Все публичные типы должны быть из @axion/contracts
- */
-
 import type {
   DeploymentConfig,
   DeployProjectRequest,
   InstallAgentRequest,
 } from "@axion/contracts";
+import { QueueOptions } from "@axion/nestjs-common";
 
-/**
- * Payload для задачи деплоя в очереди BullMQ
- * Использует типы из контрактов
- */
 export type DeploymentJobPayload = {
   deploymentId: string;
   projectId: string;
@@ -32,18 +23,8 @@ export type AgentInstallationJobPayload = {
   metadata: InstallAgentRequest["metadata"];
 };
 
-/**
- * Опции для очереди BullMQ
- */
-export type QueueOptions = {
-  attempts: number;
-  backoff: {
-    type: "exponential" | "fixed";
-    delay: number;
-  };
-  removeOnComplete: boolean;
-  removeOnFail: boolean;
-};
+// Re-export для обратной совместимости
+export type { QueueOptions };
 
 /**
  * Результат генерации Docker Compose

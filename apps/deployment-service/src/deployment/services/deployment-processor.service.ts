@@ -7,6 +7,7 @@ import {
   DeployProjectCommand,
   type ServiceDeploymentStatus as RunnerServiceDeploymentStatus,
 } from "@axion/contracts/generated/runner-agent/deployment";
+import { QUEUE_NAMES } from "@axion/nestjs-common";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
@@ -19,7 +20,7 @@ import type { DeploymentJobPayload } from "@/deployment/services/types";
  * Deployment Processor
  * Обрабатывает задачи деплоя из очереди BullMQ
  */
-@Processor("deployment-queue")
+@Processor(QUEUE_NAMES.DEPLOYMENT)
 @Injectable()
 export class DeploymentProcessor extends WorkerHost {
   private readonly logger = new Logger(DeploymentProcessor.name);

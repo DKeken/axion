@@ -18,4 +18,5 @@ export const INFRASTRUCTURE_SERVICE_PATTERNS = {
   TEST_SERVER_CONNECTION: "infrastructure-service.testServerConnection",
   INSTALL_AGENT: "infrastructure-service.installAgent",
   GET_AGENT_STATUS: "infrastructure-service.getAgentStatus",
+  CONFIGURE_SERVER: "infrastructure-service.configureServer",
 } as const;

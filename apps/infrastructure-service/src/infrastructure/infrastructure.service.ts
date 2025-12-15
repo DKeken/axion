@@ -11,11 +11,21 @@ import {
   type ListServersRequest,
   type UpdateServerRequest,
   type TestServerConnectionRequest,
+  type InstallAgentRequest,
+  type InstallAgentResponse,
+  type ConfigureServerRequest,
+  type ConfigureServerResponse,
+  type GetAgentStatusRequest,
+  type AgentStatusResponse,
 } from "@axion/contracts";
 import { Injectable } from "@nestjs/common";
 
+import { AgentInstallationService } from "@/infrastructure/services/agent-installation.service";
+import { AgentStatusService } from "@/infrastructure/services/agent-status.service";
 import { ClustersService } from "@/infrastructure/services/clusters.service";
+import { ServerConfigurationService } from "@/infrastructure/services/server-configuration.service";
 import { ServersService } from "@/infrastructure/services/servers.service";
+import { SshKeyRotationService } from "@/infrastructure/services/ssh-key-rotation.service";
 
 /**
  * Main InfrastructureService - координатор, делегирует вызовы специализированным сервисам
@@ -24,7 +34,11 @@ import { ServersService } from "@/infrastructure/services/servers.service";
 export class InfrastructureService {
   constructor(
     private readonly clustersService: ClustersService,
-    private readonly serversService: ServersService
+    private readonly serversService: ServersService,
+    private readonly agentInstallationService: AgentInstallationService,
+    private readonly agentStatusService: AgentStatusService,
+    private readonly serverConfigurationService: ServerConfigurationService,
+    private readonly sshKeyRotationService: SshKeyRotationService
   ) {}
 
   // Clusters
@@ -75,5 +89,26 @@ export class InfrastructureService {
 
   async testServerConnection(data: TestServerConnectionRequest) {
     return this.serversService.testConnection(data);
+  }
+
+  async installAgent(data: InstallAgentRequest): Promise<InstallAgentResponse> {
+    return this.agentInstallationService.installAgent(data);
+  }
+
+  async getAgentStatus(
+    data: GetAgentStatusRequest
+  ): Promise<AgentStatusResponse> {
+    return this.agentStatusService.getStatus(data);
+  }
+
+  async configureServer(
+    data: ConfigureServerRequest
+  ): Promise<ConfigureServerResponse> {
+    return this.serverConfigurationService.configureServer(data);
+  }
+
+  // SSH Key rotation (ops only, not exposed via controller)
+  async rotateSshKeys(oldMasterKey: string, newMasterKey: string) {
+    return this.sshKeyRotationService.rotateKeys(oldMasterKey, newMasterKey);
   }
 }

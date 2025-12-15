@@ -14,7 +14,14 @@ import {
   type TestServerConnectionResponse,
   type ServerConnectionTestResult,
 } from "@axion/contracts";
-import { CatchError } from "@axion/nestjs-common";
+import {
+  CatchError,
+  SshQueueService,
+  SSH_CONSTANTS,
+  type SshConnectionInfo,
+  type SshTestConnectionJobPayload,
+  SshEncryptionService,
+} from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -24,7 +31,11 @@ import { type ServerRepository } from "@/infrastructure/repositories/server.repo
 
 @Injectable()
 export class ServersService extends BaseService {
-  constructor(private readonly serverRepository: ServerRepository) {
+  constructor(
+    private readonly serverRepository: ServerRepository,
+    private readonly sshQueueService: SshQueueService,
+    private readonly sshEncryptionService: SshEncryptionService
+  ) {
     super(ServersService.name);
   }
 
@@ -38,10 +49,11 @@ export class ServersService extends BaseService {
       return this.createValidationResponse("host and username are required");
     }
 
-    // TODO: Шифрование SSH ключа или пароля
-    // Пока сохраняем как есть (в production нужно шифровать)
-    const encryptedPrivateKey = data.privateKey || null;
-    const encryptedPassword = data.password || null;
+    // Шифрование SSH ключа или пароля перед сохранением
+    const encryptedPrivateKey = this.sshEncryptionService.encrypt(
+      data.privateKey
+    );
+    const encryptedPassword = this.sshEncryptionService.encrypt(data.password);
 
     if (!encryptedPrivateKey && !encryptedPassword) {
       return this.createValidationResponse(
@@ -97,6 +109,8 @@ export class ServersService extends BaseService {
       ...(data.clusterId !== undefined && {
         clusterId: data.clusterId || null,
       }),
+      // Примечание: privateKey и password не могут быть обновлены через UpdateServerRequest
+      // (не включены в proto контракт для безопасности)
     });
 
     if (!updated) {
@@ -160,24 +174,180 @@ export class ServersService extends BaseService {
       return metadataCheck.response;
     }
 
-    // TODO: Реализовать реальную проверку SSH подключения
-    // Пока возвращаем заглушку
-    const result: ServerConnectionTestResult = {
-      connected: false,
-      dockerAvailable: false,
-      serverInfo: {
-        os: "",
-        architecture: "",
-        totalMemory: 0,
-        availableMemory: 0,
-        cpuCores: 0,
-        cpuUsage: 0,
-        dockerInstalled: false,
-        dockerVersion: "",
-      },
-      errorMessage: "Connection test not implemented yet",
-    };
+    try {
+      // Подготавливаем payload для SSH job
+      let sshConnectionInfo: SshConnectionInfo | undefined;
 
-    return createTestServerConnectionResponse(result);
+      if (data.serverId) {
+        // Проверяем доступ к существующему серверу
+        const access = await verifyServerAccess(
+          this.serverRepository,
+          data.serverId,
+          data.metadata
+        );
+        if (!access.success) {
+          return access.response;
+        }
+
+        const existingServer = await this.serverRepository.findById(
+          data.serverId
+        );
+        if (!existingServer) {
+          return this.createNotFoundResponse("Server", data.serverId);
+        }
+      } else if (data.connectionInfo) {
+        // Подготавливаем connection info для нового сервера
+        sshConnectionInfo = {
+          host: data.connectionInfo.host,
+          port: data.connectionInfo.port || SSH_CONSTANTS.DEFAULT_PORT,
+          username: data.connectionInfo.username,
+          privateKey: data.connectionInfo.privateKey || null,
+          password: data.connectionInfo.password || null,
+        };
+      } else {
+        return this.createValidationResponse(
+          "either server_id or connection_info is required"
+        );
+      }
+
+      // Создаем SSH job для тестирования подключения
+      const jobId = await this.sshQueueService.createTestConnectionJob({
+        serverId: data.serverId,
+        connectionInfo: sshConnectionInfo,
+        metadata: this.buildSshMetadata(metadataCheck.userId, data.metadata),
+      });
+
+      // Ждем результата выполнения job (с таймаутом 60 секунд)
+      const jobResult = await this.sshQueueService.waitForConnectionJobResult(
+        jobId,
+        60000
+      );
+
+      if (!jobResult.success || !jobResult.connectionResult) {
+        // Обработка ошибки
+        const errorMessage = jobResult.error || "Connection test failed";
+
+        // Если это существующий сервер - обновляем статус на error
+        if (data.serverId) {
+          try {
+            await this.serverRepository.update(data.serverId, {
+              status: serverStatusToDbString(ServerStatus.SERVER_STATUS_ERROR),
+            });
+          } catch (updateError) {
+            this.logger.error(
+              "Failed to update server status after connection test error",
+              updateError
+            );
+          }
+        }
+
+        const result: ServerConnectionTestResult = {
+          connected: false,
+          dockerAvailable: false,
+          serverInfo: {
+            os: "",
+            architecture: "",
+            totalMemory: 0,
+            availableMemory: 0,
+            cpuCores: 0,
+            cpuUsage: 0,
+            dockerInstalled: false,
+            dockerVersion: "",
+          },
+          errorMessage,
+        };
+
+        return createTestServerConnectionResponse(result);
+      }
+
+      // Успешный результат
+      const connectionResult = jobResult.connectionResult;
+
+      // Если это существующий сервер - обновляем информацию в БД
+      if (data.serverId) {
+        // Обновляем serverInfo
+        await this.serverRepository.updateServerInfo(
+          data.serverId,
+          connectionResult.serverInfo
+        );
+
+        // Обновляем статус и lastConnectedAt
+        await this.serverRepository.update(data.serverId, {
+          status: serverStatusToDbString(ServerStatus.SERVER_STATUS_CONNECTED),
+        });
+        await this.serverRepository.updateLastConnected(data.serverId);
+      }
+
+      const result: ServerConnectionTestResult = {
+        connected: connectionResult.connected,
+        dockerAvailable: connectionResult.dockerAvailable,
+        serverInfo: {
+          os: connectionResult.serverInfo.os || "",
+          architecture: connectionResult.serverInfo.architecture || "",
+          totalMemory: connectionResult.serverInfo.totalMemory || 0,
+          availableMemory: connectionResult.serverInfo.availableMemory || 0,
+          cpuCores: connectionResult.serverInfo.cpuCores || 0,
+          cpuUsage: connectionResult.serverInfo.cpuUsage || 0,
+          dockerInstalled: connectionResult.serverInfo.dockerInstalled || false,
+          dockerVersion: connectionResult.serverInfo.dockerVersion || "",
+        },
+        errorMessage: connectionResult.errorMessage || "",
+      };
+
+      return createTestServerConnectionResponse(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      this.logger.error("Failed to test server connection", error);
+
+      // Если это существующий сервер - обновляем статус на error
+      if (data.serverId) {
+        try {
+          await this.serverRepository.update(data.serverId, {
+            status: serverStatusToDbString(ServerStatus.SERVER_STATUS_ERROR),
+          });
+        } catch (updateError) {
+          this.logger.error(
+            "Failed to update server status after connection test error",
+            updateError
+          );
+        }
+      }
+
+      const result: ServerConnectionTestResult = {
+        connected: false,
+        dockerAvailable: false,
+        serverInfo: {
+          os: "",
+          architecture: "",
+          totalMemory: 0,
+          availableMemory: 0,
+          cpuCores: 0,
+          cpuUsage: 0,
+          dockerInstalled: false,
+          dockerVersion: "",
+        },
+        errorMessage,
+      };
+
+      return createTestServerConnectionResponse(result);
+    }
+  }
+
+  private buildSshMetadata(
+    userId: string,
+    metadata: TestServerConnectionRequest["metadata"]
+  ): SshTestConnectionJobPayload["metadata"] {
+    if (!metadata) {
+      return { user_id: userId };
+    }
+
+    return {
+      user_id: userId,
+      requestId: metadata.requestId,
+      projectId: metadata.projectId,
+      timestamp: metadata.timestamp,
+    };
   }
 }

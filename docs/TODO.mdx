@@ -79,7 +79,7 @@ Billing Service ⏳ (может работать независимо, испо�
   - [x] ✅ Database Schema — servers, clusters таблицы
   - [x] ✅ Server Management — CRUD серверов, SSH ключи
     - [x] ✅ Create Server — добавление сервера с SSH ключом
-    - [ ] ⏳ Test SSH Connection — проверка подключения (заглушка, требует реализации)
+    - [x] ✅ Test SSH Connection — проверка подключения (SSH подключение, сбор информации, проверка Docker)
     - [x] ✅ Update Server — обновление данных сервера
     - [x] ✅ Delete Server — удаление сервера
     - [x] ✅ List Servers — список серверов пользователя
@@ -89,15 +89,15 @@ Billing Service ⏳ (может работать независимо, испо�
     - [x] ✅ Remove Server from Cluster — удаление сервера из кластера (через Update Server)
     - [x] ✅ List Clusters — список кластеров
     - [x] ✅ List Cluster Servers — список серверов в кластере
-  - [ ] ⏳ SSH Key Management — безопасное хранение ключей
-    - [ ] ⏳ Encrypt SSH Keys — шифрование ключей перед сохранением (TODO: реализовать шифрование)
-    - [ ] ⏳ Decrypt SSH Keys — расшифровка для использования (TODO: реализовать расшифровку)
-    - [ ] ⏳ Key Rotation — ротация ключей
+  - [x] ✅ SSH Key Management — безопасное хранение ключей
+    - [x] ✅ Encrypt SSH Keys — шифрование ключей перед сохранением (AES-256-GCM с scrypt)
+    - [x] ✅ Decrypt SSH Keys — расшифровка для использования (интегрировано в ServersService)
+    - [ ] ⏳ Key Rotation — ротация ключей (требует миграции данных)
   - [ ] ⏳ System Requirements Calculation — расчет ресурсов для проекта
-  - [ ] ⏳ Server Health Monitoring — проверка доступности серверов
-    - [ ] ⏳ Ping Server — проверка доступности
-    - [ ] ⏳ Check Docker — проверка наличия Docker
-    - [ ] ⏳ Check Agent Status — проверка статуса Runner Agent
+  - [x] ✅ Server Health Monitoring — проверка доступности серверов (базовая реализация)
+    - [x] ✅ Ping Server — проверка доступности (через SSH подключение)
+    - [x] ✅ Check Docker — проверка наличия Docker (интегрировано в Test SSH Connection)
+    - [ ] ⏳ Check Agent Status — проверка статуса Runner Agent (требует Runner Agent)
 
 ### Deployment Service ✅ (Приоритет: Высокий — зависит от Infrastructure)
 
@@ -304,12 +304,12 @@ Billing Service ⏳ (может работать независимо, испо�
   - [ ] ⏳ WebSocket Server — постоянное соединение
   - [ ] ⏳ Auto-update Mechanism — автоматическое обновление с rollback
 
-### SSH Management ⏳
+### SSH Management ✅
 
-- [ ] ⏳ SSH Key Storage — безопасное хранение ключей
-- [ ] ⏳ Agent Installation — установка агента через SSH + BullMQ
-- [ ] ⏳ Server Configuration — настройка серверов
-- [ ] ⏳ Connection Testing — проверка подключений
+- [x] ✅ SSH Key Storage — безопасное хранение ключей (через SshEncryptionService в @axion/nestjs-common)
+- [x] ✅ Agent Installation — установка агента через SSH + BullMQ (реализован в Infrastructure Service)
+- [x] ✅ Server Configuration — настройка серверов (реализовано через SSH BullMQ в Infrastructure Service)
+- [x] ✅ Connection Testing — проверка подключений (через SSH BullMQ в @axion/nestjs-common)
 
 ### Control Plane Integration ⏳
 
@@ -424,7 +424,7 @@ Billing Service ⏳ (может работать независимо, испо�
 
 - **Graph Service:** ✅ 100% (CRUD, SSE, Repositories, Business Logic)
 - **Codegen Service:** ✅ 100% (Template Engine, LLM, Validation, Factories)
-- **Infrastructure Service:** ✅ 70% (CRUD для servers/clusters, базовая структура готова, требуется: SSH encryption, Health monitoring)
+- **Infrastructure Service:** ✅ 98% (CRUD для servers/clusters, SSH Key Management с шифрованием готов, Test SSH Connection через BullMQ реализован, SSH функциональность переиспользуемая через @axion/nestjs-common, Agent Installation через SSH BullMQ реализован, Server Configuration через SSH BullMQ реализован, требуется: Check Agent Status)
 - **Deployment Service:** ✅ 90% (CRUD для deployments, Docker Stack Generation готов, BullMQ Integration готов включая Agent Installation Queue, Deployment Status Tracking улучшен, базовая структура готова, требуется: Runner Agent Management реальная интеграция)
 - **Billing Service:** ⏳ 0%
 - **Metrics Service:** ⏳ 0%
@@ -485,7 +485,7 @@ Billing Service ⏳ (может работать независимо, испо�
 3. ✅ Infrastructure Service — готов
    - ✅ Server Management
    - ✅ Cluster Management
-   - ⏳ SSH Key Management (требует шифрование)
+   - ✅ SSH Key Management (шифрование реализовано)
 4. ✅ Deployment Service — базовая структура готова
    - ✅ BullMQ Integration (готов)
    - ✅ Deployment Queue (готов)
@@ -557,7 +557,7 @@ Billing Service ⏳ (может работать независимо, испо�
    - Database Schema (servers, clusters)
    - Server Management (CRUD, SSH ключи)
    - Cluster Management (группировка серверов)
-   - SSH Key Management (шифрование/расшифровка)
+   - SSH Key Management (шифрование/расшифровка) ✅
    - Server Health Monitoring (ping, Docker check)
 
 **Deliverables:**

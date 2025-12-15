@@ -2,7 +2,12 @@ import {
   GRAPH_SERVICE_NAME,
   INFRASTRUCTURE_SERVICE_NAME,
 } from "@axion/contracts";
-import { AuthModule, HealthModule } from "@axion/nestjs-common";
+import {
+  AuthModule,
+  HealthModule,
+  BullMQModule,
+  createBullMQConnectionConfig,
+} from "@axion/nestjs-common";
 import { createKafkaClientOptions } from "@axion/shared";
 import { Module } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
@@ -13,6 +18,12 @@ import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
 
 @Module({
   imports: [
+    // BullMQ для SSH очередей
+    BullMQModule.forRootAsync({
+      useFactory: () => ({
+        connection: createBullMQConnectionConfig(),
+      }),
+    }),
     // ⚠️ ВАЖНО: ClientsModule ДОЛЖЕН быть ПЕРВЫМ перед другими модулями
     // Это гарантирует, что Kafka клиенты инициализируются до использования
     ClientsModule.registerAsync([
