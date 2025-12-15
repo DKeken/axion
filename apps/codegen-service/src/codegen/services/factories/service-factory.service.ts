@@ -54,9 +54,9 @@ export class ServiceFactoryService extends BaseService {
       ) as never;
     }
 
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
     const serviceName =
-      (nodeData?.name as string) || ServiceFactoryService.DEFAULT_SERVICE_NAME;
+      serviceNode.data?.serviceName ||
+      ServiceFactoryService.DEFAULT_SERVICE_NAME;
 
     this.logger.log(
       `Creating all components for service ${serviceNode.id} (${serviceName})`
@@ -112,9 +112,9 @@ export class ServiceFactoryService extends BaseService {
     const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/main-entry.mdx`;
     const template = await this.templateEngine.loadTemplate(templatePath);
 
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
     const serviceName =
-      (nodeData?.name as string) || ServiceFactoryService.DEFAULT_SERVICE_NAME;
+      serviceNode.data?.serviceName ||
+      ServiceFactoryService.DEFAULT_SERVICE_NAME;
     const serviceNamePascal = this.toPascalCase(serviceName);
 
     // Генерируем код инициализации database и messaging
@@ -152,9 +152,9 @@ export class ServiceFactoryService extends BaseService {
     serviceNode: Node,
     _graph: GraphData
   ): Promise<string> {
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
     const serviceName =
-      (nodeData?.name as string) || ServiceFactoryService.DEFAULT_SERVICE_NAME;
+      serviceNode.data?.serviceName ||
+      ServiceFactoryService.DEFAULT_SERVICE_NAME;
     const serviceNamePascal = this.toPascalCase(serviceName);
 
     // Базовый шаблон app.module.ts
@@ -178,9 +178,9 @@ export class AppModule {}
     const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/health-check.mdx`;
     const template = await this.templateEngine.loadTemplate(templatePath);
 
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
     const serviceName =
-      (nodeData?.name as string) || ServiceFactoryService.DEFAULT_SERVICE_NAME;
+      serviceNode.data?.serviceName ||
+      ServiceFactoryService.DEFAULT_SERVICE_NAME;
 
     const result = this.templateEngine.substituteVariables(template, {
       SERVICE_NAME: serviceName,

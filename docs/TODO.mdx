@@ -1,6 +1,6 @@
 ---
 title: "TODO"
-description: "Полный список задач для реализации Axion Meta-Framework: 17 фаз разработки, приоритеты и статусы."
+description: "Полный список задач для реализации Axion Meta-Framework с приоритетом на бэкенд архитектуру и логику."
 order: 8
 ---
 
@@ -8,108 +8,352 @@ order: 8
 
 ## Обзор
 
-Ключевые задачи для реализации Axion Meta-Framework. Полный список задач разбит по фазам разработки.
+Ключевые задачи для реализации Axion Meta-Framework. **Приоритет: сначала вся бэкенд архитектура и логика, затем фронтенд, затем деплой.**
 
 <Callout type="idea" title="Легенда">
   **Приоритет:** 🔴 Высокий | 🟡 Средний | 🟢 Низкий **Статус:** ✅ Готово | 🚧
   В работе | ⏳ Планируется | ❌ Блокер
 </Callout>
 
+## Порядок реализации сервисов
+
+### Зависимости между сервисами
+
+```
+Graph Service ✅
+    ↓
+Codegen Service ✅
+    ↓
+Infrastructure Service ⏳ (базовый, без зависимостей)
+    ↓
+Deployment Service ⏳ (зависит от Infrastructure + Codegen)
+    ↓
+Runner Agent ⏳ (зависит от Deployment)
+    ↓
+Metrics Service ⏳ (зависит от Runner Agent + Infrastructure)
+
+Billing Service ⏳ (может работать независимо, использует Graph + Infrastructure)
+```
+
+### Рекомендуемый порядок реализации
+
+1. ✅ **Graph Service** — готов
+2. ✅ **Codegen Service** — готов
+3. ⏳ **Infrastructure Service** — следующий (базовый, без зависимостей)
+4. ⏳ **Deployment Service** — после Infrastructure (нужны серверы для деплоя)
+5. ⏳ **Runner Agent** — после Deployment (нужен для деплоя)
+6. ⏳ **Metrics Service** — после Runner Agent (собирает метрики от агентов)
+7. ⏳ **Billing Service** — может быть параллельно (независимый сервис)
+
 ---
 
-## Phase 1: Core Infrastructure 🔴
+## 🔴 Phase 1: Core Backend Services (Приоритет #1)
+
+### Graph Service ✅
 
 - [x] ✅ Graph Service (NestJS) — CRUD операции для графов
   - [x] ✅ Database Schema (project_graphs, project_services, database_nodes)
   - [x] ✅ API endpoints для создания/чтения/обновления графов
   - [x] ✅ Валидация структуры графа
-  - [x] ✅ Real-time синхронизация через WebSocket
+  - [x] ✅ Real-time синхронизация через SSE
+  - [x] ✅ Repository Pattern (Project, Graph, Service, DatabaseNode)
+  - [x] ✅ Business Logic Services (Projects, GraphOperations, GraphServices, GraphSync, GraphValidation)
+
+### Codegen Service ✅
+
+- [x] ✅ Codegen Service (NestJS) — генерация кода из графов
+  - [x] ✅ Template Engine — загрузка templates, подстановка переменных
+  - [x] ✅ Database Node Code Generation — генерация connection, schema, repository на основе ORM
+  - [x] ✅ Factory Patterns — DatabaseFactory, MessagingFactory, ServiceFactory
+  - [x] ✅ LLM Integration — построение промптов, вызов LLM API (OpenRouter)
+  - [x] ✅ Protobuf Contract Generation — генерация контрактов из графа
+  - [x] ✅ Validation Pipeline (6 уровней) — Structural, Contract, TypeScript, Build, Health Check, Contract Discovery
+  - [x] ✅ Blueprint Management
+  - [x] ✅ Generation History Tracking
+
+### Infrastructure Service ⏳ (Приоритет: Высокий — нужен для Deployment)
+
+**Зависимости:** Нет (базовый сервис)
+
+- [ ] ⏳ Infrastructure Service (NestJS) — управление инфраструктурой
+  - [ ] ⏳ Database Schema — servers, clusters таблицы
+  - [ ] ⏳ Server Management — CRUD серверов, SSH ключи
+    - [ ] ⏳ Create Server — добавление сервера с SSH ключом
+    - [ ] ⏳ Test SSH Connection — проверка подключения
+    - [ ] ⏳ Update Server — обновление данных сервера
+    - [ ] ⏳ Delete Server — удаление сервера
+    - [ ] ⏳ List Servers — список серверов пользователя
+  - [ ] ⏳ Cluster Management — группировка серверов
+    - [ ] ⏳ Create Cluster — создание кластера
+    - [ ] ⏳ Add Server to Cluster — добавление сервера в кластер
+    - [ ] ⏳ Remove Server from Cluster — удаление сервера из кластера
+    - [ ] ⏳ List Clusters — список кластеров
+  - [ ] ⏳ SSH Key Management — безопасное хранение ключей
+    - [ ] ⏳ Encrypt SSH Keys — шифрование ключей перед сохранением
+    - [ ] ⏳ Decrypt SSH Keys — расшифровка для использования
+    - [ ] ⏳ Key Rotation — ротация ключей
+  - [ ] ⏳ System Requirements Calculation — расчет ресурсов для проекта
+  - [ ] ⏳ Server Health Monitoring — проверка доступности серверов
+    - [ ] ⏳ Ping Server — проверка доступности
+    - [ ] ⏳ Check Docker — проверка наличия Docker
+    - [ ] ⏳ Check Agent Status — проверка статуса Runner Agent
+
+### Deployment Service ⏳ (Приоритет: Высокий — зависит от Infrastructure)
+
+**Зависимости:** Infrastructure Service (нужны серверы для деплоя), Codegen Service (нужен сгенерированный код)
+
+- [ ] ⏳ Deployment Service (NestJS) — управление деплоями
+  - [ ] ⏳ Database Schema — deployments, deployment_history таблицы
+  - [ ] ⏳ BullMQ Integration — Deployment Queue, Job Processor
+    - [ ] ⏳ Setup BullMQ — настройка очередей
+    - [ ] ⏳ Deployment Queue — очередь для деплоев
+    - [ ] ⏳ Agent Installation Queue — очередь для установки агентов
+    - [ ] ⏳ Job Processor — обработчик задач деплоя
+    - [ ] ⏳ Retry Logic — логика повторных попыток
+  - [ ] ⏳ Docker Stack Generation — docker-compose.yml, Dockerfile, .dockerignore
+    - [ ] ⏳ Generate Docker Compose — генерация из графа проекта
+    - [ ] ⏳ Generate Dockerfile — генерация для каждого сервиса
+    - [ ] ⏳ Network Configuration — настройка сетей из edges
+    - [ ] ⏳ Health Checks — добавление health checks
+    - [ ] ⏳ Environment Variables — управление env переменными
+  - [ ] ⏳ Runner Agent Management — управление агентами через gRPC/Kafka
+    - [ ] ⏳ Agent Registration — регистрация агентов
+    - [ ] ⏳ Agent Health Check — проверка здоровья агентов
+    - [ ] ⏳ Send Deploy Command — отправка команд деплоя
+    - [ ] ⏳ Receive Agent Status — получение статусов от агентов
+  - [ ] ⏳ Deployment Status Tracking — статусы деплоев
+    - [ ] ⏳ Track Deployment Progress — отслеживание прогресса
+    - [ ] ⏳ Update Service Status — обновление статусов сервисов
+    - [ ] ⏳ Handle Deployment Errors — обработка ошибок
+  - [ ] ⏳ Deployment History — история деплоев
+  - [ ] ⏳ Rollback Mechanism — откат деплоев
+    - [ ] ⏳ Save Previous Version — сохранение предыдущей версии
+    - [ ] ⏳ Rollback Command — команда отката
+    - [ ] ⏳ Rollback History — история откатов
+
+### Billing Service ⏳ (Приоритет: Средний — может работать независимо)
+
+**Зависимости:** Graph Service (для получения данных о проектах), Infrastructure Service (для учета ресурсов)
+
+- [ ] ⏳ Billing Service (NestJS) — биллинг и подписки
+  - [ ] ⏳ Database Schema — subscriptions, invoices, usage_records таблицы
+  - [ ] ⏳ Stripe Integration — платежи, подписки
+    - [ ] ⏳ Create Customer — создание клиента в Stripe
+    - [ ] ⏳ Create Subscription — создание подписки
+    - [ ] ⏳ Update Subscription — обновление подписки
+    - [ ] ⏳ Cancel Subscription — отмена подписки
+    - [ ] ⏳ Handle Webhooks — обработка webhooks от Stripe
+  - [ ] ⏳ Usage Tracking — отслеживание использования ресурсов
+    - [ ] ⏳ Track Project Usage — отслеживание использования проектов
+    - [ ] ⏳ Track Server Usage — отслеживание использования серверов
+    - [ ] ⏳ Track Storage Usage — отслеживание использования хранилища
+    - [ ] ⏳ Aggregate Usage — агрегация использования
+  - [ ] ⏳ Subscription Management — управление подписками
+    - [ ] ⏳ Get User Subscription — получение подписки пользователя
+    - [ ] ⏳ Upgrade/Downgrade — изменение тарифа
+    - [ ] ⏳ Subscription Status — статус подписки
+  - [ ] ⏳ Limits Enforcement — проверка лимитов по тарифам
+    - [ ] ⏳ Check Project Limit — проверка лимита проектов
+    - [ ] ⏳ Check Server Limit — проверка лимита серверов
+    - [ ] ⏳ Check Resource Limit — проверка лимита ресурсов
+  - [ ] ⏳ Billing History — история платежей
+    - [ ] ⏳ Generate Invoice — генерация счета
+    - [ ] ⏳ Invoice History — история счетов
+    - [ ] ⏳ Payment History — история платежей
+
+### Metrics Service ⏳ (Приоритет: Средний — зависит от Runner Agent)
+
+**Зависимости:** Runner Agent (для сбора метрик), Infrastructure Service (для информации о серверах)
+
+- [ ] ⏳ Metrics Service (NestJS) — сбор и хранение метрик
+  - [ ] ⏳ Database Schema — metrics, metric_aggregations таблицы (TimescaleDB)
+  - [ ] ⏳ Prometheus Integration — сбор метрик от Runner Agent
+    - [ ] ⏳ Prometheus Scraper — сбор метрик с агентов
+    - [ ] ⏳ Metrics Ingestion — прием метрик
+    - [ ] ⏳ Metrics Validation — валидация метрик
+  - [ ] ⏳ TimescaleDB Integration — хранение time-series данных
+    - [ ] ⏳ Setup TimescaleDB — настройка TimescaleDB
+    - [ ] ⏳ Create Hypertables — создание hypertables
+    - [ ] ⏳ Data Retention — политика хранения данных
+  - [ ] ⏳ Metrics Aggregation — агрегация метрик
+    - [ ] ⏳ Aggregate by Time — агрегация по времени
+    - [ ] ⏳ Aggregate by Project — агрегация по проектам
+    - [ ] ⏳ Aggregate by Server — агрегация по серверам
+  - [ ] ⏳ Real-time Metrics API — SSE для метрик
+    - [ ] ⏳ SSE Endpoint — endpoint для SSE
+    - [ ] ⏳ Filter Metrics — фильтрация метрик
+    - [ ] ⏳ Stream Metrics — потоковая передача метрик
+  - [ ] ⏳ Metrics Dashboard Data — данные для дашборда
+    - [ ] ⏳ Get Project Metrics — метрики проекта
+    - [ ] ⏳ Get Server Metrics — метрики сервера
+    - [ ] ⏳ Get Service Metrics — метрики сервиса
 
 ---
 
-## Phase 2: React Flow Frontend 🔴
+## 🔴 Phase 2: Backend Infrastructure & Integration (Приоритет #2)
 
-- [ ] ⏳ React Flow интеграция — базовый редактор графов
-  - Подключение React Flow, сохранение/загрузка графов
-  - Database Node компонент (визуальное отображение, модальное окно)
-  - Связывание Service → Database через edges
-  - ORM Switching UI (конвертация схемы, миграция)
+### Kafka Integration ✅
+
+- [x] ✅ Kafka Setup — настройка Kafka кластера (docker-compose.yml, KRaft mode)
+- [x] ✅ Event Bus Integration — интеграция во все сервисы (Graph ✅, Codegen ✅)
+- [x] ✅ Helper Functions — createKafkaServerOptions, createKafkaClientOptions в @axion/shared
+- [x] ✅ Documentation — полная документация в KAFKA_INTEGRATION.md
+- [ ] ⏳ Event Sourcing — события для изменений графов (частично, нужна полная реализация)
+- [ ] ⏳ CQRS Events — события между сервисами (частично, нужна полная реализация)
+- [ ] ⏳ Consumer Groups — обработка событий (базовая есть, нужна продвинутая)
+- [ ] ⏳ Dead Letter Queue — обработка ошибок
+
+### Redis Service Discovery ❌
+
+- [x] ❌ Redis Service Discovery — **не нужен** (используется Traefik для routing и load balancing)
+- [x] ❌ Service Registration — не требуется (Traefik автоматически обнаруживает сервисы)
+- [x] ❌ Heartbeat Mechanism — не требуется
+- [x] ❌ Service Discovery Client — не требуется
+- [x] ❌ Load Balancing Logic — Traefik делает это автоматически
+
+### Better Auth Integration ✅
+
+- [x] ✅ Better Auth Setup — настройка Better Auth (@axion/better-auth пакет)
+- [x] ✅ NestJS Integration — AuthModule в @axion/nestjs-common
+- [x] ✅ User Management — управление пользователями (через Better Auth)
+- [x] ✅ Session Management — управление сессиями (через Better Auth)
+- [x] ✅ Metadata Extraction — извлечение user_id из metadata (helpers в @axion/better-auth)
+- [x] ✅ Access Control — проверка доступа к проектам (verifyProjectAccess helper)
+- [x] ✅ Microservice Auth Guard — защита MessagePattern endpoints
+
+### Protobuf Contracts ✅
+
+- [x] ✅ Protobuf Contracts — все контракты (graph, codegen, deployment, infrastructure, billing, runner-agent)
+- [x] ✅ Type Generation — TypeScript типы из proto (через protoc-gen-ts_proto)
+- [x] ✅ Constants Generation — константы для MessagePattern и Service Names
+- [x] ✅ Helper Functions — response utils, pagination, validation helpers
+- [ ] ⏳ Contract Generation — автоматическая генерация контрактов из графа (частично в Codegen Service)
+- [ ] ⏳ Contract Validation — полная валидация контрактов (базовая есть)
+- [ ] ⏳ Version Management — версионирование контрактов
+
+### Database Packages ✅
+
+- [x] ✅ Database Connection Abstraction — абстракция для PostgreSQL (@axion/database)
+- [x] ✅ Repository Pattern — `IRepository<T>` интерфейс и BaseRepository для Drizzle
+- [x] ✅ Pagination Helpers — утилиты для пагинации (в BaseRepository и @axion/contracts)
+- [x] ✅ Migration Helpers — базовые утилиты (Drizzle Kit используется)
+- [ ] ⏳ Schema Generation — генерация Drizzle Schema из UI формы (нужна в Codegen Service)
+- [ ] ⏳ ORM Abstraction — абстракция для разных ORM (сейчас только Drizzle)
+
+### Health Module ✅
+
+- [x] ✅ Universal Health Module — универсальный модуль для health checks (@axion/nestjs-common)
+- [x] ✅ Database Health Check — автоматическая проверка БД
+- [x] ✅ HTTP Health Endpoint — `/health` endpoint
+- [x] ✅ Kafka Health Check — проверка Kafka подключения
+- [x] ✅ Integration — используется в Graph и Codegen сервисах
+
+### Shared Packages ✅
+
+- [x] ✅ @axion/shared — общие утилиты без зависимостей от фреймворков
+  - [x] ✅ Error Handling — handleServiceError, автоматическая классификация ошибок
+  - [x] ✅ Access Control — verifyResourceAccess, проверка доступа к ресурсам
+  - [x] ✅ Metadata Helpers — getUserIdFromMetadata, getProjectIdFromMetadata
+  - [x] ✅ Kafka Helpers — createKafkaServerOptions, createKafkaClientOptions
+  - [x] ✅ Health Utilities — checkHealth функции
+  - [x] ✅ Pagination Utilities — утилиты для пагинации
+- [x] ✅ @axion/nestjs-common — NestJS-специфичные компоненты
+  - [x] ✅ AuthModule — интеграция Better Auth
+  - [x] ✅ HealthModule — универсальный health модуль
+  - [x] ✅ MicroserviceAuthGuard — защита MessagePattern endpoints
+  - [x] ✅ BaseController — базовый контроллер с утилитами
+  - [x] ✅ Decorators — log-message-pattern, catch-error
+- [x] ✅ @axion/database — абстракции для работы с БД
+  - [x] ✅ BaseRepository — базовый репозиторий с CRUD
+  - [x] ✅ IRepository — интерфейс репозитория
+  - [x] ✅ Pagination Helpers — утилиты для пагинации
+  - [x] ✅ Connection Helpers — утилиты для подключения к PostgreSQL
 
 ---
 
-## Phase 3: Code Generation System 🔴
+## 🟡 Phase 3: Frontend (После бэкенда)
 
-- [ ] ⏳ Template Engine — загрузка templates, подстановка переменных
-- [ ] ⏳ Database Node Code Generation — генерация connection, schema, repository на основе ORM
-- [ ] ⏳ Factory Patterns — DatabaseFactory, MessagingFactory, ServiceFactory
-- [ ] ⏳ LLM Integration — построение промптов, вызов LLM API, вставка кода
-- [ ] ⏳ Protobuf Contract Generation — генерация контрактов из графа
+### React Flow Integration ⏳
 
----
+- [ ] ⏳ React Flow Editor — базовый редактор графов
+  - [ ] ⏳ Подключение React Flow, сохранение/загрузка графов
+  - [ ] ⏳ Database Node компонент (визуальное отображение, модальное окно)
+  - [ ] ⏳ Связывание Service → Database через edges
+  - [ ] ⏳ ORM Switching UI (конвертация схемы, миграция)
+  - [ ] ⏳ Real-time Collaboration — multi-user editing
 
-## Phase 4: Validation System 🟡
+### UI Components ⏳
 
-- [ ] ⏳ Validation Pipeline (6 уровней)
-  - Structural Validator — проверка структуры файлов
-  - Contract Validator — проверка Protobuf контрактов
-  - TypeScript Validator — `tsc --noEmit`
-  - Build Validator — `bun run build`
-  - Health Check Validator — запуск в Docker, проверка health endpoint
-  - Contract Discovery Validator — валидация при запуске
-
----
-
-## Phase 5: Database System 🟡
-
-- [ ] ⏳ Database Connection Abstraction — абстракция для разных ORM
-- [ ] ⏳ Repository Pattern — `IRepository<T>` интерфейс и реализация для Drizzle
-- [ ] ⏳ Schema Generation — генерация Drizzle Schema из UI формы
-- [ ] ⏳ ORM Migration — конвертация схемы, backup, миграция данных
-
----
-
-## 🚀 Phase 6: Deployment System 🔴
-
-- [ ] ⏳ Axion Runner Agent (Rust) — gRPC + Kafka, Docker Swarm Manager, Telemetry Collector
-- [ ] ⏳ SSH Management — установка агента через SSH + BullMQ
-- [ ] ⏳ Control Plane Integration — Runner Management Service, WebSocket Server
-- [ ] ⏳ BullMQ Integration — Deployment Queue, Job Processor, Status Tracking
-- [ ] ⏳ Docker Stack Generation — docker-compose.yml, Dockerfile, .dockerignore
-
----
-
-## Phase 7: Metrics & Monitoring 🟡
-
-- [ ] ⏳ Metrics Collection — Prometheus Agent, Metrics Collector Service
-- [ ] ⏳ Real-time Display — SSE для метрик, Dashboard
-
----
-
-## Phase 8: UI/UX Improvements 🟢
-
-- [ ] ⏳ React Flow Enhancements — улучшенная палитра, визуальная индикация, мини-карта
-- [ ] ⏳ Database Node UI — красивое отображение, Schema Viewer
+- [ ] ⏳ Infrastructure Dashboard — управление серверами и кластерами
+- [ ] ⏳ Deployment Dashboard — мониторинг деплоев
+- [ ] ⏳ Metrics Dashboard — отображение метрик
 - [ ] ⏳ Code Preview — показ сгенерированного кода с syntax highlighting
-- [ ] ⏳ Real-time Collaboration — multi-user editing, live updates
+- [ ] ⏳ Schema Viewer — просмотр схем БД
 
 ---
 
-## 🔐 Phase 9: Security & Isolation 🔴
+## 🚀 Phase 4: Deployment System (После бэкенда)
+
+### Axion Runner Agent ⏳
+
+- [ ] ⏳ Axion Runner Agent (Rust) — агент для деплоя
+  - [ ] ⏳ gRPC + Kafka — типобезопасное общение с Control Plane
+  - [ ] ⏳ Docker Swarm Manager — управление Docker Swarm
+  - [ ] ⏳ Telemetry Collector — сбор телеметрии
+  - [ ] ⏳ WebSocket Server — постоянное соединение
+  - [ ] ⏳ Auto-update Mechanism — автоматическое обновление с rollback
+
+### SSH Management ⏳
+
+- [ ] ⏳ SSH Key Storage — безопасное хранение ключей
+- [ ] ⏳ Agent Installation — установка агента через SSH + BullMQ
+- [ ] ⏳ Server Configuration — настройка серверов
+- [ ] ⏳ Connection Testing — проверка подключений
+
+### Control Plane Integration ⏳
+
+- [ ] ⏳ Runner Management Service — управление агентами
+- [ ] ⏳ WebSocket Server — сервер для агентов
+- [ ] ⏳ Deployment Orchestration — оркестрация деплоев
+- [ ] ⏳ Metrics Ingestion — получение метрик от агентов
+
+---
+
+## 🟡 Phase 5: Security & Isolation
 
 - [ ] ⏳ Project Isolation — Database, Network, Resource изоляция
+  - [ ] ⏳ Database Isolation — изоляция на уровне БД через project_id
+  - [ ] ⏳ Network Isolation — изоляция сетей Docker
+  - [ ] ⏳ Resource Isolation — лимиты ресурсов по проектам
 - [ ] ⏳ SSH Security — шифрование ключей, Access Control
+- [ ] ⏳ Authentication & Authorization — проверка доступа к проектам
+- [ ] ⏳ Rate Limiting — ограничение запросов по пользователям
 
 ---
 
-## 📚 Phase 10: Documentation & Testing 🟡
+## 🟡 Phase 6: Testing & Documentation
+
+### Testing ⏳
+
+- [ ] ⏳ Unit Tests — тесты для всех сервисов
+- [ ] ⏳ Integration Tests — тесты интеграции между сервисами
+- [ ] ⏳ E2E Tests — end-to-end тесты полного workflow
+- [ ] ⏳ Contract Tests — тесты Protobuf контрактов
+
+### Documentation ⏳
 
 - [x] ✅ Документация templates системы
+- [x] ✅ Kafka Integration Guide — полная документация (KAFKA_INTEGRATION.md)
+- [x] ✅ Architecture Documentation — полная архитектура (ARCHITECTURE.mdx)
+- [x] ✅ Technical Details — технические детали (TECHNICAL_DETAILS.mdx)
+- [x] ✅ Service READMEs — документация Graph и Codegen сервисов
 - [ ] ⏳ API документация (OpenAPI/Swagger)
-- [ ] ⏳ Unit/Integration/E2E тесты
+- [ ] ⏳ Deployment Guide — гайд по деплою
+- [ ] ⏳ Development Guide — гайд по разработке
 
 ---
 
-## Phase 11-17: Advanced Features 🟢
+## 🟢 Phase 7: Advanced Features
 
 - [ ] ⏳ Multiple Databases per Service
 - [ ] ⏳ Custom ORM Support
@@ -124,24 +368,45 @@ order: 8
 
 ## Priority Matrix
 
-### Must Have (MVP)
+### 🔴 Must Have (Backend MVP - Приоритет #1)
 
-1. Graph Service (CRUD операции)
-2. React Flow интеграция (базовая)
-3. Database Node компонент
-4. Code Generation (базовая)
-5. Template Engine
-6. Validation System (базовая)
+**Все бэкенд сервисы должны быть реализованы перед фронтендом:**
 
-### Should Have
+1. ✅ Graph Service — CRUD операции для графов
+2. ✅ Codegen Service — генерация кода, валидация
+3. ⏳ Infrastructure Service — управление серверами
+4. ⏳ Deployment Service — деплой через BullMQ
+5. ⏳ Billing Service — биллинг и подписки
+6. ⏳ Metrics Service — сбор и хранение метрик
 
-1. ORM Switching
-2. Factory Patterns
-3. SSH Management
-4. Deployment System
-5. Metrics Collection
+### 🔴 Must Have (Backend Infrastructure - Приоритет #2)
 
-### Nice to Have
+**Инфраструктура для работы всех сервисов:**
+
+1. ✅ Kafka Integration — Event Bus для всех сервисов (80% - нужны Event Sourcing и CQRS)
+2. ❌ Redis Service Discovery — не нужен (используется Traefik)
+3. ✅ Better Auth Integration — аутентификация и авторизация (100%)
+4. ✅ Protobuf Contracts — типобезопасные контракты (90% - нужна версионизация)
+5. ✅ Database Packages — абстракции и утилиты (80% - нужна генерация схем)
+6. ✅ Health Module — универсальный health check модуль (100%)
+7. ✅ Shared Packages — общие утилиты и NestJS компоненты (100%)
+
+### 🟡 Should Have (Frontend - После бэкенда)
+
+1. React Flow интеграция (базовая)
+2. Database Node компонент
+3. Infrastructure Dashboard
+4. Deployment Dashboard
+5. Metrics Dashboard
+
+### 🚀 Should Have (Deployment - После бэкенда)
+
+1. Axion Runner Agent (Rust)
+2. SSH Management
+3. Control Plane Integration
+4. Docker Stack Generation
+
+### 🟢 Nice to Have
 
 1. Advanced UI features
 2. Analytics
@@ -154,179 +419,249 @@ order: 8
 
 ### Overall Progress
 
-- **Phase 1 (Core Infrastructure):** ✅ 100% (Graph Service готов, WebSocket интегрирован)
-- **Phase 2 (React Flow Frontend):** ⏳ 0%
-- **Phase 3 (Code Generation):** ⏳ 0%
-- **Phase 4 (Validation):** ⏳ 0%
-- **Phase 5 (Database System):** ⏳ 0%
-- **Phase 6 (Deployment):** ⏳ 0%
-- **Phase 7 (Metrics):** ⏳ 0%
-- **Phase 8 (UI/UX):** ⏳ 0%
-- **Phase 9 (Security):** ⏳ 0%
-- **Phase 10 (Documentation):** ✅ 30% (документация templates готова)
-- **Phase 11 (Advanced):** ⏳ 0%
-- **Phase 12 (Performance):** ⏳ 0%
-- **Phase 13 (Bug Fixes):** ⏳ 0%
-- **Phase 14 (Analytics):** ⏳ 0%
-- **Phase 15 (DX):** ⏳ 0%
-- **Phase 16 (Integration):** ⏳ 0%
-- **Phase 17 (Migration):** ⏳ 0%
+**Backend Services:**
 
-**Total Progress:** ⏳ ~8% (документация + Phase 1 завершена)
+- **Graph Service:** ✅ 100% (CRUD, SSE, Repositories, Business Logic)
+- **Codegen Service:** ✅ 100% (Template Engine, LLM, Validation, Factories)
+- **Infrastructure Service:** ⏳ 0%
+- **Deployment Service:** ⏳ 0%
+- **Billing Service:** ⏳ 0%
+- **Metrics Service:** ⏳ 0%
+
+**Backend Infrastructure:**
+
+- **Kafka Integration:** ✅ 80% (настроена, используется, нужны Event Sourcing и CQRS)
+- **Redis Service Discovery:** ❌ Не нужен (используется Traefik)
+- **Better Auth Integration:** ✅ 100% (полностью интегрирован)
+- **Protobuf Contracts:** ✅ 90% (все контракты есть, типы генерируются, нужна версионизация)
+- **Database Packages:** ✅ 80% (Repository Pattern готов, нужна генерация схем)
+- **Health Module:** ✅ 100% (Universal Health Module готов и используется)
+- **Shared Packages:** ✅ 100% (@axion/shared, @axion/nestjs-common, @axion/database готовы)
+
+**Frontend:**
+
+- **React Flow Integration:** ⏳ 0%
+- **UI Components:** ⏳ 0%
+
+**Deployment:**
+
+- **Axion Runner Agent:** ⏳ 0%
+- **SSH Management:** ⏳ 0%
+- **Control Plane Integration:** ⏳ 0%
+
+**Security & Testing:**
+
+- **Project Isolation:** ⏳ 0%
+- **Testing:** ⏳ 0%
+- **Documentation:** ✅ 60% (templates, Kafka, Architecture, Technical Details, Service READMEs)
+- **Health Module:** ✅ 100% (Universal Health Module в @axion/nestjs-common)
+
+**Total Backend Progress:** ⏳ ~33% (2 из 6 сервисов готовы: Graph ✅, Codegen ✅)
+**Total Backend Infrastructure Progress:** ✅ ~85% (Kafka ✅, Better Auth ✅, Protobuf ✅, Database ✅, Health ✅, Shared ✅)
+**Total Progress:** ⏳ ~40% (бэкенд + документация)
+
+**Примечания:**
+
+- Gateway Service не нужен, используется Traefik для routing и load balancing
+- Redis Service Discovery не нужен, Traefik автоматически обнаруживает сервисы
+- Kafka полностью интегрирована и используется в Graph и Codegen сервисах
+- Better Auth полностью интегрирован в оба сервиса
+- Universal Health Module готов и используется в обоих сервисах
+- Shared Packages готовы: @axion/shared, @axion/nestjs-common, @axion/database
+- Документация: templates, Kafka, Architecture, Technical Details готовы
+- Все новые сервисы могут использовать готовые утилиты из shared пакетов
 
 ---
 
 ## 🚀 Quick Start Implementation Order
 
-### Sprint 1: Foundation (2-3 недели) 🔴
+### Sprint 1: Core Backend Services (3-4 недели) 🔴
 
-**Цель:** Базовая инфраструктура для работы с графами
+**Цель:** Реализовать все основные бэкенд сервисы
 
-1. Graph Service (CRUD операции)
-   - Database Schema для графов
-   - API endpoints для создания/чтения/обновления графов
-   - Валидация структуры
-
-2. Database Schema
-   - `project_graphs` таблица
-   - `project_services` таблица
-   - `database_nodes` таблица
-   - Миграции
-
-3. React Flow базовая интеграция
-   - Подключение React Flow
-   - Сохранение графа в БД
-   - Загрузка графа из БД
-
-4. Database Node компонент (UI)
-   - Визуальное отображение
-   - Модальное окно создания
-   - Связывание с сервисами
+1. ✅ Graph Service — уже готов
+2. ✅ Codegen Service — уже готов
+3. ⏳ Infrastructure Service
+   - Server Management
+   - Cluster Management
+   - SSH Key Management
+4. ⏳ Deployment Service
+   - BullMQ Integration
+   - Deployment Queue
+   - Status Tracking
+   - Docker Stack Generation
 
 **Deliverables:**
 
-- Работающий Graph Service
-- React Flow редактор с сохранением
-- Database Node можно создавать и связывать
+- Все основные бэкенд сервисы работают
+- Traefik используется для routing (Gateway Service не нужен)
+- Можно управлять серверами и деплоями
 
-### Sprint 2: Code Generation (2-3 недели) 🔴
+### Sprint 2: Backend Infrastructure (1-2 недели) 🔴
 
-**Цель:** Генерация кода из графа
+**Цель:** Завершить инфраструктуру для работы всех сервисов
 
-1. Template Engine
-   - Загрузка templates
-   - Подстановка переменных
-   - Кэширование
+1. ✅ Kafka Integration — уже готово (80%)
+   - ✅ Настройка Kafka кластера
+   - ✅ Event Bus в каждом сервисе
+   - ⏳ Event Sourcing для графов (нужна полная реализация)
+   - ⏳ CQRS события (нужна полная реализация)
 
-2. Variable Substitution
-   - Валидация переменных
-   - Типизация
-   - Обработка ошибок
+2. ❌ Redis Service Discovery — не нужен (используется Traefik)
 
-3. Database Node code generation
-   - Определение ORM из database node
-   - Генерация schema (Drizzle)
-   - Генерация repository (Drizzle)
-   - Генерация connection
+3. ✅ Better Auth Integration — уже готово (100%)
+   - ✅ Настройка Better Auth
+   - ✅ User Management
+   - ✅ Session Management
+   - ✅ Metadata Extraction
 
-4. LLM Integration (базовая)
-   - Построение промпта
-   - Вызов LLM API
-   - Вставка кода в template
+4. ✅ Protobuf Contracts — уже готово (90%)
+   - ✅ Генерация TypeScript типов
+   - ✅ Contract Validation (базовая)
+   - ⏳ Version Management (нужна)
 
-**Deliverables:**
+5. ✅ Database Packages — уже готово (80%)
+   - ✅ Repository Pattern
+   - ⏳ Schema Generation (нужна в Codegen Service)
+   - ✅ Migration Helpers
 
-- Генерация полного сервиса из графа
-- Поддержка Drizzle
-- LLM генерит бизнес-логику
+6. ✅ Health Module — уже готово (100%)
+   - ✅ Universal Health Module
+   - ✅ Database Health Check
+   - ✅ HTTP и Kafka endpoints
+   - ✅ Используется в обоих сервисах
 
-### Sprint 3: Validation (1-2 недели) 🟡
-
-**Цель:** Валидация сгенерированного кода
-
-1. Structural Validator
-   - Проверка структуры файлов
-   - Проверка обязательных компонентов
-
-2. TypeScript Validator
-   - `tsc --noEmit`
-   - Сбор и форматирование ошибок
-
-3. Build Validator
-   - `bun run build`
-   - Обработка ошибок сборки
+7. ✅ Shared Packages — уже готово (100%)
+   - ✅ @axion/shared — error handling, access control, metadata, kafka helpers
+   - ✅ @axion/nestjs-common — AuthModule, HealthModule, Guards, Decorators
+   - ✅ @axion/database — BaseRepository, IRepository, pagination helpers
+   - ✅ Все утилиты готовы для использования в новых сервисах
 
 **Deliverables:**
 
-- Validation Pipeline работает
-- Отчеты о валидации
-- Обработка ошибок
+- ✅ Все сервисы общаются через Kafka
+- ✅ Service Discovery работает через Traefik (автоматически)
+- ✅ Аутентификация интегрирована
+- ✅ Типобезопасные контракты
+- ✅ Health checks работают во всех сервисах
+- ⏳ Event Sourcing и CQRS (частично)
 
-### Sprint 4: ORM & Factories (1-2 недели) 🟡
+### Sprint 3: Infrastructure Service (2-3 недели) 🔴
 
-**Цель:** Упрощение кода и поддержка переключения ORM
+**Цель:** Управление инфраструктурой (серверы, кластеры)
 
-1. ORM Switching
-   - Конвертация схемы
-   - Генерация нового кода
-   - Миграция данных
+**Порядок реализации:**
 
-2. Factory Patterns
-   - DatabaseFactory
-   - MessagingFactory
-   - ServiceFactory
-
-3. Упрощение кода сервисов
-   - Минимум boilerplate
-   - Автоматическая инициализация
-
-4. UI улучшения
-   - ORM switching UI
-   - Schema viewer
-   - Code preview
+1. Infrastructure Service (базовый, без зависимостей)
+   - Database Schema (servers, clusters)
+   - Server Management (CRUD, SSH ключи)
+   - Cluster Management (группировка серверов)
+   - SSH Key Management (шифрование/расшифровка)
+   - Server Health Monitoring (ping, Docker check)
 
 **Deliverables:**
 
-- Переключение ORM работает
-- Код сервисов упрощен
-- Factory patterns реализованы
+- Можно добавлять и управлять серверами
+- Можно создавать кластеры и группировать серверы
+- SSH ключи безопасно хранятся
+- Проверка доступности серверов работает
 
-### Sprint 5: Deployment (3-4 недели) 🔴
+### Sprint 4: Deployment Service (3-4 недели) 🔴
 
-**Цель:** Деплой сгенерированных сервисов с Axion Runner Agent
+**Цель:** Деплой проектов на серверы
 
-1. Axion Runner Agent (Core)
-   - Connection Manager (WebSocket)
-   - Docker Compose Manager
+**Зависимости:** Infrastructure Service ✅, Codegen Service ✅
+
+**Порядок реализации:**
+
+1. Deployment Service
+   - Database Schema (deployments, deployment_history)
+   - BullMQ Integration (очереди, job processor)
+   - Docker Stack Generation (docker-compose.yml, Dockerfile)
+   - Runner Agent Management (gRPC/Kafka для агентов)
+   - Deployment Status Tracking
+   - Rollback Mechanism
+
+**Deliverables:**
+
+- Можно деплоить проекты на серверы
+- Деплой через Runner Agent работает
+- Отслеживание статусов деплоев
+- Откат деплоев работает
+
+### Sprint 5: Billing & Metrics Services (2-3 недели) 🟡
+
+**Цель:** Биллинг и метрики
+
+**Порядок реализации:**
+
+1. Billing Service
+   - Stripe Integration
+   - Usage Tracking
+   - Subscription Management
+   - Limits Enforcement
+
+2. Metrics Service (зависит от Runner Agent)
+   - Prometheus Integration
+   - TimescaleDB Integration
+   - Metrics Aggregation
+   - Real-time Metrics API
+
+3. Security & Isolation
+   - Project Isolation
+   - SSH Security
+   - Access Control
+   - Rate Limiting
+
+**Deliverables:**
+
+- Биллинг работает
+- Метрики собираются и хранятся (если Runner Agent готов)
+- Изоляция проектов реализована
+
+### Sprint 6: Frontend (2-3 недели) 🟡
+
+**Цель:** Базовый фронтенд для работы с системой
+
+1. React Flow Integration
+   - Базовый редактор графов
+   - Сохранение/загрузка графов
+   - Database Node компонент
+   - Связывание через edges
+
+2. UI Components
+   - Infrastructure Dashboard
+   - Deployment Dashboard
+   - Metrics Dashboard
+   - Code Preview
+
+**Deliverables:**
+
+- Работающий React Flow редактор
+- Дашборды для управления системой
+- Можно создавать и редактировать графы
+
+### Sprint 7: Deployment System (3-4 недели) 🚀
+
+**Цель:** Деплой сгенерированных сервисов
+
+1. Axion Runner Agent (Rust)
+   - gRPC + Kafka
+   - Docker Swarm Manager
    - Telemetry Collector
-   - Command Executor
-   - Базовая безопасность
+   - WebSocket Server
+   - Auto-update Mechanism
 
-2. Control Plane Integration
+2. SSH Management
+   - SSH Key Storage
+   - Agent Installation
+   - Server Configuration
+
+3. Control Plane Integration
    - Runner Management Service
-   - WebSocket Server для агентов
-   - Интеграция с Deployment Service
-   - Интеграция с Metrics Ingestion Service
-
-3. Agent Installation
-   - Скрипт установки
-   - Автоматическая установка через SSH
-   - Docker Compose для агента
-
-4. SSH Management (Legacy, для установки агента)
-   - Хранение ключей
-   - Автоматическая установка агента
-   - Настройка серверов
-
-5. BullMQ Integration
-   - Deployment queue
-   - Job processor (с поддержкой агентов)
-   - Status tracking
-
-6. Docker Stack Generation
-   - docker-compose.yml
-   - Dockerfile для каждого сервиса
-   - .dockerignore
+   - WebSocket Server
+   - Deployment Orchestration
+   - Metrics Ingestion
 
 **Deliverables:**
 
@@ -334,21 +669,110 @@ order: 8
 - Деплой через WebSocket к агенту
 - Сбор телеметрии от агентов
 - Автоматическая установка агента
-- Мониторинг деплоев и метрик
 
-### Sprint 6: Polish & Advanced (2-3 недели) 🟢
+### Sprint 8: Testing & Polish (2-3 недели) 🟡
 
-**Цель:** Доработка и продвинутые фичи
+**Цель:** Тестирование и доработка
 
-1. Metrics & Monitoring
-2. Real-time collaboration
-3. Advanced UI features
-4. Performance optimization
+1. Testing
+   - Unit Tests
+   - Integration Tests
+   - E2E Tests
+   - Contract Tests
+
+2. Documentation
+   - API Documentation
+   - Service Documentation
+   - Deployment Guide
+   - Development Guide
+
+3. Performance Optimization
+4. Bug Fixes
 
 **Deliverables:**
 
 - Полнофункциональная система
+- Покрытие тестами
+- Полная документация
 - Готовность к beta launch
+
+---
+
+## 🛠️ Готовые компоненты для новых сервисов
+
+При создании новых сервисов (Infrastructure, Deployment, Billing, Metrics) используйте готовые компоненты:
+
+### Обязательные компоненты
+
+1. **Kafka Integration**
+
+   ```typescript
+   import {
+     createKafkaServerOptions,
+     createKafkaClientOptions,
+   } from "@axion/shared";
+   // Используйте для межсервисной коммуникации
+   ```
+
+2. **Better Auth**
+
+   ```typescript
+   import { AuthModule } from "@axion/nestjs-common";
+   // Автоматическая аутентификация и авторизация
+   ```
+
+3. **Health Module**
+
+   ```typescript
+   import { HealthModule } from "@axion/nestjs-common";
+   // Автоматические health checks
+   ```
+
+4. **Error Handling**
+
+   ```typescript
+   import { handleServiceError } from "@axion/shared";
+   // Единая обработка ошибок
+   ```
+
+5. **Repository Pattern**
+
+   ```typescript
+   import { BaseRepository } from "@axion/database";
+   // Базовый репозиторий с CRUD операциями
+   ```
+
+6. **Protobuf Contracts**
+   ```typescript
+   import { SERVICE_PATTERNS, SERVICE_NAME } from "@axion/contracts";
+   // Типобезопасные контракты
+   ```
+
+### Рекомендуемая структура нового сервиса
+
+```
+apps/{service-name}/
+├── src/
+│   ├── app.module.ts          # AuthModule, HealthModule, Kafka clients
+│   ├── main.ts                # Kafka server setup
+│   ├── {service}/
+│   │   ├── {service}.module.ts
+│   │   ├── {service}.controller.ts  # MessagePattern handlers
+│   │   ├── {service}.service.ts     # Main coordinator
+│   │   ├── services/               # Specialized services
+│   │   ├── repositories/            # BaseRepository extensions
+│   │   └── helpers/                 # Service-specific helpers
+│   └── database/
+│       ├── schema.ts
+│       └── connection.ts
+```
+
+### Примеры использования
+
+См. существующие сервисы:
+
+- **Graph Service** — пример полной реализации
+- **Codegen Service** — пример с LLM интеграцией и валидацией
 
 ---
 
@@ -356,7 +780,7 @@ order: 8
 
 - **[`ARCHITECTURE`](./ARCHITECTURE)** — Полная архитектура системы
 - **[`TECHNICAL_DETAILS`](./TECHNICAL_DETAILS)** — Технические детали
-- **[`CONTRACTS_AND_VALIDATION`](./CONTRACTS_AND_VALIDATION)** — Контракты и валидация
+- **[`KAFKA_INTEGRATION`](./KAFKA_INTEGRATION)** — Kafka интеграция
 - **[`COMPARISON`](./COMPARISON)** — Сравнение с CapRover и Convex
 - **[`RUNNER_AGENT`](./RUNNER_AGENT)** — Архитектура Axion Runner Agent
 - **[`templates/DATABASE_NODES`](./templates/DATABASE_NODES)** — Database Nodes

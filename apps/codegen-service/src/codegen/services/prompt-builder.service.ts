@@ -74,9 +74,8 @@ Generate only the source code files.`;
     graph: GraphData,
     projectName: string
   ): string {
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    const serviceName = (nodeData?.name as string) || "unknown-service";
-    const serviceType = (nodeData?.type as string) || "generic";
+    const serviceName = node.data?.serviceName || "unknown-service";
+    const serviceType = node.data?.config?.type || "generic";
     const dependencies = this.extractDependencies(node, graph);
 
     const prompt = `Generate a complete NestJS microservice with the following specifications:
@@ -178,12 +177,16 @@ Provide a detailed validation report in JSON format:
     return `Discover and extract all Kafka MessagePattern contracts from the service "${serviceName}".
 
 **Controller Files:**
-${controllerFiles.map((f) => `
+${controllerFiles
+  .map(
+    (f) => `
 File: ${f.path}
 \`\`\`typescript
 ${f.content}
 \`\`\`
-`).join("\n")}
+`
+  )
+  .join("\n")}
 
 Extract all MessagePattern definitions and provide them in JSON format:
 {
@@ -208,7 +211,10 @@ Focus on:
   /**
    * Extract dependencies from graph edges
    */
-  private extractDependencies(node: Node, graph: GraphData): Array<{
+  private extractDependencies(
+    node: Node,
+    graph: GraphData
+  ): Array<{
     targetNode: Node;
     edgeType: string;
   }> {
@@ -257,8 +263,8 @@ Focus on:
   ): string {
     return dependencies
       .map((dep) => {
-        const nodeData = dep.targetNode.data as Record<string, unknown> | undefined;
-        const targetName = (nodeData?.name as string) || dep.targetNode.id;
+        const targetName =
+          dep.targetNode.data?.serviceName || dep.targetNode.id;
         const targetType = this.getNodeTypeName(dep.targetNode.type);
         return `- Depends on: ${targetName} (${targetType}) via ${dep.edgeType}`;
       })
@@ -283,4 +289,3 @@ Focus on:
     }
   }
 }
-

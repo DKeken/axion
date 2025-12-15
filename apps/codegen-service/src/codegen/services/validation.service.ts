@@ -16,16 +16,28 @@ import { Injectable } from "@nestjs/common";
 import { transformValidationStatus } from "@/codegen/helpers/type-transformers";
 import { type GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
 import { type ValidationResultRepository } from "@/codegen/repositories/validation-result.repository";
-import { OpenRouterService } from "@/codegen/services/openrouter.service";
-import { PromptBuilderService } from "@/codegen/services/prompt-builder.service";
+import { BuildValidatorService } from "@/codegen/services/validators/build-validator.service";
+import { ContractDiscoveryValidatorService } from "@/codegen/services/validators/contract-discovery-validator.service";
+import { ContractValidatorService } from "@/codegen/services/validators/contract-validator.service";
+import { HealthCheckValidatorService } from "@/codegen/services/validators/health-check-validator.service";
+import { StructuralValidatorService } from "@/codegen/services/validators/structural-validator.service";
+import { TypeScriptValidatorService } from "@/codegen/services/validators/typescript-validator.service";
 
+/**
+ * Validation Service
+ * Координирует валидацию сгенерированного кода через 6 уровней валидации
+ */
 @Injectable()
 export class ValidationService extends BaseService {
   constructor(
     private readonly generationHistoryRepository: GenerationHistoryRepository,
     private readonly validationResultRepository: ValidationResultRepository,
-    private readonly openRouterService: OpenRouterService,
-    private readonly promptBuilderService: PromptBuilderService
+    private readonly structuralValidator: StructuralValidatorService,
+    private readonly contractValidator: ContractValidatorService,
+    private readonly typescriptValidator: TypeScriptValidatorService,
+    private readonly buildValidator: BuildValidatorService,
+    private readonly healthCheckValidator: HealthCheckValidatorService,
+    private readonly contractDiscoveryValidator: ContractDiscoveryValidatorService
   ) {
     super(ValidationService.name);
   }
@@ -36,14 +48,11 @@ export class ValidationService extends BaseService {
     if (!metadataCheck.success) return metadataCheck.response;
 
     // Get all generation history for project
-    // Note: Project access is verified implicitly when generation was created
     const histories = await this.generationHistoryRepository.findByProjectId(
       data.projectId
     );
 
     if (histories.length === 0) {
-      // No generation history means project hasn't been generated yet
-      // This is not an error, just return empty results
       return createSuccessResponse({
         results: [],
         totalServices: 0,
@@ -55,128 +64,20 @@ export class ValidationService extends BaseService {
     const results = [];
 
     for (const history of histories) {
-      // Check if validation result already exists
-      let validationResult =
-        await this.validationResultRepository.findLatestByService(
-          data.projectId,
-          history.nodeId || ""
-        );
-
-      if (!validationResult) {
-        // Create new validation result
-        validationResult = await this.validationResultRepository.create({
-          projectId: data.projectId,
-          nodeId: history.nodeId || null,
-          serviceId: history.serviceId || null,
-          generationHistoryId: history.id,
-          status: "pending",
-          levelResults: {
-            structuralPassed: false,
-            contractPassed: false,
-            typescriptPassed: false,
-            buildPassed: false,
-            healthCheckPassed: false,
-            contractDiscoveryPassed: false,
-          },
-          errors: [],
-        });
+      if (!history.generatedCodePath || !history.nodeId) {
+        continue;
       }
 
-      // Perform AI-powered validation if code was generated
-      if (
-        history.generatedCodePath &&
-        history.status === "validated" &&
-        validationResult.status === "pending"
-      ) {
-        try {
-          // Mock generated files (in production, read from actual path)
-          const generatedFiles: Array<{ path: string; content: string }> = [
-            {
-              path: "src/main.ts",
-              content: "// Main entry point",
-            },
-          ];
+      const result = await this.validateServiceCode(
+        history.generatedCodePath,
+        data.projectId,
+        history.nodeId,
+        history.serviceId || null,
+        history.id,
+        history.serviceName || "unknown"
+      );
 
-          const validationPrompt =
-            this.promptBuilderService.buildValidationPrompt(
-              history.serviceName || "unknown",
-              generatedFiles
-            );
-
-          this.logger.log(
-            `Running AI validation for service: ${history.serviceName || history.nodeId}${data.aiModel ? ` using model: ${data.aiModel}` : ""}`
-          );
-
-          const aiResponse = await this.openRouterService.complete(
-            validationPrompt,
-            {
-              temperature: 0.1,
-              maxTokens: 4000,
-              model: data.aiModel, // Use model from request or default
-            }
-          );
-
-          // Parse validation response
-          try {
-            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const validationReport = JSON.parse(jsonMatch[0]);
-
-              const updated = await this.validationResultRepository.update(
-                validationResult.id,
-                {
-                  status:
-                    validationReport.errors?.length > 0 ? "error" : "validated",
-                  levelResults: {
-                    structuralPassed:
-                      validationReport.structuralPassed || false,
-                    contractPassed: validationReport.contractPassed || false,
-                    typescriptPassed:
-                      validationReport.typescriptPassed || false,
-                    buildPassed: validationReport.buildPassed || false,
-                    healthCheckPassed:
-                      validationReport.healthCheckPassed || false,
-                    contractDiscoveryPassed:
-                      validationReport.contractDiscoveryPassed || false,
-                  },
-                  errors: validationReport.errors || [],
-                }
-              );
-
-              if (updated) {
-                validationResult = updated;
-              }
-
-              this.logger.log(
-                `AI validation completed for ${history.serviceName || history.nodeId}`
-              );
-            }
-          } catch (parseError) {
-            this.logger.error(
-              "Failed to parse AI validation response",
-              parseError
-            );
-          }
-        } catch (error) {
-          this.logger.error("AI validation failed", error);
-        }
-      }
-
-      // Add to results
-      results.push({
-        serviceId: validationResult.serviceId || "",
-        nodeId: validationResult.nodeId || "",
-        status: transformValidationStatus(validationResult.status),
-        errors: validationResult.errors || [],
-        levelResults: validationResult.levelResults || {
-          structuralPassed: false,
-          contractPassed: false,
-          typescriptPassed: false,
-          buildPassed: false,
-          healthCheckPassed: false,
-          contractDiscoveryPassed: false,
-        },
-      });
+      results.push(result);
     }
 
     return createSuccessResponse({
@@ -212,20 +113,49 @@ export class ValidationService extends BaseService {
       );
     }
 
-    // Check if validation result already exists
-    const existing = await this.validationResultRepository.findLatestByService(
+    if (!history.generatedCodePath) {
+      return createErrorResponse(
+        createValidationError("No generated code path found")
+      );
+    }
+
+    const result = await this.validateServiceCode(
+      history.generatedCodePath,
       data.projectId,
-      data.nodeId
+      data.nodeId,
+      history.serviceId || null,
+      history.id,
+      history.serviceName || "unknown"
     );
 
-    let validationResult;
-    if (!existing) {
-      // Create new validation result
+    return createSuccessResponse(result);
+  }
+
+  /**
+   * Выполняет валидацию кода сервиса через все 6 уровней
+   */
+  @CatchError({ operation: "validating service code" })
+  private async validateServiceCode(
+    codePath: string,
+    projectId: string,
+    nodeId: string,
+    serviceId: string | null,
+    generationHistoryId: string,
+    serviceName: string
+  ) {
+    // Проверяем существующий результат валидации
+    let validationResult =
+      await this.validationResultRepository.findLatestByService(
+        projectId,
+        nodeId
+      );
+
+    if (!validationResult) {
       validationResult = await this.validationResultRepository.create({
-        projectId: data.projectId,
-        nodeId: data.nodeId,
-        serviceId: history.serviceId || null,
-        generationHistoryId: history.id,
+        projectId,
+        nodeId,
+        serviceId,
+        generationHistoryId,
         status: "pending",
         levelResults: {
           structuralPassed: false,
@@ -237,96 +167,163 @@ export class ValidationService extends BaseService {
         },
         errors: [],
       });
-    } else {
-      validationResult = existing;
     }
 
-    // Perform AI-powered validation if code was generated
-    if (history.generatedCodePath && history.status === "validated") {
-      try {
-        // For now, we'll simulate file reading by using mock data
-        // In production, you would read the actual files from the generated code path
-        const generatedFiles: Array<{ path: string; content: string }> = [
-          {
-            path: "src/main.ts",
-            content: "// Main entry point generated by AI",
-          },
-        ];
+    const errors: Array<{
+      level: string;
+      message: string;
+      file?: string;
+      line?: number;
+      column?: number;
+    }> = [];
 
-        // Build validation prompt
-        const validationPrompt =
-          this.promptBuilderService.buildValidationPrompt(
-            history.serviceName || "unknown",
-            generatedFiles
-          );
+    // 1. Structural Validation
+    this.logger.log(`[1/6] Structural validation for ${serviceName}`);
+    const structuralResult = await this.structuralValidator.validate(codePath);
+    if (!structuralResult.valid) {
+      errors.push(
+        ...structuralResult.errors.map(
+          (e: { file: string; message: string }) => ({
+            level: "structural",
+            message: e.message,
+            file: e.file,
+          })
+        )
+      );
+    }
 
-        this.logger.log(
-          `Running AI validation for service: ${history.serviceName || data.nodeId}${data.aiModel ? ` using model: ${data.aiModel}` : ""}`
+    // 2. Contract Validation (требует proto файлы)
+    this.logger.log(`[2/6] Contract validation for ${serviceName}`);
+    const protoContracts = new Map<string, string>(); // TODO: Загрузить реальные proto файлы
+    const contractResult = await this.contractValidator.validate(
+      codePath,
+      protoContracts
+    );
+    if (!contractResult.valid) {
+      errors.push(
+        ...contractResult.errors.map(
+          (e: { pattern: string; message: string; file?: string }) => ({
+            level: "contract",
+            message: e.message,
+            file: e.file,
+          })
+        )
+      );
+    }
+
+    // 3. TypeScript Validation
+    this.logger.log(`[3/6] TypeScript validation for ${serviceName}`);
+    const typescriptResult = await this.typescriptValidator.validate(codePath);
+    if (!typescriptResult.valid) {
+      errors.push(
+        ...typescriptResult.errors.map((e) => ({
+          level: "typescript",
+          message: e.message,
+          file: e.file,
+          line: e.line,
+          column: e.column,
+        }))
+      );
+    }
+
+    // 4. Build Validation (только если TypeScript валидация прошла)
+    let buildResult: {
+      valid: boolean;
+      errors: Array<{ message: string; file?: string }>;
+      output: string;
+    } = { valid: true, errors: [], output: "" };
+    if (typescriptResult.valid) {
+      this.logger.log(`[4/6] Build validation for ${serviceName}`);
+      buildResult = await this.buildValidator.validate(codePath);
+      if (!buildResult.valid) {
+        errors.push(
+          ...buildResult.errors.map((e) => ({
+            level: "build",
+            message: e.message,
+            file: e.file,
+          }))
         );
-
-        // Call OpenRouter for validation
-        const aiResponse = await this.openRouterService.complete(
-          validationPrompt,
-          {
-            temperature: 0.1, // Very low temperature for consistent validation
-            maxTokens: 4000,
-            model: data.aiModel, // Use model from request or default
-          }
-        );
-
-        // Parse validation response
-        try {
-          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const validationReport = JSON.parse(jsonMatch[0]);
-
-            // Update validation result with AI feedback
-            const updatedResult = await this.validationResultRepository.update(
-              validationResult.id,
-              {
-                status:
-                  validationReport.errors?.length > 0 ? "error" : "validated",
-                levelResults: {
-                  structuralPassed: validationReport.structuralPassed || false,
-                  contractPassed: validationReport.contractPassed || false,
-                  typescriptPassed: validationReport.typescriptPassed || false,
-                  buildPassed: validationReport.buildPassed || false,
-                  healthCheckPassed:
-                    validationReport.healthCheckPassed || false,
-                  contractDiscoveryPassed:
-                    validationReport.contractDiscoveryPassed || false,
-                },
-                errors: validationReport.errors || [],
-              }
-            );
-
-            if (updatedResult) {
-              validationResult = updatedResult;
-            }
-
-            this.logger.log(
-              `AI validation completed for ${history.serviceName || data.nodeId}`
-            );
-          }
-        } catch (parseError) {
-          this.logger.error(
-            "Failed to parse AI validation response",
-            parseError
-          );
-          // Continue with existing validation result
-        }
-      } catch (error) {
-        this.logger.error("AI validation failed", error);
-        // Continue with existing validation result
       }
+    } else {
+      this.logger.warn(
+        `Skipping build validation for ${serviceName} (TypeScript validation failed)`
+      );
     }
 
-    return createSuccessResponse({
-      serviceId: validationResult.serviceId || "",
-      nodeId: validationResult.nodeId || "",
-      status: transformValidationStatus(validationResult.status),
-      errors: validationResult.errors || [],
-      levelResults: validationResult.levelResults || {
+    // 5. Health Check Validation (только если build прошел)
+    let healthCheckResult: {
+      valid: boolean;
+      errors: Array<{ endpoint: string; message: string }>;
+      healthCheckPassed: boolean;
+      messagePatternsPassed: boolean;
+    } = {
+      valid: true,
+      errors: [],
+      healthCheckPassed: false,
+      messagePatternsPassed: false,
+    };
+    if (buildResult.valid) {
+      this.logger.log(`[5/6] Health check validation for ${serviceName}`);
+      healthCheckResult = await this.healthCheckValidator.validate(codePath);
+      if (!healthCheckResult.valid) {
+        errors.push(
+          ...healthCheckResult.errors.map((e) => ({
+            level: "healthCheck",
+            message: e.message,
+            file: e.endpoint,
+          }))
+        );
+      }
+    } else {
+      this.logger.warn(
+        `Skipping health check validation for ${serviceName} (Build validation failed)`
+      );
+    }
+
+    // 6. Contract Discovery Validation
+    this.logger.log(`[6/6] Contract discovery validation for ${serviceName}`);
+    const contractDiscoveryResult =
+      await this.contractDiscoveryValidator.validate(codePath, serviceName);
+    if (!contractDiscoveryResult.valid) {
+      errors.push(
+        ...contractDiscoveryResult.errors.map((e) => ({
+          level: "contractDiscovery",
+          message: e.message,
+          file: e.pattern,
+        }))
+      );
+    }
+
+    // Обновляем результат валидации
+    const finalStatus = errors.length === 0 ? "validated" : "error";
+    const updated = await this.validationResultRepository.update(
+      validationResult.id,
+      {
+        status: finalStatus,
+        levelResults: {
+          structuralPassed: structuralResult.valid,
+          contractPassed: contractResult.valid,
+          typescriptPassed: typescriptResult.valid,
+          buildPassed: buildResult.valid,
+          healthCheckPassed: healthCheckResult.healthCheckPassed,
+          contractDiscoveryPassed: contractDiscoveryResult.valid,
+        },
+        errors,
+      }
+    );
+
+    const finalResult = updated || validationResult;
+
+    this.logger.log(
+      `Validation completed for ${serviceName}: ${finalStatus} (${errors.length} errors)`
+    );
+
+    return {
+      serviceId: finalResult.serviceId || "",
+      nodeId: finalResult.nodeId || "",
+      status: transformValidationStatus(finalResult.status),
+      errors: finalResult.errors || [],
+      levelResults: finalResult.levelResults || {
         structuralPassed: false,
         contractPassed: false,
         typescriptPassed: false,
@@ -334,6 +331,6 @@ export class ValidationService extends BaseService {
         healthCheckPassed: false,
         contractDiscoveryPassed: false,
       },
-    });
+    };
   }
 }

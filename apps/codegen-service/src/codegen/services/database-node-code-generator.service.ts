@@ -52,14 +52,14 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
       ) as never;
     }
 
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    const orm = (nodeData?.orm as string) || DEFAULT_ORM;
+    // ORM, connectionName и databaseType могут быть в config
+    const orm = (node.data?.config?.orm as string) || DEFAULT_ORM;
     const connectionName =
       variables.connectionName ||
-      (nodeData?.connectionName as string) ||
+      (node.data?.config?.connectionName as string) ||
       DEFAULT_CONNECTION_NAME;
     const databaseType =
-      (nodeData?.databaseType as string) || DEFAULT_DATABASE_TYPE;
+      (node.data?.config?.databaseType as string) || DEFAULT_DATABASE_TYPE;
 
     this.logger.log(
       `Generating database code for node ${node.id} (ORM: ${orm}, Type: ${databaseType}, Connection: ${connectionName})`
@@ -175,8 +175,7 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
    */
   getORMFromNode(node: Node): string {
     this.validateDatabaseNode(node);
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    return (nodeData?.orm as string) || DEFAULT_ORM;
+    return (node.data?.config?.orm as string) || DEFAULT_ORM;
   }
 
   /**
@@ -184,8 +183,10 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
    */
   getConnectionNameFromNode(node: Node): string {
     this.validateDatabaseNode(node);
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    return (nodeData?.connectionName as string) || `db-${node.id.slice(0, 8)}`;
+    return (
+      (node.data?.config?.connectionName as string) ||
+      `db-${node.id.slice(0, 8)}`
+    );
   }
 
   /**

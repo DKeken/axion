@@ -1,4 +1,4 @@
-# Development Setup - Автоматизация
+# Development Setup
 
 ## Быстрый старт
 
@@ -10,32 +10,48 @@ bun dev
 
 Это автоматически:
 
-1. ✅ Запустит инфраструктуру (postgres, redis, kafka, traefik)
-2. ✅ Добавит Traefik labels в docker-compose.yml (если нужно)
-3. ✅ Запустит все application services локально
+1. ✅ Убьет процессы на портах 3000-3004 (если заняты)
+2. ✅ Запустит инфраструктуру (postgres, keydb, kafka, traefik)
+3. ✅ Сгенерирует Traefik конфигурацию из `docker/services.config.ts`
+4. ✅ Запустит все application services локально через Turbo
 
 ## Что происходит под капотом
 
-### 1. Infrastructure Setup
+### 1. Kill Processes on Ports
 
-Скрипт `docker/setup-infrastructure.ts`:
+Скрипт `scripts/dev.ts`:
 
-- Проверяет, что Docker запущен
-- Проверяет, что инфраструктура уже запущена
-- Если нет - запускает `docker-compose up -d postgres redis kafka traefik`
+- Освобождает порты 3000-3004 от занятых процессов
+- Использует `lsof` для поиска процессов
+
+### 2. Infrastructure Setup
+
+Команда `bun run docker:infra`:
+
+- Генерирует Traefik конфигурацию через `docker/generate-traefik-config.ts`
+- Запускает Docker Compose с profile `infrastructure`:
+  - PostgreSQL (5432)
+  - KeyDB/Redis (6379)
+  - Kafka (9092)
+  - Traefik (80, 443, 8080)
 - Ждет, пока все сервисы станут healthy
 
-### 2. Labels Injection
+### 3. Traefik Configuration Generation
 
-Скрипт `docker/inject-labels.ts`:
+Скрипт `docker/generate-traefik-config.ts`:
 
 - Читает `docker/services.config.ts`
-- Генерирует Traefik labels для всех сервисов
-- Добавляет/обновляет labels в `docker-compose.yml`
+- Генерирует `docker/traefik/dynamic/routers.yml`
+- Настраивает routing для всех сервисов
+- Использует `host.docker.internal` для локальной разработки
 
-### 3. Services Startup
+### 4. Services Startup
 
-Запускает `turbo run dev` для всех application services.
+Запускает `turbo run dev` для всех application services:
+
+- Graph Service (3001)
+- Codegen Service (3002)
+- И другие сервисы из `apps/`
 
 ## Архитектура Development Mode
 
@@ -70,11 +86,16 @@ bun dev
 
 После запуска `bun dev` доступны:
 
-- **Traefik Dashboard**: http://traefik.localhost
-- **Kafka UI**: http://kafka-ui.localhost
+- **Traefik Dashboard**: http://traefik.localhost:8080
+- **Kafka UI**: http://kafka-ui.localhost:8081 (если включен monitoring profile)
 - **Graph Service**: http://graph.localhost (когда запущен)
 - **Codegen Service**: http://codegen.localhost (когда запущен)
-- И т.д. для всех сервисов из `services.config.ts`
+- И т.д. для всех сервисов из `docker/services.config.ts`
+
+**Прямой доступ к сервисам (без Traefik):**
+
+- Graph Service: http://localhost:3001
+- Codegen Service: http://localhost:3002
 
 ## Production Deployment
 
@@ -173,20 +194,26 @@ bun run docker:inject-labels
 ## Полезные команды
 
 ```bash
-# Запуск инфраструктуры
-bun run docker:setup
+# Запуск инфраструктуры (генерирует Traefik config + запускает Docker)
+bun run docker:infra
 
-# Обновление labels
-bun run docker:inject-labels
+# Генерация Traefik конфигурации (dev)
+bun run docker:generate-traefik-config
+
+# Генерация Traefik конфигурации (prod с TLS)
+bun run docker:generate-traefik-config:prod
+
+# Использование статической конфигурации Traefik
+bun run docker:infra-static
 
 # Просмотр логов
 bun run docker:logs
 
-# Остановка
-bun run docker:down
+# Остановка инфраструктуры
+bun run docker:infra:down
 
-# Production: генерация override
-bun run docker:generate-override --env=prod
+# Остановка всех сервисов
+bun run docker:down
 ```
 
 ## Добавление нового сервиса
@@ -194,28 +221,50 @@ bun run docker:generate-override --env=prod
 1. Добавьте в `docker/services.config.ts`:
 
 ```typescript
-[NEW_SERVICE_NAME]: {
-  serviceName: NEW_SERVICE_NAME,
-  dockerServiceName: "new-service",
-  routerName: "new",
-  host: "new.localhost",
-  port: 3007,
-  websocket: false,
-  healthCheckPath: "/health",
-},
+export const NEW_SERVICE_NAME = "new-service";
+
+export const servicesConfig = {
+  // ... существующие сервисы
+  [NEW_SERVICE_NAME]: {
+    serviceName: NEW_SERVICE_NAME,
+    dockerServiceName: "new-service",
+    routerName: "new",
+    host: "new.localhost",
+    port: 3007,
+    websocket: false,
+    healthCheckPath: "/health",
+  },
+};
 ```
 
-2. Запустите `bun dev` - все настроится автоматически!
+2. Запустите `bun dev` - Traefik конфигурация сгенерируется автоматически!
 
 Или вручную:
 
 ```bash
-bun run docker:inject-labels
+# Перегенерировать Traefik config
+bun run docker:generate-traefik-config
+
+# Перезапустить Traefik
+docker compose restart traefik
 ```
 
 ## Best Practices
 
 1. **Всегда используйте `bun dev`** - это гарантирует правильную настройку
-2. **Не редактируйте docker-compose.yml вручную** - используйте `docker:inject-labels`
-3. **Проверяйте health checks** перед деплоем в production
-4. **Используйте override файлы** для production окружения
+2. **Не редактируйте `docker/traefik/dynamic/routers.yml` вручную** - используйте `docker:generate-traefik-config`
+3. **Используйте статический YAML для быстрой разработки** - `bun run docker:infra-static`
+4. **Проверяйте health checks** перед деплоем в production
+5. **Для production используйте** `docker:generate-traefik-config:prod` (с TLS)
+
+## Переменные окружения
+
+Создайте `.env` файлы для каждого сервиса (см. `.env.example`):
+
+```bash
+# apps/graph-service/.env
+DATABASE_URL=postgresql://axion:axion_password@localhost:5432/axion_control_plane
+KAFKA_BROKERS=localhost:9092
+```
+
+См. [docker/README.md](../docker/README.md) для полной информации о Docker инфраструктуре.

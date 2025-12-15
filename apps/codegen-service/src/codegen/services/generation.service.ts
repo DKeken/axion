@@ -1,6 +1,7 @@
 import {
   type GenerateProjectRequest,
   type GenerateServiceRequest,
+  type GraphData,
   type Node,
   NodeType,
   ServiceStatus,
@@ -196,15 +197,7 @@ export class GenerationService extends BaseService {
   @CatchError({ operation: "generating service from node" })
   private async generateServiceFromNode(
     node: Node,
-    graph: {
-      nodes?: Node[];
-      edges?: Array<{
-        id: string;
-        source: string;
-        target: string;
-        type: unknown;
-      }>;
-    },
+    graph: GraphData,
     request: GenerateProjectRequest | GenerateServiceRequest,
     projectName: string,
     protobufContracts: Map<string, string>
@@ -431,26 +424,17 @@ export class GenerationService extends BaseService {
   /**
    * Извлекает имя проекта из графа
    */
-  private extractProjectName(graph: { nodes?: Node[] }): string {
+  private extractProjectName(graph: GraphData): string {
     const projectNode = graph.nodes?.find(
       (n: Node) => n.type === NodeType.NODE_TYPE_SERVICE
     );
-    return (
-      (projectNode?.data?.name as string) ||
-      (projectNode?.data?.service_name as string) ||
-      "unknown-project"
-    );
+    return projectNode?.data?.serviceName || "unknown-project";
   }
 
   /**
    * Извлекает имя сервиса из node
    */
   private extractServiceName(node: Node): string {
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    return (
-      (nodeData?.name as string) ||
-      (nodeData?.service_name as string) ||
-      `service-${node.id.slice(0, 8)}`
-    );
+    return node.data?.serviceName || `service-${node.id.slice(0, 8)}`;
   }
 }

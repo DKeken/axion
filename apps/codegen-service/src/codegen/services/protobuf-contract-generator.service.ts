@@ -197,12 +197,7 @@ message List${serviceNamePascal}sResponse {
    * Извлекает имя сервиса из node
    */
   private extractServiceName(node: Node): string {
-    const nodeData = node.data as Record<string, unknown> | undefined;
-    return (
-      (nodeData?.name as string) ||
-      (nodeData?.service_name as string) ||
-      `service-${node.id.slice(0, 8)}`
-    );
+    return node.data?.serviceName || `service-${node.id.slice(0, 8)}`;
   }
 
   /**

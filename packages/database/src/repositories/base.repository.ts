@@ -9,6 +9,12 @@ import type { PgTable, PgColumn } from "drizzle-orm/pg-core";
 import type { InferSelectModel, InferInsertModel, SQL } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
+import type {
+  IRepository,
+  PaginationOptions,
+  PaginatedResult,
+} from "./irepository.interface";
+
 /**
  * Base repository type constraints
  */
@@ -21,22 +27,6 @@ export type BaseTable = PgTable & {
 export type BaseEntity = InferSelectModel<BaseTable>;
 export type CreateEntity<T extends BaseTable> = InferInsertModel<T>;
 export type UpdateEntity<T extends BaseTable> = Partial<CreateEntity<T>>;
-
-/**
- * Pagination options
- */
-export interface PaginationOptions {
-  page?: number;
-  limit?: number;
-}
-
-/**
- * Paginated result
- */
-export interface PaginatedResult<T> {
-  items: T[];
-  total: number;
-}
 
 /**
  * Base Repository class for common CRUD operations
@@ -62,7 +52,7 @@ export abstract class BaseRepository<
   TCreate extends CreateEntity<TTable> = InferInsertModel<TTable>,
   TUpdate extends UpdateEntity<TTable> = Partial<InferInsertModel<TTable>>,
   TSchema extends Record<string, unknown> = Record<string, unknown>,
-> {
+> implements IRepository<TEntity, TCreate, TUpdate> {
   constructor(
     protected readonly db: PostgresJsDatabase<TSchema>,
     protected readonly table: TTable

@@ -173,8 +173,7 @@ const ${conn.connectionName}Connection = createDrizzleConnection(
    * Извлекает entity name из service node
    */
   private extractEntityName(serviceNode: Node): string {
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
-    const serviceName = (nodeData?.name as string) || "Entity";
+    const serviceName = serviceNode.data?.serviceName || "Entity";
 
     // Преобразуем service name в PascalCase entity name
     return this.toPascalCase(serviceName);

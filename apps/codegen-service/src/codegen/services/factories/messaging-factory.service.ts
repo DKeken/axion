@@ -55,11 +55,11 @@ export class MessagingFactoryService extends BaseService {
       ) as never;
     }
 
-    const nodeData = serviceNode.data as Record<string, unknown> | undefined;
     const serviceName =
-      (nodeData?.name as string) ||
+      serviceNode.data?.serviceName ||
       MessagingFactoryService.DEFAULT_SERVICE_NAME;
-    const projectId = (nodeData?.projectId as string) || "";
+    // projectId может быть в config или metadata, пока используем пустую строку
+    const projectId = serviceNode.data?.config?.projectId || "";
 
     this.logger.log(
       `Creating messaging components for service ${serviceNode.id} (${serviceName})`

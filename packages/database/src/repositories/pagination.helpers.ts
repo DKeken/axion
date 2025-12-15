@@ -4,7 +4,7 @@
  */
 
 import { PAGINATION_DEFAULTS } from "@axion/contracts";
-import type { PaginationOptions, PaginatedResult } from "./base.repository";
+import type { PaginationOptions, PaginatedResult } from "./irepository.interface";
 
 /**
  * Apply pagination to an array of items

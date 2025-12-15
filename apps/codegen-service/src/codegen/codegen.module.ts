@@ -17,6 +17,12 @@ import { PromptBuilderService } from "@/codegen/services/prompt-builder.service"
 import { ProtobufContractGeneratorService } from "@/codegen/services/protobuf-contract-generator.service";
 import { TemplateEngineService } from "@/codegen/services/template-engine.service";
 import { ValidationService } from "@/codegen/services/validation.service";
+import { BuildValidatorService } from "@/codegen/services/validators/build-validator.service";
+import { ContractDiscoveryValidatorService } from "@/codegen/services/validators/contract-discovery-validator.service";
+import { ContractValidatorService } from "@/codegen/services/validators/contract-validator.service";
+import { HealthCheckValidatorService } from "@/codegen/services/validators/health-check-validator.service";
+import { StructuralValidatorService } from "@/codegen/services/validators/structural-validator.service";
+import { TypeScriptValidatorService } from "@/codegen/services/validators/typescript-validator.service";
 
 @Module({
   controllers: [CodegenController],
@@ -41,6 +47,13 @@ import { ValidationService } from "@/codegen/services/validation.service";
     ServiceFactoryService,
     // Protobuf contract generator
     ProtobufContractGeneratorService,
+    // Validators (6 levels)
+    StructuralValidatorService,
+    ContractValidatorService,
+    TypeScriptValidatorService,
+    BuildValidatorService,
+    HealthCheckValidatorService,
+    ContractDiscoveryValidatorService,
     // Repositories
     BlueprintRepository,
     GenerationHistoryRepository,

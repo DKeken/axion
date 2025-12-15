@@ -11,6 +11,7 @@ export {
 
 // Export repositories
 export * from "./repositories/base.repository";
+export * from "./repositories/irepository.interface";
 export {
   applyPagination,
   calculateOffset,

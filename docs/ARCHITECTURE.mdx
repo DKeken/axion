@@ -1429,13 +1429,13 @@ axion-stack/
 
 ### Специфичные Детали
 
-- **[`TECHNICAL_DETAILS.md`](./TECHNICAL_DETAILS)** ⭐ - Ключевые технические детали: изоляция, деплой, SSH, метрики, архитектура сервисов
-- **[`CONTRACTS_AND_VALIDATION.md`](./CONTRACTS_AND_VALIDATION)** - Детали системы контрактов и валидации
-- **[`COMPARISON.md`](./COMPARISON)** - Сравнение Axion с CapRover и Convex, анализ недостающих функций
-- **[`RUNNER_AGENT.md`](./RUNNER_AGENT)** ⭐ - Архитектура Axion Runner Agent для управления Docker Swarm на серверах
+- **[`TECHNICAL_DETAILS`](./TECHNICAL_DETAILS)** ⭐ - Ключевые технические детали: изоляция, деплой, SSH, метрики, архитектура сервисов, Kafka, Traefik, LLM интеграция
+- **[`CONTRACTS_AND_VALIDATION`](./CONTRACTS_AND_VALIDATION)** - Детали системы контрактов и валидации
+- **[`RUNNER_AGENT`](./RUNNER_AGENT)** ⭐ - Архитектура Axion Runner Agent для управления Docker Swarm на серверах
 
   **Интегрирован в процесс деплоя** (см. Phase 5 выше). Агент написан на **Rust**, использует **gRPC + Kafka** для общения с Control Plane и управляет **Docker Swarm** для продвинутой оркестрации контейнеров. Обеспечивает постоянное соединение, локальный сбор телеметрии, эффективное управление контейнерами и **автоматическое обновление** с проверкой целостности и rollback механизмом.
 
+- **[`DEVELOPMENT_SETUP`](./DEVELOPMENT_SETUP)** - Настройка разработки и добавление новых сервисов
 - **[`templates/`](./templates/)** - Шаблоны для генерации кода (blueprints, components, rules)
 
 ### Быстрый Старт
