@@ -11,11 +11,13 @@
 export * from "./constants/index";
 export { GRAPH_SERVICE_PATTERNS } from "./constants/patterns/graph-service";
 export { CODEGEN_SERVICE_PATTERNS } from "./constants/patterns/codegen-service";
+export { INFRASTRUCTURE_SERVICE_PATTERNS } from "./constants/patterns/infrastructure-service";
 export { SortOrder, PAGINATION_DEFAULTS } from "./constants/index";
 
 // Export contract utilities
 export * from "./contract-utils";
 export * from "./utils/index";
+export * from "./utils/infrastructure-responses";
 export * from "./helpers/index";
 
 // Export contract validation and discovery
@@ -138,3 +140,48 @@ export {
 } from "../generated/common/common";
 
 export { HealthStatus } from "../generated/common/health";
+
+// Re-export Infrastructure Service types
+export type {
+  CreateServerRequest,
+  GetServerRequest,
+  UpdateServerRequest,
+  DeleteServerRequest,
+  ListServersRequest,
+  ServerResponse,
+  ListServersResponse,
+  ListServersData,
+  Server,
+  ServerInfo,
+  TestServerConnectionRequest,
+  TestServerConnectionResponse,
+  ServerConnectionTestResult,
+  ServerConnectionInfo,
+} from "../generated/infrastructure/servers";
+
+export type {
+  CreateClusterRequest,
+  GetClusterRequest,
+  UpdateClusterRequest,
+  DeleteClusterRequest,
+  ListClustersRequest,
+  ClusterResponse,
+  ListClustersResponse,
+  ListClustersData,
+  Cluster,
+  ListClusterServersRequest,
+} from "../generated/infrastructure/clusters";
+
+export type {
+  InstallAgentRequest,
+  InstallAgentResponse,
+  AgentInstallationResult,
+  GetAgentStatusRequest,
+  AgentStatusResponse,
+  AgentStatus,
+  AgentMetrics,
+  DeployedProjectInfo,
+} from "../generated/infrastructure/agents";
+
+// Re-export ServerStatus enum
+export { ServerStatus } from "../generated/common/common";

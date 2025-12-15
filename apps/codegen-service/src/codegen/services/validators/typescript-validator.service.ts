@@ -1,8 +1,9 @@
+import { exec } from "child_process";
+import { promisify } from "util";
+
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
-import { exec } from "child_process";
-import { promisify } from "util";
 
 import {
   VALIDATION_PATTERNS,

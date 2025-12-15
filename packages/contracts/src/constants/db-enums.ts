@@ -29,3 +29,16 @@ export const ORM_TYPES = {
 } as const;
 
 export type OrmTypeDbValue = (typeof ORM_TYPES)[keyof typeof ORM_TYPES];
+
+/**
+ * Server Status values in Database
+ * This must match the postgres enum definition in the database schema.
+ */
+export const SERVER_STATUS_DB = {
+  UNSPECIFIED: "unspecified",
+  CONNECTED: "connected",
+  DISCONNECTED: "disconnected",
+  ERROR: "error",
+  PENDING: "pending",
+  INSTALLING: "installing",
+} as const;
