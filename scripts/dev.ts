@@ -11,11 +11,11 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PORTS = [3000, 3001, 3002, 3003, 3004];
+const PORTS = [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007];
 
 async function killProcessesOnPorts() {
   console.log("🔄 Killing processes on ports:", PORTS.join(", "));
-  
+
   for (const port of PORTS) {
     try {
       // Find process on port

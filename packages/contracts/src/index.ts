@@ -12,12 +12,14 @@ export * from "./constants/index";
 export { GRAPH_SERVICE_PATTERNS } from "./constants/patterns/graph-service";
 export { CODEGEN_SERVICE_PATTERNS } from "./constants/patterns/codegen-service";
 export { INFRASTRUCTURE_SERVICE_PATTERNS } from "./constants/patterns/infrastructure-service";
+export { DEPLOYMENT_SERVICE_PATTERNS } from "./constants/patterns/deployment-service";
 export { SortOrder, PAGINATION_DEFAULTS } from "./constants/index";
 
 // Export contract utilities
 export * from "./contract-utils";
 export * from "./utils/index";
 export * from "./utils/infrastructure-responses";
+export * from "./utils/deployment-responses";
 export * from "./helpers/index";
 
 // Export contract validation and discovery
@@ -185,3 +187,32 @@ export type {
 
 // Re-export ServerStatus enum
 export { ServerStatus } from "../generated/common/common";
+
+// Re-export DeploymentStatus enum
+export { DeploymentStatus, DeploymentStage } from "../generated/common/common";
+
+// Re-export Deployment Service types
+export type {
+  DeployProjectRequest,
+  DeployProjectResponse,
+  CancelDeploymentRequest,
+  ServiceDeploymentStatus,
+  DeploymentConfig,
+  Deployment,
+} from "../generated/deployment/deployment";
+
+export type {
+  GetDeploymentRequest,
+  ListDeploymentsRequest,
+  GetDeploymentStatusRequest,
+  DeploymentResponse,
+  ListDeploymentsResponse,
+  ListDeploymentsData,
+  DeploymentStatusResponse,
+  DeploymentStatusData,
+} from "../generated/deployment/management";
+
+export type {
+  RollbackDeploymentRequest,
+  RollbackDeploymentResponse,
+} from "../generated/deployment/rollback";

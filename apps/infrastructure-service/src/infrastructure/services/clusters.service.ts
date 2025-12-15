@@ -3,8 +3,6 @@ import {
   createClusterResponse,
   createListClustersResponse,
   createListServersResponse,
-  createErrorResponse,
-  createNotFoundError,
   type CreateClusterRequest,
   type DeleteClusterRequest,
   type GetClusterRequest,
@@ -39,9 +37,7 @@ export class ClustersService extends BaseService {
     if (!metadataCheck.success) return metadataCheck.response;
 
     if (!data.name) {
-      return createErrorResponse(
-        createNotFoundError("Cluster", "name is required")
-      );
+      return this.createValidationResponse("name is required");
     }
 
     const cluster = await this.clusterRepository.create({
@@ -70,9 +66,7 @@ export class ClustersService extends BaseService {
 
     const cluster = await this.clusterRepository.findById(data.clusterId);
     if (!cluster) {
-      return createErrorResponse(
-        createNotFoundError("Cluster", data.clusterId)
-      );
+      return this.createNotFoundResponse("Cluster", data.clusterId);
     }
 
     const serversCount = await this.clusterRepository.getServersCount(
@@ -99,9 +93,7 @@ export class ClustersService extends BaseService {
     });
 
     if (!updated) {
-      return createErrorResponse(
-        createNotFoundError("Cluster", data.clusterId)
-      );
+      return this.createNotFoundResponse("Cluster", data.clusterId);
     }
 
     const serversCount = await this.clusterRepository.getServersCount(
@@ -124,9 +116,7 @@ export class ClustersService extends BaseService {
 
     const deleted = await this.clusterRepository.delete(data.clusterId);
     if (!deleted) {
-      return createErrorResponse(
-        createNotFoundError("Cluster", data.clusterId)
-      );
+      return this.createNotFoundResponse("Cluster", data.clusterId);
     }
 
     return { status: 1 }; // STATUS_SUCCESS

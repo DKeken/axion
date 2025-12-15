@@ -42,3 +42,17 @@ export const SERVER_STATUS_DB = {
   PENDING: "pending",
   INSTALLING: "installing",
 } as const;
+
+/**
+ * Deployment Status values in Database
+ * This must match the postgres enum definition in the database schema.
+ */
+export const DEPLOYMENT_STATUS_DB = {
+  UNSPECIFIED: "unspecified",
+  PENDING: "pending",
+  IN_PROGRESS: "in_progress",
+  SUCCESS: "success",
+  FAILED: "failed",
+  ROLLING_BACK: "rolling_back",
+  ROLLED_BACK: "rolled_back",
+} as const;

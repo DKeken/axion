@@ -48,7 +48,7 @@ export const SERVICES_CONFIG: Record<string, ServiceConfig> = {
     dockerServiceName: "deployment-service",
     routerName: "deployment",
     host: "deployment.localhost",
-    port: 3003,
+    port: 3005,
     pathPrefix: "deployment",
     stripPrefix: true,
   },

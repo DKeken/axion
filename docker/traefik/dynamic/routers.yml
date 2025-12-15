@@ -99,7 +99,7 @@ http:
     deployment-service:
       loadBalancer:
         servers:
-          - url: http://host.docker.internal:3003
+          - url: http://host.docker.internal:3005
     infrastructure-service:
       loadBalancer:
         servers:

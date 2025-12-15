@@ -105,12 +105,12 @@ Billing Service ⏳ (может работать независимо, испо�
 
 - [x] ✅ Deployment Service (NestJS) — управление деплоями
   - [x] ✅ Database Schema — deployments, deployment_history таблицы
-  - [ ] ⏳ BullMQ Integration — Deployment Queue, Job Processor
-    - [ ] ⏳ Setup BullMQ — настройка очередей
-    - [ ] ⏳ Deployment Queue — очередь для деплоев
-    - [ ] ⏳ Agent Installation Queue — очередь для установки агентов
-    - [ ] ⏳ Job Processor — обработчик задач деплоя
-    - [ ] ⏳ Retry Logic — логика повторных попыток
+  - [x] ✅ BullMQ Integration — Deployment Queue, Job Processor
+    - [x] ✅ Setup BullMQ — настройка очередей
+    - [x] ✅ Deployment Queue — очередь для деплоев
+    - [x] ✅ Agent Installation Queue — очередь для установки агентов
+    - [x] ✅ Job Processor — обработчик задач деплоя
+    - [x] ✅ Retry Logic — логика повторных попыток
   - [x] ✅ Docker Stack Generation — docker-compose.yml, Dockerfile, .dockerignore
     - [x] ✅ Generate Docker Compose — генерация из графа проекта
     - [x] ✅ Generate Dockerfile — генерация для каждого сервиса
@@ -122,10 +122,10 @@ Billing Service ⏳ (может работать независимо, испо�
     - [ ] ⏳ Agent Health Check — проверка здоровья агентов
     - [ ] ⏳ Send Deploy Command — отправка команд деплоя
     - [ ] ⏳ Receive Agent Status — получение статусов от агентов
-  - [ ] ⏳ Deployment Status Tracking — статусы деплоев
-    - [ ] ⏳ Track Deployment Progress — отслеживание прогресса
-    - [ ] ⏳ Update Service Status — обновление статусов сервисов
-    - [ ] ⏳ Handle Deployment Errors — обработка ошибок
+  - [x] ✅ Deployment Status Tracking — статусы деплоев
+    - [x] ✅ Track Deployment Progress — отслеживание прогресса (периодические проверки статуса)
+    - [x] ✅ Update Service Status — обновление статусов сервисов в БД
+    - [x] ✅ Handle Deployment Errors — обработка ошибок с таймаутом
   - [x] ✅ Deployment History — история деплоев
   - [x] ✅ Rollback Mechanism — откат деплоев
     - [x] ✅ Save Previous Version — сохранение предыдущей версии
@@ -425,7 +425,7 @@ Billing Service ⏳ (может работать независимо, испо�
 - **Graph Service:** ✅ 100% (CRUD, SSE, Repositories, Business Logic)
 - **Codegen Service:** ✅ 100% (Template Engine, LLM, Validation, Factories)
 - **Infrastructure Service:** ✅ 70% (CRUD для servers/clusters, базовая структура готова, требуется: SSH encryption, Health monitoring)
-- **Deployment Service:** ✅ 70% (CRUD для deployments, Docker Stack Generation готов, базовая структура готова, требуется: BullMQ Integration, Agent Management)
+- **Deployment Service:** ✅ 90% (CRUD для deployments, Docker Stack Generation готов, BullMQ Integration готов включая Agent Installation Queue, Deployment Status Tracking улучшен, базовая структура готова, требуется: Runner Agent Management реальная интеграция)
 - **Billing Service:** ⏳ 0%
 - **Metrics Service:** ⏳ 0%
 
@@ -487,9 +487,9 @@ Billing Service ⏳ (может работать независимо, испо�
    - ✅ Cluster Management
    - ⏳ SSH Key Management (требует шифрование)
 4. ✅ Deployment Service — базовая структура готова
-   - ⏳ BullMQ Integration (требует реализации)
-   - ⏳ Deployment Queue (требует реализации)
-   - ✅ Status Tracking (базовая структура)
+   - ✅ BullMQ Integration (готов)
+   - ✅ Deployment Queue (готов)
+   - ⏳ Status Tracking (базовая структура, требуется улучшение отслеживания прогресса)
    - ✅ Docker Stack Generation (готов)
 
 **Deliverables:**
@@ -577,7 +577,7 @@ Billing Service ⏳ (может работать независимо, испо�
 
 1. ✅ Deployment Service — базовая структура готова
    - ✅ Database Schema (deployments, deployment_history)
-   - ⏳ BullMQ Integration (очереди, job processor) — требуется реализация
+   - ✅ BullMQ Integration (очереди, job processor) — готово
    - ✅ Docker Stack Generation (docker-compose.yml, Dockerfile) — готово
    - ⏳ Runner Agent Management (gRPC/Kafka для агентов) — требуется реализация
    - ✅ Deployment Status Tracking (базовая структура)

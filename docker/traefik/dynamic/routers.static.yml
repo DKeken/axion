@@ -1,6 +1,6 @@
 # Static Traefik configuration (альтернатива автогенерации)
 # Используйте этот файл если не хотите генерировать конфигурацию динамически
-# 
+#
 # Чтобы использовать:
 # 1. Переименуйте этот файл в routers.yml
 # 2. Или скопируйте: cp routers.static.yml routers.yml
@@ -115,7 +115,7 @@ http:
     deployment-service:
       loadBalancer:
         servers:
-          - url: "http://host.docker.internal:3003"
+          - url: "http://host.docker.internal:3005"
 
     # Infrastructure Service
     infrastructure-service:
@@ -161,4 +161,3 @@ http:
       headers:
         customRequestHeaders:
           Upgrade: "websocket"
-

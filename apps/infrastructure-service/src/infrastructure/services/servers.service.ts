@@ -2,9 +2,6 @@ import {
   createFullPagination,
   createServerResponse,
   createListServersResponse,
-  createErrorResponse,
-  createNotFoundError,
-  createValidationError,
   ServerStatus,
   serverStatusToDbString,
   createTestServerConnectionResponse,
@@ -38,9 +35,7 @@ export class ServersService extends BaseService {
 
     // Валидация обязательных полей
     if (!data.host || !data.username) {
-      return createErrorResponse(
-        createValidationError("host and username are required")
-      );
+      return this.createValidationResponse("host and username are required");
     }
 
     // TODO: Шифрование SSH ключа или пароля
@@ -49,8 +44,8 @@ export class ServersService extends BaseService {
     const encryptedPassword = data.password || null;
 
     if (!encryptedPrivateKey && !encryptedPassword) {
-      return createErrorResponse(
-        createValidationError("either private_key or password is required")
+      return this.createValidationResponse(
+        "either private_key or password is required"
       );
     }
 
@@ -81,7 +76,7 @@ export class ServersService extends BaseService {
 
     const server = await this.serverRepository.findById(data.serverId);
     if (!server) {
-      return createErrorResponse(createNotFoundError("Server", data.serverId));
+      return this.createNotFoundResponse("Server", data.serverId);
     }
 
     return createServerResponse(transformServerToContract(server));
@@ -105,7 +100,7 @@ export class ServersService extends BaseService {
     });
 
     if (!updated) {
-      return createErrorResponse(createNotFoundError("Server", data.serverId));
+      return this.createNotFoundResponse("Server", data.serverId);
     }
 
     return createServerResponse(transformServerToContract(updated));
@@ -122,7 +117,7 @@ export class ServersService extends BaseService {
 
     const deleted = await this.serverRepository.delete(data.serverId);
     if (!deleted) {
-      return createErrorResponse(createNotFoundError("Server", data.serverId));
+      return this.createNotFoundResponse("Server", data.serverId);
     }
 
     return { status: 1 }; // STATUS_SUCCESS
@@ -162,7 +157,7 @@ export class ServersService extends BaseService {
   ): Promise<TestServerConnectionResponse> {
     const metadataCheck = this.validateMetadata(data.metadata);
     if (!metadataCheck.success) {
-      return createErrorResponse(createValidationError("Invalid metadata"));
+      return metadataCheck.response;
     }
 
     // TODO: Реализовать реальную проверку SSH подключения

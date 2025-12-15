@@ -65,6 +65,28 @@ services:
     networks:
       - axion-network
 
+  # PostgreSQL для deployment-service
+  postgres-deployment:
+    image: postgres:16-alpine
+    container_name: axion-postgres-deployment
+    environment:
+      POSTGRES_USER: axion
+      POSTGRES_PASSWORD: axion_password
+      POSTGRES_DB: axion_deployment
+      # Ensure user is created even if database directory exists
+      POSTGRES_INITDB_ARGS: "-U axion"
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_deployment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || pg_isready -U axion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axion-network
+
   # KeyDB - Service Discovery и кэширование (высокопроизводительная замена Redis)
   keydb:
     image: eqalpha/keydb:latest
@@ -258,6 +280,8 @@ volumes:
   postgres_codegen_data:
     driver: local
   postgres_infrastructure_data:
+    driver: local
+  postgres_deployment_data:
     driver: local
   keydb_data:
     driver: local

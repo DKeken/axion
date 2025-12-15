@@ -3,8 +3,16 @@
  * Maps between database enum values and Protobuf ServiceStatus enum
  */
 
-import { SERVICE_STATUS_DB, SERVER_STATUS_DB } from "../constants";
-import { ServiceStatus, ServerStatus } from "../../generated/common/common";
+import {
+  SERVICE_STATUS_DB,
+  SERVER_STATUS_DB,
+  DEPLOYMENT_STATUS_DB,
+} from "../constants";
+import {
+  ServiceStatus,
+  ServerStatus,
+  DeploymentStatus,
+} from "../../generated/common/common";
 
 /**
  * Maps database enum value (lowercase string) to Protobuf ServiceStatus enum
@@ -105,4 +113,66 @@ export function serverStatusToDbString(
     | typeof SERVER_STATUS_DB.ERROR
     | typeof SERVER_STATUS_DB.PENDING
     | typeof SERVER_STATUS_DB.INSTALLING;
+}
+
+/**
+ * Maps database enum value (lowercase string) to Protobuf DeploymentStatus enum
+ *
+ * This is a common utility used across microservices to convert database
+ * status values to Protobuf enum values.
+ */
+export function mapDeploymentStatus(status: string): DeploymentStatus {
+  const mapping: Record<string, DeploymentStatus> = {
+    [DEPLOYMENT_STATUS_DB.UNSPECIFIED]:
+      DeploymentStatus.DEPLOYMENT_STATUS_UNSPECIFIED,
+    [DEPLOYMENT_STATUS_DB.PENDING]: DeploymentStatus.DEPLOYMENT_STATUS_PENDING,
+    [DEPLOYMENT_STATUS_DB.IN_PROGRESS]:
+      DeploymentStatus.DEPLOYMENT_STATUS_IN_PROGRESS,
+    [DEPLOYMENT_STATUS_DB.SUCCESS]: DeploymentStatus.DEPLOYMENT_STATUS_SUCCESS,
+    [DEPLOYMENT_STATUS_DB.FAILED]: DeploymentStatus.DEPLOYMENT_STATUS_FAILED,
+    [DEPLOYMENT_STATUS_DB.ROLLING_BACK]:
+      DeploymentStatus.DEPLOYMENT_STATUS_ROLLING_BACK,
+    [DEPLOYMENT_STATUS_DB.ROLLED_BACK]:
+      DeploymentStatus.DEPLOYMENT_STATUS_ROLLED_BACK,
+  };
+  return mapping[status] || DeploymentStatus.DEPLOYMENT_STATUS_UNSPECIFIED;
+}
+
+/**
+ * Maps Protobuf DeploymentStatus enum to database enum value (lowercase string)
+ *
+ * This is a common utility used across microservices to convert Protobuf
+ * enum values to database status values.
+ */
+export function deploymentStatusToDbString(
+  status: DeploymentStatus
+):
+  | typeof DEPLOYMENT_STATUS_DB.UNSPECIFIED
+  | typeof DEPLOYMENT_STATUS_DB.PENDING
+  | typeof DEPLOYMENT_STATUS_DB.IN_PROGRESS
+  | typeof DEPLOYMENT_STATUS_DB.SUCCESS
+  | typeof DEPLOYMENT_STATUS_DB.FAILED
+  | typeof DEPLOYMENT_STATUS_DB.ROLLING_BACK
+  | typeof DEPLOYMENT_STATUS_DB.ROLLED_BACK {
+  const mapping: Partial<Record<DeploymentStatus, string>> = {
+    [DeploymentStatus.DEPLOYMENT_STATUS_UNSPECIFIED]:
+      DEPLOYMENT_STATUS_DB.UNSPECIFIED,
+    [DeploymentStatus.DEPLOYMENT_STATUS_PENDING]: DEPLOYMENT_STATUS_DB.PENDING,
+    [DeploymentStatus.DEPLOYMENT_STATUS_IN_PROGRESS]:
+      DEPLOYMENT_STATUS_DB.IN_PROGRESS,
+    [DeploymentStatus.DEPLOYMENT_STATUS_SUCCESS]: DEPLOYMENT_STATUS_DB.SUCCESS,
+    [DeploymentStatus.DEPLOYMENT_STATUS_FAILED]: DEPLOYMENT_STATUS_DB.FAILED,
+    [DeploymentStatus.DEPLOYMENT_STATUS_ROLLING_BACK]:
+      DEPLOYMENT_STATUS_DB.ROLLING_BACK,
+    [DeploymentStatus.DEPLOYMENT_STATUS_ROLLED_BACK]:
+      DEPLOYMENT_STATUS_DB.ROLLED_BACK,
+  };
+  return (mapping[status] || DEPLOYMENT_STATUS_DB.PENDING) as
+    | typeof DEPLOYMENT_STATUS_DB.UNSPECIFIED
+    | typeof DEPLOYMENT_STATUS_DB.PENDING
+    | typeof DEPLOYMENT_STATUS_DB.IN_PROGRESS
+    | typeof DEPLOYMENT_STATUS_DB.SUCCESS
+    | typeof DEPLOYMENT_STATUS_DB.FAILED
+    | typeof DEPLOYMENT_STATUS_DB.ROLLING_BACK
+    | typeof DEPLOYMENT_STATUS_DB.ROLLED_BACK;
 }
