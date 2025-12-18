@@ -32,20 +32,20 @@ export class ServiceComposeGeneratorService {
     const dbEnvVars: Record<string, string> = {};
     for (const dbName of dbDependencies) {
       const dbNode = databaseNodes.find(
-        (n) =>
-          (n.data?.config?.["connectionName"] || `db-${n.id.slice(0, 8)}`) ===
-          dbName
+        (n) => this.databaseServiceGenerator.resolveConnectionName(n) === dbName
       );
       if (dbNode) {
         const dbType = this.databaseServiceGenerator.resolveDatabaseType(
           dbNode.data?.config?.["databaseType"]
         );
         const dbHost = dbName;
-        const dbDatabase =
-          dbNode.data?.config?.["database"] || `axion_${projectId.slice(0, 8)}`;
-        const dbUser = dbNode.data?.config?.["user"] || "axion";
+        const dbDatabase = this.databaseServiceGenerator.resolveDatabaseName(
+          dbNode,
+          projectId
+        );
+        const dbUser = this.databaseServiceGenerator.resolveDatabaseUser(dbNode);
         const dbPassword =
-          dbNode.data?.config?.["password"] || "axion_password";
+          this.databaseServiceGenerator.resolveDatabasePassword(dbNode);
 
         Object.assign(
           dbEnvVars,

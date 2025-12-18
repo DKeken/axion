@@ -11,5 +11,6 @@
   "files.associations": {
     "*.proto": "proto3"
   },
-  "protobuf.import_paths": ["${workspaceFolder}/packages/contracts/proto"]
+  "protobuf.import_paths": ["${workspaceFolder}/packages/contracts/proto"],
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

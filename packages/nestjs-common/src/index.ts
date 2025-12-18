@@ -25,5 +25,8 @@ export * from "./bullmq";
 // SSH module
 export * from "./ssh";
 
+// HTTP helpers (public API layer)
+export * from "./http";
+
 // Bootstrap
 export * from "./bootstrap/bootstrap";

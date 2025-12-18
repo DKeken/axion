@@ -74,10 +74,10 @@ docker-compose down -v
 **Доступные сервисы:**
 
 - **PostgreSQL** - `localhost:5432` (БД: `axion_control_plane`, User: `axion`, Password: `axion_password`)
-- **Redis** - `localhost:6379` (Password: `axion_redis_password`) - Service Discovery и кэширование
+- **Redis/KeyDB** - `localhost:6379` (Password: `axion_redis_password`) - кэш/временные данные/очереди (BullMQ)
 - **Kafka** - `localhost:9092` - Event Bus для CQRS и Event Sourcing
 - **Zookeeper** - `localhost:2181` - координация для Kafka
-- **Traefik** - `localhost:80` - API Gateway
+- **Traefik** - `localhost:80` - edge routing (HTTP/WebSocket)
   - Dashboard: http://localhost:8080
 
 **Примечание:** RabbitMQ используется только в генерируемых сервисах клиентов (легковесный вариант). SaaS платформа использует Kafka для Event Bus.
@@ -93,7 +93,7 @@ cp .env.example .env
 Заполните переменные:
 
 - `DATABASE_URL` - PostgreSQL connection string
-- `REDIS_URL` - Redis connection string (для Service Discovery)
+- `REDIS_URL` - Redis/KeyDB connection string (кэш/очереди/временные данные)
 - `KAFKA_BROKERS` - Kafka brokers (для Event Bus, CQRS и Event Sourcing)
 
 ## Миграции
@@ -143,7 +143,7 @@ bun run start
 
 Все методы используют Kafka MessagePattern формат: `graph-service.{action}`
 
-**Примечание:** В текущей версии сервис использует RabbitMQ для совместимости, но планируется переход на Kafka для соответствия архитектуре SaaS платформы.
+**Примечание:** В Control Plane все межсервисные вызовы идут через Kafka.
 
 ### Server-Sent Events (SSE)
 
@@ -289,7 +289,6 @@ bun run lint:fix
 **SaaS платформа (Control Plane):**
 
 - Использует **Kafka** для Event Bus (CQRS, Event Sourcing)
-- Использует **Redis** для Service Discovery
 - Все микросервисы общаются через Kafka
 
 **Генерируемые сервисы клиентов:**

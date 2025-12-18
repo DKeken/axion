@@ -1,6 +1,7 @@
 import { SshModule } from "@axion/nestjs-common";
 import { Module } from "@nestjs/common";
 
+import { InfrastructureHttpController } from "@/infrastructure/controllers/infrastructure-http.controller";
 import { InfrastructureController } from "@/infrastructure/infrastructure.controller";
 import { InfrastructureService } from "@/infrastructure/infrastructure.service";
 import { ClusterRepository } from "@/infrastructure/repositories/cluster.repository";
@@ -17,7 +18,7 @@ import { SshKeyRotationService } from "@/infrastructure/services/ssh-key-rotatio
     // SSH Module (ServerRepository будет предоставлен через provider)
     SshModule.forRoot(),
   ],
-  controllers: [InfrastructureController],
+  controllers: [InfrastructureController, InfrastructureHttpController],
   providers: [
     InfrastructureService,
     ClustersService,

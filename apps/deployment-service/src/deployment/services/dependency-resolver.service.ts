@@ -30,7 +30,7 @@ export class DependencyResolverService {
     serviceDependencies: string[];
   } {
     const dependencies = new Map<string, string[]>();
-    const serviceDependencies: string[] = [];
+    const serviceDependencies = new Set<string>();
 
     for (const edge of edges) {
       if (edge.type === EdgeType.EDGE_TYPE_UNSPECIFIED) continue;
@@ -47,15 +47,11 @@ export class DependencyResolverService {
       const deps = dependencies.get(targetService);
       if (deps) deps.push(sourceService);
 
-      if (!serviceDependencies.includes(sourceService)) {
-        serviceDependencies.push(sourceService);
-      }
-      if (!serviceDependencies.includes(targetService)) {
-        serviceDependencies.push(targetService);
-      }
+      serviceDependencies.add(sourceService);
+      serviceDependencies.add(targetService);
     }
 
-    return { dependencies, serviceDependencies };
+    return { dependencies, serviceDependencies: Array.from(serviceDependencies) };
   }
 
   /**

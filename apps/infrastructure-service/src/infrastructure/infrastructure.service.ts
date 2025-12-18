@@ -1,4 +1,6 @@
 import {
+  type CalculateSystemRequirementsRequest,
+  type CalculateSystemRequirementsResponse,
   type CreateClusterRequest,
   type DeleteClusterRequest,
   type GetClusterRequest,
@@ -105,6 +107,12 @@ export class InfrastructureService {
     data: ConfigureServerRequest
   ): Promise<ConfigureServerResponse> {
     return this.serverConfigurationService.configureServer(data);
+  }
+
+  async calculateSystemRequirements(
+    data: CalculateSystemRequirementsRequest
+  ): Promise<CalculateSystemRequirementsResponse> {
+    return this.serverConfigurationService.calculateSystemRequirements(data);
   }
 
   // SSH Key rotation (ops only, not exposed via controller)

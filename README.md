@@ -38,7 +38,7 @@ axion-stack/
 - NestJS Microservices
 - Kafka (Event Bus)
 - PostgreSQL + Drizzle ORM
-- Traefik (Gateway)
+- Traefik (edge routing)
 - Better Auth
 
 **Generated Services:**

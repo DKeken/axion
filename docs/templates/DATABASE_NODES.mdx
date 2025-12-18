@@ -114,7 +114,7 @@ interface AxionGraph {
   nodes: Array<
     | ServiceNode
     | DatabaseNode
-    | GatewayNode
+    | EdgeNode // Traefik edge routing (не отдельный сервис)
     | ...
   >;
   edges: Array<{

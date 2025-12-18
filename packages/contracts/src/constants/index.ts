@@ -13,7 +13,6 @@ export * from "./patterns/graph-service";
 export * from "./patterns/codegen-service";
 export * from "./patterns/deployment-service";
 export * from "./patterns/infrastructure-service";
-export * from "./patterns/gateway-service";
 export * from "./patterns/billing-service";
 
 /**

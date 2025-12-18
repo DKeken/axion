@@ -11,6 +11,9 @@ import {
   CODEGEN_SERVICE_PATTERNS,
   INFRASTRUCTURE_SERVICE_NAME,
   INFRASTRUCTURE_SERVICE_PATTERNS,
+  type GenerateProjectRequest,
+  type GetServerRequest,
+  type GetClusterRequest,
   type DeployProjectRequest,
   type CancelDeploymentRequest,
   type GetDeploymentRequest,
@@ -28,11 +31,12 @@ import {
   createValidationError,
 } from "@axion/contracts";
 import { CatchError } from "@axion/nestjs-common";
-import { BaseService, handleServiceError } from "@axion/shared";
+import { BaseService, enforceLimit, handleServiceError } from "@axion/shared";
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 
+import { env } from "@/config/env";
 import { verifyDeploymentAccess } from "@/deployment/helpers/deployment-access.helper";
 import { transformDeploymentToContract } from "@/deployment/helpers/type-transformers";
 import { type DeploymentHistoryRepository } from "@/deployment/repositories/deployment-history.repository";
@@ -77,6 +81,16 @@ export class DeploymentsService extends BaseService {
       );
     }
 
+    const deploymentsCount = await this.deploymentRepository.countByProjectId(
+      data.projectId
+    );
+    const limitCheck = enforceLimit(
+      "deployments",
+      deploymentsCount,
+      env.maxDeploymentsPerProject
+    );
+    if (!limitCheck.success) return limitCheck.response;
+
     // Проверка доступности клиентов
     if (!this.infrastructureClient) {
       return createErrorResponse(
@@ -93,13 +107,14 @@ export class DeploymentsService extends BaseService {
     // Проверка существования сервера/кластера через Infrastructure Service
     try {
       if (data.serverId) {
+        const req: GetServerRequest = {
+          metadata: data.metadata,
+          serverId: data.serverId,
+        };
         const serverResponse = (await firstValueFrom(
           this.infrastructureClient.send(
             INFRASTRUCTURE_SERVICE_PATTERNS.GET_SERVER,
-            {
-              metadata: data.metadata,
-              serverId: data.serverId,
-            }
+            req
           )
         )) as ServerResponse;
 
@@ -113,13 +128,14 @@ export class DeploymentsService extends BaseService {
           );
         }
       } else if (data.clusterId) {
+        const req: GetClusterRequest = {
+          metadata: data.metadata,
+          clusterId: data.clusterId,
+        };
         const clusterResponse = (await firstValueFrom(
           this.infrastructureClient.send(
             INFRASTRUCTURE_SERVICE_PATTERNS.GET_CLUSTER,
-            {
-              metadata: data.metadata,
-              clusterId: data.clusterId,
-            }
+            req
           )
         )) as ClusterResponse;
 
@@ -144,11 +160,14 @@ export class DeploymentsService extends BaseService {
     // Получение сгенерированного кода из Codegen Service
     let _generatedCode: GenerateProjectResponse | undefined;
     try {
+      const req: GenerateProjectRequest = {
+        metadata: data.metadata,
+        projectId: data.projectId,
+        aiModel: "",
+        forceRegenerate: false,
+      };
       const codegenResponse = await firstValueFrom<GenerateProjectResponse>(
-        this.codegenClient.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, {
-          metadata: data.metadata,
-          projectId: data.projectId,
-        })
+        this.codegenClient.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, req)
       );
 
       if (codegenResponse.error) {

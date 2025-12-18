@@ -14,7 +14,6 @@ packages/contracts/
 │   ├── codegen-service.proto   # Codegen Service контракты
 │   ├── deployment-service.proto # Deployment Service контракты
 │   ├── infrastructure-service.proto # Infrastructure Service контракты
-│   ├── gateway-service.proto   # Gateway Service контракты
 │   ├── billing-service.proto   # Billing Service контракты
 │   └── runner-agent-service.proto # Runner Agent Service контракты (gRPC)
 ├── generated/                  # Сгенерированные TypeScript типы
@@ -24,7 +23,6 @@ packages/contracts/
 │   ├── codegen-service.pb.ts
 │   ├── deployment-service.pb.ts
 │   ├── infrastructure-service.pb.ts
-│   ├── gateway-service.pb.ts
 │   ├── billing-service.pb.ts
 │   └── runner-agent-service.pb.ts
 └── package.json

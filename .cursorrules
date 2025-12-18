@@ -110,17 +110,21 @@ import { GRAPH_SERVICE_PATTERNS } from "@axion/contracts";
 ### 3. Payload типизация
 
 **ДЕЛАЙ:**
+- ✅ Используй **protobuf-сгенерированные Request/Response типы** как DTO для **Kafka и HTTP**.
+- ✅ Импортируй типы из `@axion/contracts` (они ре-экспортят `packages/contracts/generated/**`).
+- ✅ Если нужного DTO нет — **добавь message в `packages/contracts/proto/**` и сгенерируй** (`bun run generate`).
+
 ```typescript
-// ✅ ПРАВИЛЬНО - типизированные payload
-async createProject(
-  @Payload()
-  data: {
-    metadata: unknown;
-    name: string;
-    infrastructureConfig?: Record<string, string>;
-  }
-)
+import { type CreateProjectRequest } from "@axion/contracts";
+
+async createProject(@Payload() data: CreateProjectRequest) {
+  return this.graphService.createProject(data);
+}
 ```
+
+**НЕ ДЕЛАЙ:**
+- ❌ Не описывай payload/request inline объектами в контроллерах/сервисах
+- ❌ Не создавай локальные `type { ... }`/`interface { ... }` для DTO
 
 ### 4. Логирование в контроллерах
 

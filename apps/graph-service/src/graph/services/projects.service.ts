@@ -10,9 +10,10 @@ import {
 } from "@axion/contracts";
 import { transformProjectToContract } from "@axion/database";
 import { CatchError } from "@axion/nestjs-common";
-import { BaseService } from "@axion/shared";
+import { BaseService, enforceLimit } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
+import { env } from "@/config/env";
 import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
 import { type ProjectRepository } from "@/graph/repositories/project.repository";
 
@@ -26,6 +27,16 @@ export class ProjectsService extends BaseService {
   async create(data: CreateProjectRequest) {
     const metadataCheck = this.validateMetadata(data.metadata);
     if (!metadataCheck.success) return metadataCheck.response;
+
+    const projectsCount = await this.projectRepository.countByUserId(
+      metadataCheck.userId
+    );
+    const limitCheck = enforceLimit(
+      "projects",
+      projectsCount,
+      env.maxProjectsPerUser
+    );
+    if (!limitCheck.success) return limitCheck.response;
 
     const project = await this.projectRepository.create({
       userId: metadataCheck.userId,

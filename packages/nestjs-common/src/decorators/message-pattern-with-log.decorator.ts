@@ -11,18 +11,14 @@
  * ```
  */
 
-import { MessagePattern } from "@nestjs/microservices";
 import { Logger } from "@nestjs/common";
+import { MessagePattern } from "@nestjs/microservices";
 
 /**
- * MessagePatternWithLog decorator - combines MessagePattern and automatic logging
+ * MessagePatternWithLog decorator - combines MessagePattern and automatic logging.
  *
- * Automatically:
- * - Registers the message pattern handler
- * - Logs incoming messages with pattern name
- *
- * @param pattern - Message pattern string (from @axion/contracts)
- * @returns Method decorator that combines both functionalities
+ * Note: kept as a **method decorator** to remain compatible with strict TS settings
+ * across all services.
  */
 export function MessagePatternWithLog(pattern: string): MethodDecorator {
   return function (
@@ -30,10 +26,9 @@ export function MessagePatternWithLog(pattern: string): MethodDecorator {
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ) {
-    // Apply MessagePattern decorator
+    // Apply MessagePattern decorator (Nest stores metadata by propertyKey)
     MessagePattern(pattern)(target, propertyKey, descriptor);
 
-    // Add logging functionality
     const originalMethod = descriptor.value;
     if (!originalMethod || typeof originalMethod !== "function") {
       return descriptor;

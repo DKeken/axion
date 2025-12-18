@@ -2,6 +2,7 @@ import { QUEUE_NAMES } from "@axion/nestjs-common";
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
+import { DeploymentHttpController } from "@/deployment/controllers/deployment-http.controller";
 import { DeploymentController } from "@/deployment/deployment.controller";
 import { DeploymentService } from "@/deployment/deployment.service";
 import { DeploymentHistoryRepository } from "@/deployment/repositories/deployment-history.repository";
@@ -11,6 +12,7 @@ import { AgentInstallationService } from "@/deployment/services/agent-installati
 import { DatabaseServiceGeneratorService } from "@/deployment/services/database-service-generator.service";
 import { DependencyResolverService } from "@/deployment/services/dependency-resolver.service";
 import { DeploymentProcessor } from "@/deployment/services/deployment-processor.service";
+import { DeploymentQueueEventsService } from "@/deployment/services/deployment-queue-events.service";
 import { DeploymentsService } from "@/deployment/services/deployments.service";
 import { DockerStackGenerationService } from "@/deployment/services/docker-stack-generation.service";
 import { DockerfileGeneratorService } from "@/deployment/services/dockerfile-generator.service";
@@ -20,7 +22,6 @@ import { ServiceComposeGeneratorService } from "@/deployment/services/service-co
 
 @Module({
   imports: [
-    // Регистрируем очереди в этом модуле
     BullModule.registerQueue({
       name: QUEUE_NAMES.DEPLOYMENT,
     }),
@@ -28,26 +29,21 @@ import { ServiceComposeGeneratorService } from "@/deployment/services/service-co
       name: QUEUE_NAMES.AGENT_INSTALLATION,
     }),
   ],
-  controllers: [DeploymentController],
+  controllers: [DeploymentController, DeploymentHttpController],
   providers: [
-    // Main coordinator
     DeploymentService,
     DeploymentsService,
-    // Docker stack generation (coordinator + specialized services)
     DockerStackGenerationService,
     DependencyResolverService,
     DatabaseServiceGeneratorService,
     ServiceComposeGeneratorService,
     DockerfileGeneratorService,
-    // Queue and Runner Agent
     QueueService,
     RunnerAgentService,
-    // Agent Installation
     AgentInstallationService,
-    // BullMQ Processors
     DeploymentProcessor,
     AgentInstallationProcessor,
-    // Repositories
+    DeploymentQueueEventsService,
     DeploymentRepository,
     DeploymentHistoryRepository,
   ],

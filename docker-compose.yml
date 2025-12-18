@@ -87,7 +87,7 @@ services:
     networks:
       - axion-network
 
-  # KeyDB - Service Discovery и кэширование (высокопроизводительная замена Redis)
+  # KeyDB - кэш / временные данные / очереди (BullMQ) (высокопроизводительная замена Redis)
   keydb:
     image: eqalpha/keydb:latest
     container_name: axion-keydb
@@ -240,7 +240,7 @@ services:
       - "traefik.http.routers.kafka-ui.entrypoints=web"
       - "traefik.http.services.kafka-ui.loadbalancer.server.port=8080"
 
-  # Traefik - API Gateway
+  # Traefik - edge routing (HTTP/WebSocket + TLS)
   traefik:
     image: traefik:v3.0
     container_name: axion-traefik

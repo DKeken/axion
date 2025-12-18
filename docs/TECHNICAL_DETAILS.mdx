@@ -360,25 +360,24 @@ src/
 ### Архитектура
 
 ```
-Traefik Gateway → Next.js Frontend → NestJS Microservices → Kafka/Redis/PostgreSQL
+Traefik → Next.js Frontend → NestJS Microservices → Kafka/Redis/PostgreSQL
 ```
 
-| Компонент                | Назначение         | Преимущества                                   |
-| ------------------------ | ------------------ | ---------------------------------------------- |
-| **Traefik Gateway**      | Единая точка входа | SSL termination, load balancing, rate limiting |
-| **Next.js Frontend**     | SSR и UI           | SEO, React 19 RSC, производительность          |
-| **NestJS Microservices** | Бизнес-логика      | Модульность, масштабируемость                  |
-| **Kafka**                | Event bus          | Надежность, CQRS, гарантия доставки            |
-| **Redis**                | Service Discovery  | Быстрое обнаружение сервисов, кэширование      |
-| **PostgreSQL**           | Хранение данных    | Надежность, ACID транзакции                    |
+| Компонент                | Назначение       | Преимущества                                   |
+| ------------------------ | ---------------- | ---------------------------------------------- |
+| **Traefik**              | Edge routing     | SSL termination, load balancing, rate limiting |
+| **Next.js Frontend**     | SSR и UI         | SEO, React 19 RSC, производительность          |
+| **NestJS Microservices** | Бизнес-логика    | Модульность, масштабируемость                  |
+| **Kafka**                | Event bus        | Надежность, CQRS, гарантия доставки            |
+| **Redis/KeyDB**          | Infra dependency | Кэширование, временные данные, BullMQ queues   |
+| **PostgreSQL**           | Хранение данных  | Надежность, ACID транзакции                    |
 
 ### Компоненты платформы
 
 | Компонент                  | Назначение                 | Технологии                                         |
 | -------------------------- | -------------------------- | -------------------------------------------------- |
-| **Traefik Gateway**        | Единая точка входа         | Load balancing, SSL (Let's Encrypt), Rate limiting |
+| **Traefik**                | Edge routing               | Load balancing, SSL (Let's Encrypt), Rate limiting |
 | **Next.js Frontend**       | UI и SSR                   | React 19 RSC, Better Auth, SSE, React Flow         |
-| **Gateway Service**        | Service Discovery          | Redis, routing, protocol translation               |
 | **Graph Service**          | Управление графами         | Drizzle ORM, версионирование, SSE                  |
 | **Codegen Service**        | Генерация кода             | LLM (OpenRouter), Blueprint System, Handlebars     |
 | **Deployment Service**     | Деплой                     | BullMQ, SSH management, Runner Agent               |
@@ -386,13 +385,6 @@ Traefik Gateway → Next.js Frontend → NestJS Microservices → Kafka/Redis/Po
 | **Billing Service**        | Биллинг                    | Stripe, usage tracking, лимиты                     |
 
 ### Технологии
-
-**Service Discovery (Redis):**
-
-- Регистрация сервисов с TTL 30 секунд
-- Heartbeat каждые 10 секунд для обновления TTL
-- Load balancing: round-robin или least connections
-- Автоматическое обнаружение новых инстансов
 
 **Event Bus (Kafka):**
 
@@ -482,7 +474,7 @@ Client Servers → Runner Agent (Telemetry Collector) → gRPC → Metrics Inges
 
 **Правила коммуникации:**
 
-- ✅ **Клиент → Gateway (Traefik) → Service**: HTTP/WebSocket запросы от клиентов
+- ✅ **Клиент → Traefik → Service**: HTTP/WebSocket запросы от клиентов
 - ✅ **Service → Kafka → Service**: Все межсервисные коммуникации через Kafka
 - ✅ **Service → External APIs**: Внешние API вызовы (OpenRouter, Docker Hub и т.д.)
 - ❌ **Service → Service (прямой HTTP)**: Запрещены прямые HTTP вызовы между сервисами
@@ -536,11 +528,11 @@ await this.graphClient
 
 ---
 
-## Traefik Gateway и Service Discovery
+## Traefik (edge routing)
 
 ### Роли компонентов
 
-**Traefik (API Gateway):**
+**Traefik (edge router):**
 
 - Единая точка входа для внешних клиентов
 - Протокол: HTTP/HTTPS, WebSocket
@@ -554,9 +546,9 @@ await this.graphClient
 
 **Важно:** Traefik и Kafka НЕ общаются напрямую. Они работают на разных уровнях архитектуры.
 
-### Service Discovery
+### Dynamic routing (Docker Provider)
 
-Traefik использует **Docker Provider** для автоматического обнаружения сервисов:
+Traefik использует **Docker Provider** для динамической конфигурации и маршрутизации сервисов:
 
 1. Подключается к `/var/run/docker.sock` (read-only)
 2. Отслеживает запуск/остановку/обновление контейнеров
@@ -607,6 +599,7 @@ Codegen Service использует OpenRouter для AI-powered генерац
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
 OPENROUTER_DEFAULT_MODEL=anthropic/claude-3.5-sonnet
 ```
+
 **Использование:**
 
 ```typescript

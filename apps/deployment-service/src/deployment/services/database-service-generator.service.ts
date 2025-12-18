@@ -15,15 +15,11 @@ export class DatabaseServiceGeneratorService {
    * Генерирует конфигурацию сервиса базы данных
    */
   generate(node: Node, projectId: string): DatabaseServiceConfig | null {
-    const dbType = this.resolveDatabaseType(
-      node.data?.config?.["databaseType"]
-    );
-    const connectionName =
-      node.data?.config?.["connectionName"] || `db-${node.id.slice(0, 8)}`;
-    const dbName =
-      node.data?.config?.["database"] || `axion_${projectId.slice(0, 8)}`;
-    const dbUser = node.data?.config?.["user"] || "axion";
-    const dbPassword = node.data?.config?.["password"] || "axion_password";
+    const dbType = this.resolveDatabaseType(node.data?.config?.["databaseType"]);
+    const connectionName = this.resolveConnectionName(node);
+    const dbName = this.resolveDatabaseName(node, projectId);
+    const dbUser = this.resolveDatabaseUser(node);
+    const dbPassword = this.resolveDatabasePassword(node);
 
     if (dbType === DatabaseType.DATABASE_TYPE_POSTGRESQL) {
       return this.generatePostgreSQLService(
@@ -47,6 +43,28 @@ export class DatabaseServiceGeneratorService {
       `Unsupported database type: ${dbType} for node ${node.id}`
     );
     return null;
+  }
+
+  resolveConnectionName(node: Node): string {
+    return (
+      node.data?.config?.["connectionName"] ||
+      node.data?.serviceName ||
+      `db-${node.id.slice(0, 8)}`
+    );
+  }
+
+  resolveDatabaseName(node: Node, projectId: string): string {
+    return (
+      node.data?.config?.["database"] || `axion_${projectId.slice(0, 8)}`
+    );
+  }
+
+  resolveDatabaseUser(node: Node): string {
+    return node.data?.config?.["user"] || "axion";
+  }
+
+  resolveDatabasePassword(node: Node): string {
+    return node.data?.config?.["password"] || "axion_password";
   }
 
   /**

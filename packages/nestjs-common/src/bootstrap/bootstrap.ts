@@ -7,12 +7,17 @@ import type { INestApplication } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import type { MicroserviceOptions } from "@nestjs/microservices";
 import { createKafkaServerOptions } from "@axion/shared";
+import { setupHttpContractLayer } from "../http/setup-http";
 
 export interface BootstrapOptions {
   /**
    * Service name (from @axion/contracts)
    */
   serviceName: string;
+  /**
+   * HTTP port to listen on (overrides defaultPort)
+   */
+  port?: number;
   /**
    * Default port for HTTP server
    */
@@ -54,13 +59,11 @@ export async function bootstrapMicroservice(
   const app = await NestFactory.create(AppModule as { new (): unknown });
   logger.log(`NestJS application created for ${options.serviceName}`);
 
-  // Suppress KafkaJS partitioner warning
-  if (!process.env.KAFKAJS_NO_PARTITIONER_WARNING) {
-    process.env.KAFKAJS_NO_PARTITIONER_WARNING = "1";
-  }
+  // Global HTTP layer for public API endpoints (contract → HTTP status, etc.)
+  setupHttpContractLayer(app);
 
   // Setup Kafka microservice
-  const kafkaBrokers = options.kafkaBrokers || process.env.KAFKA_BROKERS;
+  const kafkaBrokers = options.kafkaBrokers;
   const kafkaOptional = options.kafkaOptional !== false; // default true
 
   if (kafkaBrokers) {
@@ -84,14 +87,12 @@ export async function bootstrapMicroservice(
     }
   } else {
     logger.warn(
-      "KAFKA_BROKERS not provided - starting without Kafka microservice"
+      "Kafka brokers not provided - starting without Kafka microservice"
     );
   }
 
   // Start HTTP server
-  const port = process.env.PORT
-    ? parseInt(process.env.PORT, 10)
-    : options.defaultPort || 3000;
+  const port = options.port ?? options.defaultPort ?? 3000;
 
   await app.listen(port);
   logger.log(`${options.serviceName} HTTP server listening on port ${port}`);

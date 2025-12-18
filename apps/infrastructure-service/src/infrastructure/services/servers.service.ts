@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   createFullPagination,
   createServerResponse,
@@ -22,9 +24,10 @@ import {
   type SshTestConnectionJobPayload,
   SshEncryptionService,
 } from "@axion/nestjs-common";
-import { BaseService } from "@axion/shared";
+import { BaseService, enforceLimit } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
+import { env } from "@/config/env";
 import { verifyServerAccess } from "@/infrastructure/helpers/server-access.helper";
 import { transformServerToContract } from "@/infrastructure/helpers/type-transformers";
 import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
@@ -43,6 +46,16 @@ export class ServersService extends BaseService {
   async create(data: CreateServerRequest) {
     const metadataCheck = this.validateMetadata(data.metadata);
     if (!metadataCheck.success) return metadataCheck.response;
+
+    const serversCount = await this.serverRepository.countByUserId(
+      metadataCheck.userId
+    );
+    const limitCheck = enforceLimit(
+      "servers",
+      serversCount,
+      env.maxServersPerUser
+    );
+    if (!limitCheck.success) return limitCheck.response;
 
     // Валидация обязательных полей
     if (!data.host || !data.username) {
@@ -340,11 +353,16 @@ export class ServersService extends BaseService {
     metadata: TestServerConnectionRequest["metadata"]
   ): SshTestConnectionJobPayload["metadata"] {
     if (!metadata) {
-      return { user_id: userId };
+      return {
+        userId,
+        projectId: "",
+        requestId: randomUUID(),
+        timestamp: Date.now(),
+      };
     }
 
     return {
-      user_id: userId,
+      userId,
       requestId: metadata.requestId,
       projectId: metadata.projectId,
       timestamp: metadata.timestamp,

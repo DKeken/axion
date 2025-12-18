@@ -15,6 +15,7 @@ import {
   type ValidateGraphRequest,
 } from "@axion/contracts";
 import {
+  DelegateToService,
   MessagePatternWithLog,
   MicroserviceAuthGuard,
 } from "@axion/nestjs-common";
@@ -26,70 +27,85 @@ import { GraphService } from "@/graph/graph.service";
 @Controller()
 @UseGuards(MicroserviceAuthGuard)
 export class GraphController {
-  constructor(private readonly graphService: GraphService) {}
+  constructor(private readonly graphService: GraphService) {
+    void this.graphService;
+  }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+  @DelegateToService("graphService", "createProject")
   async createProject(@Payload() data: CreateProjectRequest) {
-    return this.graphService.createProject(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_PROJECT)
+  @DelegateToService("graphService", "getProject")
   async getProject(@Payload() data: GetProjectRequest) {
-    return this.graphService.getProject(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.UPDATE_PROJECT)
+  @DelegateToService("graphService", "updateProject")
   async updateProject(@Payload() data: UpdateProjectRequest) {
-    return this.graphService.updateProject(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.DELETE_PROJECT)
+  @DelegateToService("graphService", "deleteProject")
   async deleteProject(@Payload() data: DeleteProjectRequest) {
-    return this.graphService.deleteProject(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_PROJECTS)
+  @DelegateToService("graphService", "listProjects")
   async listProjects(@Payload() data: ListProjectsRequest) {
-    return this.graphService.listProjects(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_GRAPH)
+  @DelegateToService("graphService", "getGraph")
   async getGraph(@Payload() data: GetGraphRequest) {
-    return this.graphService.getGraph(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.UPDATE_GRAPH)
+  @DelegateToService("graphService", "updateGraph")
   async updateGraph(@Payload() data: UpdateGraphRequest) {
-    return this.graphService.updateGraph(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_GRAPH_VERSIONS)
+  @DelegateToService("graphService", "listGraphVersions")
   async listGraphVersions(@Payload() data: ListGraphVersionsRequest) {
-    return this.graphService.listGraphVersions(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.REVERT_GRAPH_VERSION)
+  @DelegateToService("graphService", "revertGraphVersion")
   async revertGraphVersion(@Payload() data: RevertGraphVersionRequest) {
-    return this.graphService.revertGraphVersion(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_SERVICES)
+  @DelegateToService("graphService", "listServices")
   async listServices(@Payload() data: ListServicesRequest) {
-    return this.graphService.listServices(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_SERVICE)
+  @DelegateToService("graphService", "getService")
   async getService(@Payload() data: GetServiceRequest) {
-    return this.graphService.getService(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.SYNC_GRAPH_WITH_SERVICES)
+  @DelegateToService("graphService", "syncGraphWithServices")
   async syncGraphWithServices(@Payload() data: SyncGraphWithServicesRequest) {
-    return this.graphService.syncGraphWithServices(data);
+    return data as unknown;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.VALIDATE_GRAPH)
+  @DelegateToService("graphService", "validateGraph")
   async validateGraph(@Payload() data: ValidateGraphRequest) {
-    return this.graphService.validateGraph(data);
+    return data as unknown;
   }
 }

@@ -40,6 +40,15 @@ export class ServerRepository extends BaseRepository<
     return { servers: items, total };
   }
 
+  async countByUserId(userId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(this.table)
+      .where(eq(servers.userId, userId));
+
+    return row?.count ?? 0;
+  }
+
   /**
    * Find servers by cluster ID with pagination
    */

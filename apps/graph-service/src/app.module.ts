@@ -2,6 +2,7 @@ import { GRAPH_SERVICE_NAME } from "@axion/contracts";
 import { AuthModule, HealthModule } from "@axion/nestjs-common";
 import { Module } from "@nestjs/common";
 
+import { env } from "@/config/env";
 import { db } from "@/database";
 import { getClient } from "@/database/connection";
 import { GraphModule } from "@/graph/graph.module";
@@ -13,14 +14,7 @@ import { GraphModule } from "@/graph/graph.module";
       useFactory: () => ({
         database: db,
         basePath: "/api/auth",
-        trustedOrigins: process.env.TRUSTED_ORIGINS
-          ? process.env.TRUSTED_ORIGINS.split(",")
-          : [
-              "http://localhost:3000",
-              "http://localhost:3001",
-              "http://traefik.localhost",
-              "https://traefik.localhost",
-            ],
+        trustedOrigins: env.trustedOrigins,
       }),
     }),
     // Universal Health Module

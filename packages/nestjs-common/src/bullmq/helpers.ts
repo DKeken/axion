@@ -2,7 +2,9 @@
  * Утилиты для работы с BullMQ
  */
 
+import type { Job, JobsOptions, Queue } from "bullmq";
 import type { BullMQConnectionConfig } from "./types";
+import type { QueueOptions } from "./types";
 
 /**
  * Парсит Redis URL в конфигурацию подключения для BullMQ
@@ -50,4 +52,53 @@ export function createBullMQConnectionConfig(
 ): BullMQConnectionConfig {
   const url = redisUrl || process.env.REDIS_URL || "redis://localhost:6379";
   return parseRedisUrl(url);
+}
+
+/**
+ * Convert our simplified QueueOptions into BullMQ job options.
+ */
+export function toBullMQJobOptions(options: QueueOptions): JobsOptions {
+  const jobOptions: JobsOptions = {
+    attempts: options.attempts,
+    backoff: {
+      type: options.backoff.type === "exponential" ? "exponential" : "fixed",
+      delay: options.backoff.delay,
+    },
+    removeOnComplete: options.removeOnComplete,
+    removeOnFail: options.removeOnFail,
+  };
+
+  if (options.jobId) {
+    (jobOptions as unknown as { jobId: string }).jobId = options.jobId;
+  }
+
+  // Optional: BullMQ deduplication window (supported in BullMQ v4+).
+  // We only enable it when both ttlMs and jobId are provided.
+  if (options.dedupe?.ttlMs && options.jobId) {
+    (
+      jobOptions as unknown as { deduplication: { id: string; ttl: number } }
+    ).deduplication = {
+      id: options.jobId,
+      ttl: options.dedupe.ttlMs,
+    };
+  }
+
+  return jobOptions;
+}
+
+/**
+ * Standard job add helper (idempotency/backoff/remove policies).
+ */
+export async function addStandardJob(
+  queue: Queue,
+  jobName: string,
+  payload: unknown,
+  options: QueueOptions
+): Promise<Job> {
+  // BullMQ Queue/Job have complex conditional generics; keep this helper minimal.
+  return await (queue as unknown as Queue).add(
+    jobName,
+    payload,
+    toBullMQJobOptions(options)
+  );
 }

@@ -21,8 +21,8 @@ apps/{service-name}/
 │   │   │   ├── {entity}.repository.ts
 │   │   ├── helpers/                # Reusable helpers
 │   │   │   ├── {helper}.helper.ts
-│   │   └── types/                  # Local types (если нужны)
-│   │       ├── {type}.ts
+│   │   └── dto/                    # DTO (если нужно для HTTP слоя)
+│   │       ├── {dto}.ts
 │   ├── health/
 │   │   ├── health.module.ts
 │   │   └── health.controller.ts
@@ -237,14 +237,17 @@ export default defineConfig({
 ```typescript
 import { bootstrapMicroservice } from "@axion/nestjs-common";
 import { {SERVICE_NAME}_CONSTANT } from "@axion/contracts";
+import { Logger } from "@nestjs/common";
 
 import { AppModule } from "@/app.module";
+
+const logger = new Logger("{Service Name}");
 
 bootstrapMicroservice(AppModule, {
   serviceName: {SERVICE_NAME}_CONSTANT,
   defaultPort: 300X, // Уникальный порт для каждого сервиса
 }).catch((error) => {
-  console.error("Error starting {Service Name}:", error);
+  logger.error("Error starting {Service Name}", error);
   process.exit(1);
 });
 ```
@@ -400,7 +403,7 @@ export class {Module}Module {}
 ```typescript
 import {
   {SERVICE}_PATTERNS,
-  type {Action}Request,
+  type <Action>Request,
 } from "@axion/contracts";
 import {
   MessagePatternWithLog,
@@ -417,7 +420,7 @@ export class {Module}Controller {
   constructor(private readonly {module}Service: {Module}Service) {}
 
   @MessagePatternWithLog({SERVICE}_PATTERNS.{ACTION})
-  async {action}(@Payload() data: {Action}Request) {
+  async {action}(@Payload() data: <Action>Request) {
     return this.{module}Service.{action}(data);
   }
 }
@@ -429,7 +432,7 @@ export class {Module}Controller {
 
 ```typescript
 import {
-  type {Action}Request,
+  type <Action>Request,
 } from "@axion/contracts";
 import { Injectable } from "@nestjs/common";
 
@@ -444,7 +447,7 @@ export class {Module}Service {
     private readonly {feature}Service: {Feature}Service,
   ) {}
 
-  async {action}(data: {Action}Request) {
+  async {action}(data: <Action>Request) {
     return this.{feature}Service.{action}(data);
   }
 }
@@ -460,7 +463,7 @@ export class {Module}Service {
 import {
   create{Entity}Response,
   createList{Entity}sResponse,
-  type {Action}Request,
+  type <Action>Request,
 } from "@axion/contracts";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
@@ -477,7 +480,7 @@ export class {Feature}Service extends BaseService {
   }
 
   @CatchError({ operation: "{action} {entity}" })
-  async {action}(data: {Action}Request) {
+  async {action}(data: <Action>Request) {
     // 1. Валидация metadata
     const metadataCheck = this.validateMetadata(data.metadata);
     if (!metadataCheck.success) return metadataCheck.response;
@@ -512,7 +515,7 @@ import {
   createErrorResponse,
   createNotFoundError,
   createValidationError,
-  type {Action}Request,
+  type <Action>Request,
 } from "@axion/contracts";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService, handleServiceError } from "@axion/shared";
@@ -537,7 +540,7 @@ export class {Feature}Service extends BaseService {
   }
 
   @CatchError({ operation: "{action} {entity}" })
-  async {action}(data: {Action}Request) {
+  async {action}(data: <Action>Request) {
     // 1. Валидация metadata
     const metadataCheck = this.validateMetadata(data.metadata);
     if (!metadataCheck.success) return metadataCheck.response;
@@ -822,7 +825,7 @@ export class HealthModule {}
 # Замени 543{X} на уникальный порт (например, 5433, 5434, etc.)
 DATABASE_URL=postgresql://axion:axion_password@localhost:543{X}/axion_{service_name}
 
-# Redis (Service Discovery)
+# Redis/KeyDB (cache / BullMQ / temporary data)
 REDIS_URL=redis://:axion_redis_password@localhost:6379
 
 # Kafka (Event Bus для CQRS и Event Sourcing)
@@ -963,8 +966,8 @@ HealthModule.forRoot({
 ```typescript
 import {
   {SERVICE}_PATTERNS,
-  type {Action}Request,
-  type {Action}Response,
+  type <Action>Request,
+  type <Action>Response,
   create{Entity}Response,
   createErrorResponse,
   createNotFoundError,

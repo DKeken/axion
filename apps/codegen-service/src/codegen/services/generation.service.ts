@@ -1,6 +1,7 @@
 import {
   type GenerateProjectRequest,
   type GenerateServiceRequest,
+  type GetGraphRequest,
   type GraphData,
   type Node,
   NodeType,
@@ -60,11 +61,12 @@ export class GenerationService extends BaseService {
 
     let graphResponse;
     try {
+      const req: GetGraphRequest = {
+        metadata: data.metadata,
+        projectId: data.projectId,
+      };
       graphResponse = await firstValueFrom(
-        this.graphClient.send(GRAPH_SERVICE_PATTERNS.GET_GRAPH, {
-          metadata: data.metadata,
-          projectId: data.projectId,
-        })
+        this.graphClient.send(GRAPH_SERVICE_PATTERNS.GET_GRAPH, req)
       );
     } catch (error) {
       return handleServiceError(
@@ -141,11 +143,12 @@ export class GenerationService extends BaseService {
 
     let graphResponse;
     try {
+      const req: GetGraphRequest = {
+        metadata: data.metadata,
+        projectId: data.projectId,
+      };
       graphResponse = await firstValueFrom(
-        this.graphClient.send(GRAPH_SERVICE_PATTERNS.GET_GRAPH, {
-          metadata: data.metadata,
-          projectId: data.projectId,
-        })
+        this.graphClient.send(GRAPH_SERVICE_PATTERNS.GET_GRAPH, req)
       );
     } catch (error) {
       return handleServiceError(

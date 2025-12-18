@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { CodegenController } from "@/codegen/codegen.controller";
 import { CodegenService } from "@/codegen/codegen.service";
+import { CodegenHttpController } from "@/codegen/controllers/codegen-http.controller";
 import { BlueprintRepository } from "@/codegen/repositories/blueprint.repository";
 import { GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
 import { ValidationResultRepository } from "@/codegen/repositories/validation-result.repository";
@@ -25,36 +26,27 @@ import { StructuralValidatorService } from "@/codegen/services/validators/struct
 import { TypeScriptValidatorService } from "@/codegen/services/validators/typescript-validator.service";
 
 @Module({
-  controllers: [CodegenController],
+  controllers: [CodegenController, CodegenHttpController],
   providers: [
-    // Main coordinator
     CodegenService,
-    // Specialized services
     BlueprintsService,
     GenerationService,
     ValidationService,
     ContractDiscoveryService,
-    // AI services
     OpenRouterService,
     PromptBuilderService,
-    // Template engine
     TemplateEngineService,
-    // Database node code generator
     DatabaseNodeCodeGeneratorService,
-    // Factory patterns
     DatabaseFactoryService,
     MessagingFactoryService,
     ServiceFactoryService,
-    // Protobuf contract generator
     ProtobufContractGeneratorService,
-    // Validators (6 levels)
     StructuralValidatorService,
     ContractValidatorService,
     TypeScriptValidatorService,
     BuildValidatorService,
     HealthCheckValidatorService,
     ContractDiscoveryValidatorService,
-    // Repositories
     BlueprintRepository,
     GenerationHistoryRepository,
     ValidationResultRepository,

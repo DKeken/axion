@@ -3,11 +3,15 @@
  * Автоматическая настройка серверов через SSH
  */
 
+import { randomUUID } from "node:crypto";
+
 import {
   createConfigureServerResponse,
+  createCalculateSystemRequirementsResponse,
   createError as createContractError,
-  createSuccessResponse,
   Status,
+  type CalculateSystemRequirementsRequest,
+  type CalculateSystemRequirementsResponse,
   type ConfigureServerRequest,
   type ConfigureServerResponse,
   type ServerInfo,
@@ -411,57 +415,64 @@ export class ServerConfigurationService extends BaseService {
    * Высчитывает требования к инфраструктуре исходя из количества сервисов.
    * Если указан serverId, используется фактическая конфигурация сервера для проверки fit.
    */
-  async calculateRequirements(params: {
-    metadata?: ConfigureServerRequest["metadata"];
-    serverId?: string;
-    services: number;
-    averageCpuCores?: number;
-    averageMemoryMb?: number;
-    averageDiskGb?: number;
-    replicas?: number;
-    overheadPercent?: number;
-  }) {
-    if (!params.metadata) {
-      return this.createValidationResponse("user_id is required in metadata");
-    }
-
-    const metadataCheck = this.validateMetadata(params.metadata);
+  async calculateSystemRequirements(
+    data: CalculateSystemRequirementsRequest
+  ): Promise<CalculateSystemRequirementsResponse> {
+    const metadataCheck = this.validateMetadata(data.metadata);
 
     if (!metadataCheck.success) {
-      return metadataCheck.response;
+      return {
+        status: metadataCheck.response.status,
+        error: metadataCheck.response.result?.error,
+      };
     }
 
     let serverInfo: ServerInfo | undefined;
 
-    if (params.serverId) {
+    if (data.serverId) {
       const access = await verifyServerAccess(
         this.serverRepository,
-        params.serverId,
-        params.metadata
+        data.serverId,
+        data.metadata
       );
       if (!access.success) {
-        return access.response;
+        return {
+          status: access.response.status,
+          error: access.response.result?.error,
+        };
       }
 
-      const server = await this.serverRepository.findById(params.serverId);
+      const server = await this.serverRepository.findById(data.serverId);
       if (!server) {
-        return this.createNotFoundResponse("Server", params.serverId);
+        const notFound = this.createNotFoundResponse("Server", data.serverId);
+        return {
+          status: notFound.status,
+          error: notFound.result?.error,
+        };
       }
 
       serverInfo = this.mapServerInfo(server.serverInfo);
     }
 
     const estimation: SystemRequirementsResult = calculateSystemRequirements({
-      services: params.services,
-      averageCpuCores: params.averageCpuCores,
-      averageMemoryMb: params.averageMemoryMb,
-      averageDiskGb: params.averageDiskGb,
-      replicas: params.replicas,
-      overheadPercent: params.overheadPercent,
+      services: data.services,
+      averageCpuCores: data.averageCpuCores,
+      averageMemoryMb: data.averageMemoryMb,
+      averageDiskGb: data.averageDiskGb,
+      replicas: data.replicas,
+      overheadPercent: data.overheadPercent,
       serverInfo,
     });
 
-    return createSuccessResponse(estimation);
+    return createCalculateSystemRequirementsResponse({
+      requiredCpuCores: estimation.requiredCpuCores,
+      requiredMemoryMb: estimation.requiredMemoryMb,
+      requiredDiskGb: estimation.requiredDiskGb,
+      recommendedServers: estimation.recommendedServers,
+      fitsCurrentServer: estimation.fitsCurrentServer,
+      headroomPercent: estimation.headroomPercent,
+      notes: estimation.notes,
+    });
   }
 
   private mapErrorToConfigureResponse(
@@ -478,11 +489,16 @@ export class ServerConfigurationService extends BaseService {
     userId: string
   ): SshExecuteCommandJobPayload["metadata"] {
     if (!metadata) {
-      return { user_id: userId };
+      return {
+        userId,
+        projectId: "",
+        requestId: randomUUID(),
+        timestamp: Date.now(),
+      };
     }
 
     return {
-      user_id: userId,
+      userId,
       requestId: metadata.requestId,
       projectId: metadata.projectId,
       timestamp: metadata.timestamp,

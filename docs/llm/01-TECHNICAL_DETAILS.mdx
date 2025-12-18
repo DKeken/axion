@@ -134,15 +134,15 @@ src/
 **Архитектура:**
 
 ```
-Traefik Gateway → Next.js Frontend → NestJS Microservices → Kafka/Redis/PostgreSQL
+Traefik → Next.js Frontend → NestJS Microservices → Kafka/Redis/PostgreSQL
 ```
 
 **Компоненты платформы:**
 
-1. **Traefik Gateway** — Load balancing, SSL termination, Rate limiting
+1. **Traefik** — Load balancing, SSL termination, Rate limiting
 2. **Next.js Frontend** — React 19 RSC, Better Auth, SSE, React Flow
 3. **NestJS Microservices:**
-   - Gateway Service — Service Discovery (Redis), routing
+   - отдельного ingress-сервиса нет: routing/TLS делает Traefik
    - Graph Service — CRUD графов, версионирование, real-time синхронизация
    - Codegen Service — LLM интеграция, генерация кода, Blueprint System
    - Deployment Service — BullMQ для деплоя, SSH management
@@ -151,7 +151,7 @@ Traefik Gateway → Next.js Frontend → NestJS Microservices → Kafka/Redis/Po
 
 **Технологии:**
 
-- Service Discovery (Redis): регистрация сервисов с TTL 30 секунд
+- Redis/KeyDB: кэширование/временные данные/очереди BullMQ (не для маршрутизации сервисов)
 - Event Bus (Kafka): Event sourcing, CQRS события
 - Databases (Multiple PostgreSQL): разделение по доменам, Drizzle ORM
 - Contracts (Protobuf): типобезопасное межсервисное общение

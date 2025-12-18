@@ -34,6 +34,7 @@
     "kafkajs": "catalog:",
     "nestjs-paginate": "^12.8.3",
     "postgres": "catalog:",
+    "zod": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:"
   },

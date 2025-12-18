@@ -16,20 +16,29 @@
  *
  * Note: This is a simple helper - for more complex cases, use explicit methods
  */
-export function delegateToService<TService>(
-  serviceProperty: keyof TService,
-  methodName: keyof TService[typeof serviceProperty]
-) {
-  return async function (this: TService, data: unknown) {
-    const service = this[serviceProperty] as Record<
-      string,
-      (data: unknown) => Promise<unknown>
-    >;
-    if (!service || typeof service[methodName as string] !== "function") {
+type AnyFn = (...args: any[]) => any;
+
+/**
+ * Delegate controller handler to a service method.
+ *
+ * We intentionally accept string keys to support `private readonly fooService`
+ * constructor params (private members are not part of `keyof` in TS).
+ */
+export function delegateToService<TArgs extends any[], TResult>(
+  serviceProperty: string,
+  methodName: string
+): (...args: TArgs) => Promise<TResult>;
+export function delegateToService(serviceProperty: string, methodName: string) {
+  return async function (this: Record<string, unknown>, ...args: unknown[]) {
+    const service = this[serviceProperty] as unknown as Record<string, AnyFn>;
+    const method = service?.[methodName] as AnyFn | undefined;
+
+    if (!service || typeof method !== "function") {
       throw new Error(
         `Service method ${String(serviceProperty)}.${String(methodName)} not found`
       );
     }
-    return service[methodName as string](data);
+
+    return await method.apply(service, args);
   };
 }

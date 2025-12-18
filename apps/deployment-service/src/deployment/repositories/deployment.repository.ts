@@ -1,7 +1,7 @@
 import { PAGINATION_DEFAULTS, DEPLOYMENT_STATUS_DB } from "@axion/contracts";
 import { BaseRepository, applyPagination } from "@axion/database";
 import { Injectable } from "@nestjs/common";
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and, or, sql } from "drizzle-orm";
 
 import { db } from "@/database";
 import {
@@ -87,5 +87,14 @@ export class DeploymentRepository extends BaseRepository<
         )
       )
       .orderBy(desc(deployments.createdAt));
+  }
+
+  async countByProjectId(projectId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(this.table)
+      .where(eq(deployments.projectId, projectId));
+
+    return row?.count ?? 0;
   }
 }

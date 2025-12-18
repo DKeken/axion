@@ -6,8 +6,8 @@
 
 ```
 ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│   Gateway   │────────▶│    Kafka    │────────▶│  Services   │
-│  (Traefik)  │  HTTP   │  Event Bus  │  Kafka  │  (NestJS)   │
+│   Traefik   │────────▶│    Kafka    │────────▶│  Services   │
+│ (edge HTTP) │  HTTP   │  Event Bus  │  Kafka  │  (NestJS)   │
 └─────────────┘         └─────────────┘         └─────────────┘
      │                        │                        │
      │                        │                        │
@@ -19,7 +19,7 @@
 
 ### ✅ Разрешено
 
-1. **Клиент → Gateway (Traefik) → Service**: HTTP/WebSocket запросы от клиентов
+1. **Клиент → Traefik → Service**: HTTP/WebSocket запросы от клиентов
 2. **Service → Kafka → Service**: Все межсервисные коммуникации через Kafka
 3. **Service → External APIs**: Внешние API вызовы (OpenRouter, Docker Hub и т.д.)
 

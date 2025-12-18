@@ -145,3 +145,34 @@ message ServerConfigurationResult {
   bool firewall_configured = 4;
   string configuration_log = 5;
 }
+
+// System requirements (estimation)
+message CalculateSystemRequirementsRequest {
+  axion.common.RequestMetadata metadata = 1;
+  // Optional: check requirements against a specific server
+  optional string server_id = 2;
+  int32 services = 3;
+  optional double average_cpu_cores = 4;
+  optional int32 average_memory_mb = 5;
+  optional int32 average_disk_gb = 6;
+  optional int32 replicas = 7;
+  optional double overhead_percent = 8;
+}
+
+message SystemRequirementsEstimation {
+  double required_cpu_cores = 1;
+  int32 required_memory_mb = 2;
+  int32 required_disk_gb = 3;
+  int32 recommended_servers = 4;
+  optional bool fits_current_server = 5;
+  optional double headroom_percent = 6;
+  repeated string notes = 7;
+}
+
+message CalculateSystemRequirementsResponse {
+  axion.common.Status status = 1;
+  oneof result {
+    axion.common.Error error = 2;
+    SystemRequirementsEstimation data = 3;
+  }
+}

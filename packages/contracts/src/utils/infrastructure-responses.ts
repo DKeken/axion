@@ -27,6 +27,8 @@ import type {
 import type {
   ConfigureServerResponse,
   ServerConfigurationResult,
+  CalculateSystemRequirementsResponse,
+  SystemRequirementsEstimation,
 } from "../../generated/infrastructure/servers";
 import type { Pagination } from "../../generated/common/common";
 
@@ -141,5 +143,17 @@ export function createConfigureServerResponse(
   return {
     status: Status.STATUS_SUCCESS,
     data: result,
+  };
+}
+
+/**
+ * Create CalculateSystemRequirementsResponse with correct structure: { status, error? | data? }
+ */
+export function createCalculateSystemRequirementsResponse(
+  data: SystemRequirementsEstimation
+): CalculateSystemRequirementsResponse {
+  return {
+    status: Status.STATUS_SUCCESS,
+    data,
   };
 }

@@ -162,6 +162,9 @@ export type {
   ConfigureServerRequest,
   ConfigureServerResponse,
   ServerConfigurationResult,
+  CalculateSystemRequirementsRequest,
+  CalculateSystemRequirementsResponse,
+  SystemRequirementsEstimation,
 } from "../generated/infrastructure/servers";
 
 export type {

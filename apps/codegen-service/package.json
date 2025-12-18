@@ -31,6 +31,7 @@
     "drizzle-orm": "catalog:",
     "kafkajs": "catalog:",
     "postgres": "catalog:",
+    "zod": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:"
   },

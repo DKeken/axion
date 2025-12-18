@@ -40,6 +40,15 @@ export class ProjectRepository extends BaseRepository<
     return { projects: items, total };
   }
 
+  async countByUserId(userId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(this.table)
+      .where(eq(projects.userId, userId));
+
+    return row?.count ?? 0;
+  }
+
   /**
    * Increment graph version for a project
    */

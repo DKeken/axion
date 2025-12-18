@@ -74,9 +74,9 @@ docker-compose down -v
 **Доступные сервисы:**
 
 - **PostgreSQL** - `localhost:5434` (БД: `axion_codegen`, User: `axion`, Password: `axion_password`)
-- **KeyDB** - `localhost:6379` (Password: `axion_keydb_password`) - Service Discovery и кэширование
+- **KeyDB** - `localhost:6379` (Password: `axion_keydb_password`) - кэш/временные данные/очереди (BullMQ)
 - **Kafka** - `localhost:9092` - Event Bus для CQRS и Event Sourcing
-- **Traefik** - `localhost:80` - API Gateway
+- **Traefik** - `localhost:80` - edge routing (HTTP/WebSocket)
   - Dashboard: http://localhost:8080
 
 **Примечание:** Все микросервисы общаются через Kafka. RabbitMQ используется только в генерируемых сервисах клиентов.
@@ -92,7 +92,7 @@ cp .env.example .env
 Заполните переменные:
 
 - `DATABASE_URL` - PostgreSQL connection string (отдельная БД для codegen-service)
-- `REDIS_URL` - KeyDB connection string (для Service Discovery)
+- `REDIS_URL` - KeyDB connection string (кэш/очереди/временные данные)
 - `KAFKA_BROKERS` - Kafka brokers (для Event Bus, CQRS и Event Sourcing)
 - `PORT` - HTTP server port (по умолчанию: 3002)
 - `OPENROUTER_API_KEY` - OpenRouter API key для AI генерации кода (получить на https://openrouter.ai/keys)
@@ -239,20 +239,29 @@ OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 
 ```typescript
 // Через Kafka MessagePattern
-await client.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, {
-  metadata: { user_id: "user-id" },
+import { type GenerateProjectRequest } from "@axion/contracts";
+
+const requestWithModel: GenerateProjectRequest = {
+  metadata: { userId: "user-id" },
   projectId: "project-id",
   aiModel: "openai/gpt-4o", // ✅ Любая модель из OpenRouter
   forceRegenerate: false,
-});
+};
+
+await client.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, requestWithModel);
 
 // Или используйте модель по умолчанию (не указывая aiModel)
-await client.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, {
-  metadata: { user_id: "user-id" },
+const requestDefaultModel: GenerateProjectRequest = {
+  metadata: { userId: "user-id" },
   projectId: "project-id",
   // aiModel не указан - будет использована OPENROUTER_DEFAULT_MODEL
   forceRegenerate: false,
-});
+};
+
+await client.send(
+  CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT,
+  requestDefaultModel
+);
 ```
 
 ### Рекомендуемые модели

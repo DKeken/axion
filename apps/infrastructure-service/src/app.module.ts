@@ -8,10 +8,11 @@ import {
   BullMQModule,
   createBullMQConnectionConfig,
 } from "@axion/nestjs-common";
-import { createKafkaClientOptions } from "@axion/shared";
+import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
 import { Module } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
 
+import { env } from "@/config/env";
 import { db } from "@/database";
 import { getClient } from "@/database/connection";
 import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
@@ -21,7 +22,7 @@ import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
     // BullMQ для SSH очередей
     BullMQModule.forRootAsync({
       useFactory: () => ({
-        connection: createBullMQConnectionConfig(),
+        connection: createBullMQConnectionConfig(env.redisUrl),
       }),
     }),
     // ⚠️ ВАЖНО: ClientsModule ДОЛЖЕН быть ПЕРВЫМ перед другими модулями
@@ -32,7 +33,7 @@ import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
         useFactory: () =>
           createKafkaClientOptions(
             GRAPH_SERVICE_NAME,
-            process.env.KAFKA_BROKERS || "localhost:9092"
+            parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
           ),
       },
     ]),
@@ -41,14 +42,7 @@ import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
       useFactory: () => ({
         database: db,
         basePath: "/api/auth",
-        trustedOrigins: process.env.TRUSTED_ORIGINS
-          ? process.env.TRUSTED_ORIGINS.split(",")
-          : [
-              "http://localhost:3000",
-              "http://localhost:3001",
-              "http://traefik.localhost",
-              "https://traefik.localhost",
-            ],
+        trustedOrigins: env.trustedOrigins,
       }),
     }),
     // Universal Health Module

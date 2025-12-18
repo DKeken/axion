@@ -22,7 +22,7 @@ order: 4
 ```typescript
 export enum BlueprintType {
   SERVICE = "service", // Единый blueprint для всех генерируемых сервисов (ElysiaJS/Hono)
-  // Примечание: API Gateway - это Traefik (управляется Runner Agent), не генерируется через templates
+  // Примечание: edge routing выполняет Traefik (управляется Runner Agent), это не отдельный сервис и не генерируется через templates
 }
 
 export type BlueprintId = BlueprintType | string; // Для кастомных blueprints

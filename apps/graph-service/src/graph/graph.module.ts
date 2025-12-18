@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { GraphHttpController } from "@/graph/controllers/graph-http.controller";
 import { GraphSseModule } from "@/graph/graph-sse.module";
 import { GraphController } from "@/graph/graph.controller";
 import { GraphService } from "@/graph/graph.service";
@@ -15,7 +16,7 @@ import { ProjectsService } from "@/graph/services/projects.service";
 
 @Module({
   imports: [GraphSseModule],
-  controllers: [GraphController],
+  controllers: [GraphController, GraphHttpController],
   providers: [
     GraphService,
     ProjectsService,

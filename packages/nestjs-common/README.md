@@ -51,6 +51,7 @@ Guard for protecting RabbitMQ microservice endpoints. Validates that `user_id` i
 ```typescript
 import { AuthModule, MicroserviceAuthGuard } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
+import { GRAPH_SERVICE_PATTERNS, type CreateProjectRequest } from "@axion/contracts";
 
 @Module({
   imports: [AuthModule],
@@ -61,9 +62,10 @@ export class MyModule {}
 @Controller()
 @UseGuards(MicroserviceAuthGuard) // Protects all endpoints
 export class MyController {
-  @MessagePattern("my.pattern")
-  async handle(@Payload() data: { metadata: unknown }) {
-    // user_id is guaranteed to be in data.metadata
+  @MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+  async handle(@Payload() data: CreateProjectRequest) {
+    // user_id is guaranteed to be in data.metadata (after guard)
+    // ...delegate to service
   }
 }
 ```
@@ -94,12 +96,12 @@ export class MyService {
 
 ## Architecture
 
-For RabbitMQ microservices:
+For NestJS microservices (Kafka transport in Control Plane):
 
-1. **API Gateway** validates the session using better-auth
-2. Gateway extracts `user_id` from the validated session
-3. Gateway includes `user_id` in the `metadata` field when sending messages
-4. **MicroserviceAuthGuard** validates that `user_id` is present in metadata
+1. **HTTP entrypoint** (any service exposing public HTTP, or Next.js API routes) validates the session using better-auth
+2. The entrypoint extracts `user_id` from the validated session
+3. The entrypoint includes `user_id` (and optional session info) in the `metadata` field when sending messages
+4. **MicroserviceAuthGuard** validates that `user_id` is present in metadata for MessagePattern handlers
 
 ## Exports
 

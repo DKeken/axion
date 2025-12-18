@@ -34,7 +34,7 @@
   },
   "scripts": {
     "generate": "bun run generate:types",
-    "generate:types": "mkdir -p generated && find proto -name '*.proto' -type f | xargs protoc --plugin=protoc-gen-ts_proto=$(pwd)/scripts/protoc-gen-ts_proto.mjs --ts_proto_out=./generated --ts_proto_opt=nestJs=true,esModuleInterop=true,outputServices=generic-definitions,outputClientImpl=false,useOptionals=messages --proto_path=./proto",
+    "generate:types": "mkdir -p generated && find proto -name '*.proto' -type f -exec protoc --plugin=protoc-gen-ts_proto=$(pwd)/scripts/protoc-gen-ts_proto.mjs --ts_proto_out=./generated --ts_proto_opt=nestJs=true,esModuleInterop=true,outputServices=generic-definitions,outputClientImpl=false,useOptionals=messages --proto_path=./proto {} +",
     "clean": "rm -rf generated"
   },
   "dependencies": {

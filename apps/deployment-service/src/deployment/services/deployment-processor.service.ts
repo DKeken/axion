@@ -1,17 +1,11 @@
-import {
-  DeploymentStatus,
-  deploymentStatusToDbString,
-  type ServiceDeploymentStatus as DeploymentServiceDeploymentStatus,
-} from "@axion/contracts";
-import {
-  DeployProjectCommand,
-  type ServiceDeploymentStatus as RunnerServiceDeploymentStatus,
-} from "@axion/contracts/generated/runner-agent/deployment";
+import { DeploymentStatus, deploymentStatusToDbString } from "@axion/contracts";
+import { DeployProjectCommand } from "@axion/contracts/generated/runner-agent/deployment";
 import { QUEUE_NAMES } from "@axion/nestjs-common";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 
+import { mapRunnerServiceStatusesToDb } from "@/deployment/helpers/deployment-status.mapper";
 import { type DeploymentRepository } from "@/deployment/repositories/deployment.repository";
 import { RunnerAgentService } from "@/deployment/services/runner-agent.service";
 import type { DeploymentJobPayload } from "@/deployment/services/types";
@@ -76,18 +70,43 @@ export class DeploymentProcessor extends WorkerHost {
         );
       }
 
-      // Отслеживание прогресса деплоя
-      // Периодически проверяем статус от Runner Agent и обновляем прогресс
-      const maxStatusChecks = 60; // максимум 60 проверок (5 минут при интервале 5 секунд)
-      const statusCheckInterval = 5000; // проверка каждые 5 секунд
-      let deploymentCompleted = false;
-      let statusCheckCount = 0;
-
-      while (!deploymentCompleted && statusCheckCount < maxStatusChecks) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, statusCheckInterval)
+      // Tracking: if Runner Agent status API is not implemented (stub), do not fail.
+      const initialStatusProbe =
+        await this.runnerAgentService.getDeploymentStatus(
+          agentId,
+          deploymentId
         );
-        statusCheckCount++;
+      if (!initialStatusProbe) {
+        this.logger.warn(
+          `Runner Agent status not available; skipping polling for deployment ${deploymentId}`
+        );
+        return;
+      }
+
+      const deadlineAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+      let delayMs = 2000;
+      const maxDelayMs = 15000;
+      let attempt = 0;
+
+      // Poll until final status or timeout.
+      while (Date.now() < deadlineAt) {
+        // Cancel support: if deployment already marked completed/failed, stop gracefully.
+        const currentDeployment =
+          await this.deploymentRepository.findById(deploymentId);
+        if (!currentDeployment) return;
+
+        if (
+          currentDeployment.status ===
+            deploymentStatusToDbString(
+              DeploymentStatus.DEPLOYMENT_STATUS_FAILED
+            ) &&
+          currentDeployment.completedAt
+        ) {
+          this.logger.log(
+            `Deployment ${deploymentId} already completed as FAILED; stopping polling`
+          );
+          return;
+        }
 
         try {
           const statusResponse =
@@ -96,47 +115,25 @@ export class DeploymentProcessor extends WorkerHost {
               deploymentId
             );
 
-          if (statusResponse?.data) {
+          if (!statusResponse?.data) {
+            // No data - backoff and retry
+          } else {
             const {
               status: agentStatus,
-              serviceStatuses: agentServiceStatuses,
+              serviceStatuses,
+              progressPercent,
             } = statusResponse.data;
 
-            // Обновляем статусы сервисов в БД
-            if (agentServiceStatuses && agentServiceStatuses.length > 0) {
+            if (typeof progressPercent === "number") {
+              await job.updateProgress(progressPercent);
+            }
+
+            if (serviceStatuses && serviceStatuses.length > 0) {
               await this.deploymentRepository.update(deploymentId, {
-                serviceStatuses: agentServiceStatuses.map(
-                  (runnerStatus: RunnerServiceDeploymentStatus) => {
-                    // Преобразуем ServiceDeploymentStatus из Runner Agent
-                    // (serviceId, serviceName, status, replicas, healthyReplicas, errorMessage, deployedAt)
-                    // в формат для БД Deployment ServiceDeploymentStatus
-                    // (serviceId, nodeId, serviceName, status, serverId, errorMessage, deployedAt)
-                    // Все поля должны быть заполнены, используем пустые строки/0 для отсутствующих значений
-                    const dbStatus: Omit<
-                      DeploymentServiceDeploymentStatus,
-                      "status"
-                    > & { status: string } = {
-                      serviceId: runnerStatus.serviceId || "",
-                      // nodeId не приходит от Runner Agent, используем serviceId как fallback
-                      nodeId: runnerStatus.serviceId || "",
-                      serviceName: runnerStatus.serviceName || "",
-                      // serverId не приходит от Runner Agent, используем пустую строку
-                      serverId: "",
-                      // errorMessage преобразуем из runner-agent формата, используем пустую строку если нет
-                      errorMessage: runnerStatus.errorMessage || "",
-                      // deployedAt может прийти от Runner Agent, используем его или 0
-                      deployedAt: runnerStatus.deployedAt || 0,
-                      status: runnerStatus.status
-                        ? String(runnerStatus.status)
-                        : "unknown",
-                    };
-                    return dbStatus;
-                  }
-                ),
+                serviceStatuses: mapRunnerServiceStatusesToDb(serviceStatuses),
               });
             }
 
-            // Если Runner Agent вернул финальный статус, обновляем deployment
             if (
               agentStatus === DeploymentStatus.DEPLOYMENT_STATUS_SUCCESS ||
               agentStatus === DeploymentStatus.DEPLOYMENT_STATUS_FAILED
@@ -145,54 +142,30 @@ export class DeploymentProcessor extends WorkerHost {
                 status: deploymentStatusToDbString(agentStatus),
                 completedAt: new Date(),
               });
-              deploymentCompleted = true;
+              if (agentStatus === DeploymentStatus.DEPLOYMENT_STATUS_SUCCESS) {
+                await job.updateProgress(100);
+              }
               this.logger.log(
                 `Deployment ${deploymentId} completed with status ${agentStatus}`
               );
-              break;
+              return;
             }
           }
         } catch (statusError) {
-          // Логируем ошибку проверки статуса, но продолжаем цикл
           this.logger.warn(
-            `Failed to get deployment status (attempt ${statusCheckCount}/${maxStatusChecks}): ${statusError instanceof Error ? statusError.message : String(statusError)}`
+            `Failed to get deployment status (attempt ${attempt}): ${statusError instanceof Error ? statusError.message : String(statusError)}`
           );
         }
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        attempt += 1;
+        delayMs = Math.min(Math.round(delayMs * 1.5), maxDelayMs);
       }
 
-      // Если не получили финальный статус от агента, проверяем текущий статус в БД
-      if (!deploymentCompleted) {
-        const currentDeployment =
-          await this.deploymentRepository.findById(deploymentId);
-        if (
-          currentDeployment &&
-          currentDeployment.status !==
-            deploymentStatusToDbString(
-              DeploymentStatus.DEPLOYMENT_STATUS_SUCCESS
-            )
-        ) {
-          // Если статус все еще IN_PROGRESS, оставляем его таким (возможно, деплой еще идет)
-          this.logger.warn(
-            `Deployment ${deploymentId} status check timeout. Current status: ${currentDeployment.status}`
-          );
-        } else {
-          // Если статус уже SUCCESS, считаем деплой завершенным
-          deploymentCompleted = true;
-        }
-      }
-
-      // Если деплой не завершился за отведенное время, обновляем статус
-      if (!deploymentCompleted) {
-        await this.deploymentRepository.update(deploymentId, {
-          status: deploymentStatusToDbString(
-            DeploymentStatus.DEPLOYMENT_STATUS_FAILED
-          ),
-          completedAt: new Date(),
-        });
-        throw new Error(
-          `Deployment ${deploymentId} did not complete within timeout period`
-        );
-      }
+      // Timeout: keep deployment in progress (agent may still be deploying).
+      this.logger.warn(
+        `Deployment ${deploymentId} status polling timed out; leaving status as-is`
+      );
 
       this.logger.log(
         `Deployment ${deploymentId} completed successfully (job ${job.id})`

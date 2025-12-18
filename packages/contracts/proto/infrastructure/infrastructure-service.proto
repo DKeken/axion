@@ -33,6 +33,9 @@ service InfrastructureService {
   
   // Server Configuration
   rpc ConfigureServer(ConfigureServerRequest) returns (ConfigureServerResponse);
+
+  // System Requirements
+  rpc CalculateSystemRequirements(CalculateSystemRequirementsRequest) returns (CalculateSystemRequirementsResponse);
   
   // Health Check
   rpc HealthCheck(axion.common.HealthCheckRequest) returns (axion.common.HealthCheckResponse);

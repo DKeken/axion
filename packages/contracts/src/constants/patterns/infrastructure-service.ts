@@ -19,4 +19,6 @@ export const INFRASTRUCTURE_SERVICE_PATTERNS = {
   INSTALL_AGENT: "infrastructure-service.installAgent",
   GET_AGENT_STATUS: "infrastructure-service.getAgentStatus",
   CONFIGURE_SERVER: "infrastructure-service.configureServer",
+  CALCULATE_SYSTEM_REQUIREMENTS:
+    "infrastructure-service.calculateSystemRequirements",
 } as const;
