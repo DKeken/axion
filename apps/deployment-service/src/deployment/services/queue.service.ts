@@ -49,7 +49,10 @@ export class QueueService extends BaseService {
     return String(job.id);
   }
 
-  private async removeJobIfExists(queue: Queue, jobId: string): Promise<boolean> {
+  private async removeJobIfExists(
+    queue: Queue,
+    jobId: string
+  ): Promise<boolean> {
     const job: Job | undefined | null = await queue.getJob(jobId);
     if (!job) return false;
 
@@ -57,7 +60,10 @@ export class QueueService extends BaseService {
     return true;
   }
 
-  private async getQueueJobStatus(queue: Queue, jobId: string): Promise<{
+  private async getQueueJobStatus(
+    queue: Queue,
+    jobId: string
+  ): Promise<{
     status: string;
     progress?: number;
   }> {

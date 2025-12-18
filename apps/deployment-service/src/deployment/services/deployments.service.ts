@@ -37,12 +37,12 @@ import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 
 import { env } from "@/config/env";
+import { generateDockerfile } from "@/deployment/generation/dockerfile-generator";
 import { verifyDeploymentAccess } from "@/deployment/helpers/deployment-access.helper";
 import { transformDeploymentToContract } from "@/deployment/helpers/type-transformers";
 import { type DeploymentHistoryRepository } from "@/deployment/repositories/deployment-history.repository";
 import { type DeploymentRepository } from "@/deployment/repositories/deployment.repository";
 import { DockerStackGenerationService } from "@/deployment/services/docker-stack-generation.service";
-import { DockerfileGeneratorService } from "@/deployment/services/dockerfile-generator.service";
 import { QueueService } from "@/deployment/services/queue.service";
 import { RunnerAgentService } from "@/deployment/services/runner-agent.service";
 
@@ -52,7 +52,6 @@ export class DeploymentsService extends BaseService {
     private readonly deploymentRepository: DeploymentRepository,
     private readonly deploymentHistoryRepository: DeploymentHistoryRepository,
     private readonly dockerStackGenerationService: DockerStackGenerationService,
-    private readonly dockerfileGeneratorService: DockerfileGeneratorService,
     private readonly queueService: QueueService,
     private readonly runnerAgentService: RunnerAgentService,
     @Optional()
@@ -209,11 +208,10 @@ export class DeploymentsService extends BaseService {
         // Генерируем Dockerfile для каждого сервиса
         for (const result of _generatedCode.data.results) {
           if (result.generatedCodePath) {
-            dockerfiles[result.serviceName] =
-              this.dockerfileGeneratorService.generate(
-                result.serviceName,
-                result.generatedCodePath
-              );
+            dockerfiles[result.serviceName] = generateDockerfile(
+              result.serviceName,
+              result.generatedCodePath
+            );
           }
         }
       } catch (error) {

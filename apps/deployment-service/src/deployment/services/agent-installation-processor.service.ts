@@ -70,16 +70,9 @@ export class AgentInstallationProcessor extends WorkerHost {
       // если понадобится хранить эту информацию в Deployment Service
     } catch (error) {
       this.logger.error(
-        `Failed to install agent on server ${serverId} (job ${job.id})`,
-        error
-      );
-
-      // Логируем ошибку и пробрасываем для retry logic BullMQ
-      this.logger.error(
-        `Failed to process agent installation job ${job.id}: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to process agent installation job ${job.id} for server ${serverId}: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined
       );
-      // Пробрасываем оригинальную ошибку для retry logic BullMQ
       throw error;
     }
   }

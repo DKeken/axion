@@ -1,16 +1,14 @@
-import { Injectable } from "@nestjs/common";
-
 /**
- * Dockerfile Generator Service
- * Генерирует Dockerfile для сервисов
+ * Dockerfile generator (pure module).
+ *
+ * Note: `generatedCodePath` is reserved for future when we generate
+ * per-service build contexts.
  */
-@Injectable()
-export class DockerfileGeneratorService {
-  /**
-   * Генерирует Dockerfile для сервиса
-   */
-  generate(_serviceName: string, _generatedCodePath: string): string {
-    return `FROM node:20-alpine AS base
+export function generateDockerfile(
+  _serviceName: string,
+  _generatedCodePath: string
+): string {
+  return `FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -51,5 +49,4 @@ ENV PORT=3000
 
 CMD ["node", "dist/main.js"]
 `;
-  }
 }

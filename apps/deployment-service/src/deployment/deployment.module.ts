@@ -9,16 +9,12 @@ import { DeploymentHistoryRepository } from "@/deployment/repositories/deploymen
 import { DeploymentRepository } from "@/deployment/repositories/deployment.repository";
 import { AgentInstallationProcessor } from "@/deployment/services/agent-installation-processor.service";
 import { AgentInstallationService } from "@/deployment/services/agent-installation.service";
-import { DatabaseServiceGeneratorService } from "@/deployment/services/database-service-generator.service";
-import { DependencyResolverService } from "@/deployment/services/dependency-resolver.service";
 import { DeploymentProcessor } from "@/deployment/services/deployment-processor.service";
 import { DeploymentQueueEventsService } from "@/deployment/services/deployment-queue-events.service";
 import { DeploymentsService } from "@/deployment/services/deployments.service";
 import { DockerStackGenerationService } from "@/deployment/services/docker-stack-generation.service";
-import { DockerfileGeneratorService } from "@/deployment/services/dockerfile-generator.service";
 import { QueueService } from "@/deployment/services/queue.service";
 import { RunnerAgentService } from "@/deployment/services/runner-agent.service";
-import { ServiceComposeGeneratorService } from "@/deployment/services/service-compose-generator.service";
 
 @Module({
   imports: [
@@ -34,10 +30,6 @@ import { ServiceComposeGeneratorService } from "@/deployment/services/service-co
     DeploymentService,
     DeploymentsService,
     DockerStackGenerationService,
-    DependencyResolverService,
-    DatabaseServiceGeneratorService,
-    ServiceComposeGeneratorService,
-    DockerfileGeneratorService,
     QueueService,
     RunnerAgentService,
     AgentInstallationService,

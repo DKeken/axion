@@ -168,12 +168,12 @@ export class DeploymentProcessor extends WorkerHost {
       );
 
       this.logger.log(
-        `Deployment ${deploymentId} completed successfully (job ${job.id})`
+        `Deployment ${deploymentId} polling finished without final status (job ${job.id})`
       );
     } catch (error) {
       this.logger.error(
-        `Failed to process deployment ${deploymentId} (job ${job.id})`,
-        error
+        `Failed to process deployment job ${job.id} for deployment ${deploymentId}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined
       );
 
       // Обновляем статус на FAILED
@@ -191,11 +191,6 @@ export class DeploymentProcessor extends WorkerHost {
         );
       }
 
-      // Логируем ошибку и пробрасываем для retry logic BullMQ
-      this.logger.error(
-        `Failed to process deployment job ${job.id}: ${error instanceof Error ? error.message : String(error)}`,
-        error instanceof Error ? error.stack : undefined
-      );
       // Пробрасываем оригинальную ошибку для retry logic BullMQ
       throw error;
     }

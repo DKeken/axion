@@ -1,6 +1,5 @@
 import {
   type GenerationResult,
-  type GraphData,
   GRAPH_SERVICE_NAME,
   GRAPH_SERVICE_PATTERNS,
   type GetGraphRequest,
@@ -13,12 +12,20 @@ import * as yaml from "js-yaml";
 import { firstValueFrom } from "rxjs";
 
 import {
+  generateDatabaseServiceConfig,
+  type DatabaseServiceGeneratorWarning,
+} from "@/deployment/generation/database-compose";
+import {
+  buildNodeIdToServiceNameMap,
+  filterNodesByType,
+  resolveDatabaseDependencies,
+  resolveServiceDependencies,
+} from "@/deployment/generation/dependency-resolver";
+import { generateServiceComposeConfig } from "@/deployment/generation/service-compose";
+import {
   composeSpecSchema,
   type ComposeSpec,
 } from "@/deployment/schemas/compose.schema";
-import { DatabaseServiceGeneratorService } from "@/deployment/services/database-service-generator.service";
-import { DependencyResolverService } from "@/deployment/services/dependency-resolver.service";
-import { ServiceComposeGeneratorService } from "@/deployment/services/service-compose-generator.service";
 import type { DockerComposeResult } from "@/deployment/services/types";
 
 /**
@@ -29,9 +36,6 @@ import type { DockerComposeResult } from "@/deployment/services/types";
 @Injectable()
 export class DockerStackGenerationService extends BaseService {
   constructor(
-    private readonly dependencyResolver: DependencyResolverService,
-    private readonly databaseServiceGenerator: DatabaseServiceGeneratorService,
-    private readonly serviceComposeGenerator: ServiceComposeGeneratorService,
     @Optional()
     @Inject(GRAPH_SERVICE_NAME)
     private readonly graphClient: ClientProxy | null
@@ -48,14 +52,13 @@ export class DockerStackGenerationService extends BaseService {
     generationResults: GenerationResult[],
     envVars: Record<string, string> = {}
   ): Promise<DockerComposeResult> {
-    const graph = await this.fetchGraph(projectId, metadata);
+    const graphResponse = await this.fetchGraph(projectId, metadata);
 
-    const nodes = graph.nodes || [];
-    const edges = graph.edges || [];
+    const nodes = graphResponse.nodes || [];
+    const edges = graphResponse.edges || [];
 
     // Фильтруем nodes по типам
-    const { serviceNodes, databaseNodes } =
-      this.dependencyResolver.filterNodesByType(nodes);
+    const { serviceNodes, databaseNodes } = filterNodesByType(nodes);
 
     if (serviceNodes.length === 0) {
       throw new Error("No service nodes found in graph");
@@ -70,15 +73,11 @@ export class DockerStackGenerationService extends BaseService {
     );
 
     // Создаем мапу nodeId -> serviceName
-    const nodeIdToServiceName =
-      this.dependencyResolver.buildNodeIdToServiceNameMap(serviceNodes);
+    const nodeIdToServiceName = buildNodeIdToServiceNameMap(serviceNodes);
 
     // Разрешаем зависимости
     const { dependencies, serviceDependencies } =
-      this.dependencyResolver.resolveServiceDependencies(
-        edges,
-        nodeIdToServiceName
-      );
+      resolveServiceDependencies(edges, nodeIdToServiceName);
 
     // Генерируем docker-compose.yml
     const services: ComposeSpec["services"] = {};
@@ -87,9 +86,12 @@ export class DockerStackGenerationService extends BaseService {
 
     // Добавляем инфраструктурные сервисы (базы данных)
     for (const dbNode of databaseNodes) {
-      const dbConfig = this.databaseServiceGenerator.generate(
+      const dbConfig = generateDatabaseServiceConfig(
         dbNode,
-        projectId
+        projectId,
+        (warning: DatabaseServiceGeneratorWarning) => {
+          this.logger.warn(warning.message);
+        }
       );
       if (dbConfig) {
         services[dbConfig.name] = dbConfig.service;
@@ -112,13 +114,9 @@ export class DockerStackGenerationService extends BaseService {
 
       const serviceDeps = dependencies.get(result.serviceName) || [];
       const dbDependencies =
-        this.dependencyResolver.resolveDatabaseDependencies(
-          nodeId,
-          edges,
-          databaseNodes
-        );
+        resolveDatabaseDependencies(nodeId, edges, databaseNodes);
 
-      const serviceConfig = this.serviceComposeGenerator.generateServiceConfig(
+      const serviceConfig = generateServiceComposeConfig(
         result,
         projectId,
         envVars,
@@ -154,7 +152,7 @@ export class DockerStackGenerationService extends BaseService {
   private async fetchGraph(
     projectId: string,
     metadata: unknown
-  ): Promise<GraphData> {
+  ): Promise<NonNullable<GraphResponse["graph"]>> {
     if (!this.graphClient) {
       throw new Error("Graph service client not available");
     }
