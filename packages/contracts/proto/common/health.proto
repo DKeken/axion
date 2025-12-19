@@ -22,7 +22,7 @@ message HealthCheck {
 }
 
 message HealthCheckDependency {
-  string name = 1; // 'database', 'rabbitmq', 'redis', etc.
+  string name = 1; // 'database', 'redis', etc.
   HealthStatus status = 2;
   string message = 3;
   int64 response_time_ms = 4;

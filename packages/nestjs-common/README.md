@@ -46,12 +46,15 @@ npm install @axion/nestjs-common
 
 #### MicroserviceAuthGuard
 
-Guard for protecting RabbitMQ microservice endpoints. Validates that `user_id` is present in request metadata.
+Guard for protecting microservice message endpoints (e.g. Kafka). Validates that `user_id` is present in request metadata.
 
 ```typescript
 import { AuthModule, MicroserviceAuthGuard } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
-import { GRAPH_SERVICE_PATTERNS, type CreateProjectRequest } from "@axion/contracts";
+import {
+  GRAPH_SERVICE_PATTERNS,
+  type CreateProjectRequest,
+} from "@axion/contracts";
 
 @Module({
   imports: [AuthModule],
@@ -112,6 +115,142 @@ For NestJS microservices (Kafka transport in Control Plane):
 - `AuthModule` - NestJS module with auth providers
 - `RequireAuth` - Decorator to mark endpoints requiring auth
 - `AllowAnonymous` - Decorator to mark endpoints allowing anonymous access
+
+### Swagger/OpenAPI
+
+- `setupSwagger` - Function to setup Swagger documentation
+- `SwaggerOptions` - Type for Swagger configuration
+
+#### Usage
+
+Swagger is automatically configured when using `bootstrapMicroservice`:
+
+```typescript
+import { bootstrapMicroservice } from "@axion/nestjs-common";
+import { GRAPH_SERVICE_NAME } from "@axion/contracts";
+
+bootstrapMicroservice(AppModule, {
+  serviceName: GRAPH_SERVICE_NAME,
+  defaultPort: 3001,
+  swagger: {
+    serviceName: "Graph Service",
+    apiVersion: "v1",
+    description: "Graph Service API for managing projects and graphs",
+  },
+});
+```
+
+Swagger UI will be available at `http://localhost:3001/api-docs`
+
+### Kafka DLQ Interceptor
+
+Dead Letter Queue interceptor for handling failed Kafka messages:
+
+```typescript
+import { KafkaDLQInterceptor } from "@axion/nestjs-common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+
+@Module({
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (kafkaClient: ClientKafka) =>
+        new KafkaDLQInterceptor({
+          serviceName: GRAPH_SERVICE_NAME,
+          maxRetries: 3,
+          useCommonDLQ: false,
+          dlqClient: kafkaClient,
+          enabled: true,
+        }),
+      inject: [GRAPH_SERVICE_NAME],
+    },
+  ],
+})
+export class AppModule {}
+```
+
+See [Kafka DLQ Documentation](../../docs/KAFKA_DLQ.mdx) for detailed usage.
+
+### BullMQ
+
+- `BullMQModule` - Module for BullMQ integration
+- `createBullMQConnectionConfig` - Helper for Redis connection
+- `enrichJobPayloadWithMetadata` - Add correlationId to job payload
+- `BACKOFF_STRATEGIES` - Standard backoff strategies
+- `JOB_OPTIONS_PRESETS` - Pre-configured job options
+
+#### Usage
+
+```typescript
+import {
+  BullMQModule,
+  createBullMQConnectionConfig,
+  enrichJobPayloadWithMetadata,
+  JOB_OPTIONS_PRESETS,
+} from "@axion/nestjs-common";
+
+@Module({
+  imports: [
+    BullMQModule.forRootAsync({
+      useFactory: () => ({
+        connection: createBullMQConnectionConfig(env.redisUrl),
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+
+// In service
+const job = await queue.add(
+  "job-name",
+  enrichJobPayloadWithMetadata(payload, metadata),
+  JOB_OPTIONS_PRESETS.standard()
+);
+
+// Queue configuration (rate limiting, stalled jobs)
+import {
+  createQueueOptions,
+  createWorkerOptions,
+  QUEUE_CONFIGS,
+} from "@axion/nestjs-common";
+
+// For Queue constructor
+const queueOptions = createQueueOptions(QUEUE_CONFIGS.highVolume());
+// Returns: { limiter: { max: 100, duration: 60000 } }
+
+// For Worker constructor
+const workerOptions = createWorkerOptions({
+  concurrency: 3,
+  lockDuration: 60000,
+  maxStalledCount: 2,
+});
+```
+
+### BullMQ Metrics
+
+Queue metrics and observability:
+
+```typescript
+import {
+  getQueueMetrics,
+  getQueueMetricsSummary,
+  getJobMetrics,
+} from "@axion/nestjs-common";
+
+// Get queue metrics
+const metrics = await getQueueMetrics(queue);
+// { queueName, active, waiting, delayed, completed, failed, paused, timestamp }
+
+// Get extended metrics with calculations
+const summary = await getQueueMetricsSummary(queue);
+// { ...metrics, total, successRate, averageDuration }
+
+// Get job metrics
+const jobMetrics = await getJobMetrics(job);
+// { jobId, name, state, duration, attempts, progress, ... }
+```
+
+See [BullMQ Metrics Documentation](../../docs/BULLMQ_METRICS.mdx) for detailed usage.
 
 ## Dependencies
 

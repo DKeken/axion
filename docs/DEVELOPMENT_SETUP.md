@@ -1,5 +1,37 @@
 # Development Setup
 
+## Quick Start
+
+1. **Check environment configuration:**
+
+   ```bash
+   bun run check:env
+   ```
+
+2. **Copy environment templates (if needed):**
+
+   ```bash
+   cp templates/env/.env.example apps/graph-service/.env
+   cp templates/env/.env.example apps/codegen-service/.env
+   cp templates/env/.env.example apps/infrastructure-service/.env
+   cp templates/env/.env.example apps/deployment-service/.env
+   ```
+
+3. **Fill in environment variables** in each `.env` file
+
+4. **Start development environment:**
+   ```bash
+   bun run dev
+   ```
+
+This will:
+
+- Kill processes on service ports
+- Start Docker infrastructure (Kafka, Redis, PostgreSQL, Traefik)
+- Start all services in development mode
+
+## Environment Configuration
+
 ## Быстрый старт
 
 Просто запустите:

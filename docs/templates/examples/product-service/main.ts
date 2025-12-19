@@ -1,9 +1,9 @@
 // src/main.ts
-// Сгенерировано из: components/main-entry.md
+// Сгенерировано из: components/main-entry.mdx
 // Конфигурация: SERVICE_NAME=product-service, PROJECT_ID={project_id}
 
 import { Elysia } from "elysia";
-import { RabbitMQServer } from "./messaging/server";
+import { HttpRpcServer } from "./messaging/http-rpc-server";
 import { ProductService } from "./modules/product/product.service";
 import { ProductRepository } from "./database/repository";
 import { healthCheck } from "./health/health.check";
@@ -13,34 +13,32 @@ const app = new Elysia();
 // Health check endpoint
 app.get("/health", healthCheck);
 
-// RabbitMQ сервер для межсервисного общения
-const rabbitMQServer = new RabbitMQServer({
-  url: process.env.RABBITMQ_URL!,
-  vhost: `project_${process.env.PROJECT_ID}`,
-});
+// HTTP RPC router для межсервисного общения внутри Docker/Swarm
+const rpcServer = new HttpRpcServer({ pathPrefix: "/rpc" });
+rpcServer.attach(app);
 
 // Инициализация сервиса
 const productRepository = new ProductRepository();
 const productService = new ProductService(productRepository);
 
 // Регистрация handlers
-rabbitMQServer.registerHandler("product-service.create", async (data) => {
+rpcServer.registerHandler("product-service.create", async (data) => {
   return await productService.create(data);
 });
 
-rabbitMQServer.registerHandler("product-service.getById", async (data) => {
+rpcServer.registerHandler("product-service.getById", async (data) => {
   return await productService.getById(data.id);
 });
 
-rabbitMQServer.registerHandler("product-service.findAll", async (data) => {
+rpcServer.registerHandler("product-service.findAll", async (data) => {
   return await productService.findAll(data);
 });
 
-rabbitMQServer.registerHandler("product-service.update", async (data) => {
+rpcServer.registerHandler("product-service.update", async (data) => {
   return await productService.update(data.id, data);
 });
 
-rabbitMQServer.registerHandler("product-service.delete", async (data) => {
+rpcServer.registerHandler("product-service.delete", async (data) => {
   return await productService.delete(data.id);
 });
 
@@ -48,10 +46,4 @@ rabbitMQServer.registerHandler("product-service.delete", async (data) => {
 const port = parseInt(process.env.PORT || "3000", 10);
 app.listen(port, () => {
   console.log(`product-service started on port ${port}`);
-});
-
-// Запуск RabbitMQ сервера
-rabbitMQServer.start().catch((error) => {
-  console.error("Failed to start RabbitMQ server:", error);
-  process.exit(1);
 });

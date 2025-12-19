@@ -1,0 +1,177 @@
+---
+title: "Kafka Headers Standardization"
+description: "Стандартизация Kafka headers для трассировки и контекста запросов"
+order: 6
+---
+
+# Kafka Headers Standardization
+
+Axion Stack использует стандартизированные Kafka headers для трассировки запросов через все сервисы и обеспечения контекста выполнения.
+
+## 📋 Стандартные Headers
+
+Все Kafka сообщения автоматически включают следующие headers:
+
+- `x-correlation-id` - уникальный ID для трассировки запроса через все сервисы
+- `x-causation-id` - ID сообщения, которое вызвало текущее (для event sourcing)
+- `x-user-id` - ID пользователя, инициировавшего запрос
+- `x-project-id` - ID проекта (опционально, для изоляции)
+- `x-request-id` - ID запроса (обычно совпадает с correlation-id)
+- `x-timestamp` - временная метка сообщения (Unix timestamp)
+
+## 🔧 Использование
+
+### Создание headers из RequestMetadata
+
+```typescript
+import { createKafkaHeaders } from "@axion/shared";
+import type { RequestMetadata } from "@axion/contracts";
+
+const metadata: RequestMetadata = {
+  userId: "user-123",
+  projectId: "project-456",
+  requestId: "req-789",
+  timestamp: Date.now(),
+};
+
+// Создать headers для отправки сообщения
+const headers = createKafkaHeaders(metadata);
+// {
+//   "x-correlation-id": "req-789",
+//   "x-causation-id": "req-789",
+//   "x-user-id": "user-123",
+//   "x-project-id": "project-456",
+//   "x-request-id": "req-789",
+//   "x-timestamp": "1234567890"
+// }
+
+// С causationId (когда сообщение вызвано другим сообщением)
+const headersWithCausation = createKafkaHeaders(
+  metadata,
+  "original-message-id"
+);
+```
+
+### Извлечение metadata из headers
+
+```typescript
+import { extractMetadataFromHeaders } from "@axion/shared";
+
+// В MessagePattern handler
+@MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+async createProject(
+  @Payload() data: CreateProjectRequest,
+  @Ctx() context: KafkaContext
+) {
+  // Извлечь metadata из Kafka headers
+  const kafkaMessage = context.getMessage();
+  const headers = kafkaMessage.headers || {};
+  const metadata = extractMetadataFromHeaders(headers);
+
+  // metadata теперь содержит userId, projectId, requestId, timestamp
+  // Использовать metadata для логирования и трассировки
+}
+```
+
+### Извлечение отдельных значений
+
+```typescript
+import {
+  getCorrelationIdFromHeaders,
+  getUserIdFromHeaders,
+  getProjectIdFromHeaders,
+  getCausationIdFromHeaders,
+} from "@axion/shared";
+
+const correlationId = getCorrelationIdFromHeaders(headers);
+const userId = getUserIdFromHeaders(headers);
+const projectId = getProjectIdFromHeaders(headers);
+const causationId = getCausationIdFromHeaders(headers);
+```
+
+## 🔄 Автоматическая передача headers
+
+При использовании `ClientProxy` для отправки сообщений, headers автоматически передаются через `RequestMetadata`:
+
+```typescript
+// В сервисе
+const response = await firstValueFrom(
+  this.graphClient.send(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT, {
+    metadata: data.metadata, // RequestMetadata уже содержит correlationId
+    name: "My Project",
+  })
+);
+```
+
+NestJS автоматически преобразует `metadata` в Kafka headers при отправке сообщения.
+
+## 📝 Best Practices
+
+1. **Всегда передавайте RequestMetadata** - это гарантирует наличие correlationId
+2. **Используйте causationId** - когда сообщение вызвано другим сообщением (event sourcing)
+3. **Логируйте correlationId** - для трассировки запросов через сервисы
+4. **Передавайте headers вниз** - при вызове других сервисов сохраняйте correlationId
+
+## 🔍 Пример полного flow
+
+```typescript
+// 1. HTTP запрос приходит в Graph Service
+@Post("projects")
+async createProject(
+  @AxionRequestMetadata() metadata: RequestMetadata, // correlationId уже есть
+  @Body() body: CreateProjectRequest
+) {
+  // metadata содержит correlationId из HTTP headers
+  return this.graphService.createProject({ metadata, ...body });
+}
+
+// 2. Graph Service вызывает Codegen Service через Kafka
+async generateProject(data: GenerateProjectRequest) {
+  // metadata передается автоматически, correlationId сохраняется
+  const response = await firstValueFrom(
+    this.codegenClient.send(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT, {
+      metadata: data.metadata, // correlationId передается дальше
+      projectId: data.projectId,
+    })
+  );
+}
+
+// 3. Codegen Service получает сообщение с headers
+@MessagePattern(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT)
+async generateProject(
+  @Payload() data: GenerateProjectRequest,
+  @Ctx() context: KafkaContext
+) {
+  // Извлечь correlationId из headers для логирования
+  const kafkaMessage = context.getMessage();
+  const headers = kafkaMessage.headers || {};
+  const correlationId = getCorrelationIdFromHeaders(headers);
+
+  this.logger.log(`[${correlationId}] Generating project ${data.projectId}`);
+  // ...
+}
+```
+
+## 🎯 Трассировка запросов
+
+С correlationId можно трассировать запрос через все сервисы:
+
+```bash
+# Логи всех сервисов будут содержать correlationId
+[req-789] Graph Service: Creating project
+[req-789] Codegen Service: Generating code
+[req-789] Deployment Service: Deploying project
+```
+
+Это позволяет:
+
+- Отслеживать полный путь запроса
+- Находить связанные логи в разных сервисах
+- Отлаживать проблемы в распределенной системе
+- Анализировать производительность end-to-end
+
+## 🔗 См. также
+
+- [Kafka Integration](./KAFKA_INTEGRATION.md) - базовая интеграция Kafka
+- [API Reference](./API_REFERENCE.mdx) - HTTP API документация
+- [Architecture](./ARCHITECTURE.mdx) - архитектура системы

@@ -9,6 +9,9 @@ import type { MicroserviceOptions } from "@nestjs/microservices";
 import { createKafkaServerOptions } from "@axion/shared";
 import { setupHttpContractLayer } from "../http/setup-http";
 
+import { setupSwagger, type SwaggerOptions } from "../swagger/setup-swagger";
+import { setupGracefulShutdown } from "./graceful-shutdown";
+
 export interface BootstrapOptions {
   /**
    * Service name (from @axion/contracts)
@@ -31,6 +34,11 @@ export interface BootstrapOptions {
    * If true, service will continue even if Kafka fails to start
    */
   kafkaOptional?: boolean;
+  /**
+   * Swagger/OpenAPI options (optional)
+   * If provided, Swagger documentation will be enabled
+   */
+  swagger?: SwaggerOptions | boolean;
 }
 
 /**
@@ -62,6 +70,23 @@ export async function bootstrapMicroservice(
   // Global HTTP layer for public API endpoints (contract → HTTP status, etc.)
   setupHttpContractLayer(app);
 
+  // Setup Swagger/OpenAPI documentation (if enabled)
+  if (options.swagger) {
+    const swaggerOptions =
+      typeof options.swagger === "boolean"
+        ? {
+            serviceName: options.serviceName,
+            apiVersion: "v1",
+            description: `${options.serviceName} API`,
+          }
+        : options.swagger;
+
+    setupSwagger(app, swaggerOptions);
+    logger.log(
+      `Swagger documentation available at http://localhost:${options.port ?? options.defaultPort ?? 3000}/api-docs`
+    );
+  }
+
   // Setup Kafka microservice
   const kafkaBrokers = options.kafkaBrokers;
   const kafkaOptional = options.kafkaOptional !== false; // default true
@@ -90,6 +115,9 @@ export async function bootstrapMicroservice(
       "Kafka brokers not provided - starting without Kafka microservice"
     );
   }
+
+  // Setup graceful shutdown
+  setupGracefulShutdown(app);
 
   // Start HTTP server
   const port = options.port ?? options.defaultPort ?? 3000;

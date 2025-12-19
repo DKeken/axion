@@ -79,7 +79,7 @@ docker-compose down -v
 - **Traefik** - `localhost:80` - edge routing (HTTP/WebSocket)
   - Dashboard: http://localhost:8080
 
-**Примечание:** Все микросервисы общаются через Kafka. RabbitMQ используется только в генерируемых сервисах клиентов.
+**Примечание:** Все микросервисы общаются через Kafka. Генерируемые сервисы клиентов используют HTTP RPC через внутренний IP Docker Swarm.
 
 ### Переменные окружения
 

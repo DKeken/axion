@@ -17,7 +17,7 @@ import type { ServiceComponents } from "@/codegen/types/factory.types";
 @Injectable()
 export class ServiceFactoryService extends BaseService {
   private static readonly DEFAULT_SERVICE_NAME = "service";
-  private static readonly DEFAULT_HEALTH_CHECKS = "database, rabbitmq";
+  private static readonly DEFAULT_HEALTH_CHECKS = "database";
 
   constructor(
     private readonly templateEngine: TemplateEngineService,
@@ -128,15 +128,24 @@ export class ServiceFactoryService extends BaseService {
     const messagingComponents =
       await this.messagingFactory.createMessagingComponents(serviceNode, graph);
     const messagingInit =
-      await this.messagingFactory.generateMessagingInitializationCode(
-        messagingComponents.server,
-        messagingComponents.client
+      this.messagingFactory.generateMessagingInitializationCode(
+        Boolean(messagingComponents.client)
       );
+
+    const messagingImports = [
+      `import { HttpRpcServer } from "./messaging/http-rpc-server";`,
+      messagingComponents.client
+        ? `import { HttpRpcClient } from "./messaging/http-rpc-client";`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const result = this.templateEngine.substituteVariables(template, {
       SERVICE_NAME: serviceName,
       SERVICE_NAME_PASCAL: serviceNamePascal,
-      IMPORTS: `import { ${serviceNamePascal}Module } from './modules/${serviceName}/${serviceName}.module';`,
+      IMPORTS: `${messagingImports}
+import { ${serviceNamePascal}Module } from './modules/${serviceName}/${serviceName}.module';`,
       SERVICES_INIT: `${databaseInit}\n\n${messagingInit}`,
       HANDLERS_REGISTRATION: `// Register handlers for ${serviceName}`,
     });

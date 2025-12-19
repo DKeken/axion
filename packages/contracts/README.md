@@ -50,45 +50,42 @@ This approach avoids hardcoding paths in `node_modules` and works reliably acros
 
 ### In NestJS Microservice
 
-#### Client Configuration
+#### Client Configuration (Kafka)
 
 ```typescript
 import { ClientsModule } from "@nestjs/microservices";
-import {
-  GRAPH_SERVICE_NAME,
-  createRabbitMQClientOptions,
-} from "@axion/contracts";
+import { GRAPH_SERVICE_NAME } from "@axion/contracts";
+import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
 
 @Module({
   imports: [
-    ClientsModule.register([
-      createRabbitMQClientOptions(
-        GRAPH_SERVICE_NAME,
-        process.env.RABBITMQ_URL!
-      ),
+    ClientsModule.registerAsync([
+      {
+        name: GRAPH_SERVICE_NAME,
+        useFactory: () =>
+          createKafkaClientOptions(
+            GRAPH_SERVICE_NAME,
+            parseKafkaBrokers(process.env.KAFKA_BROKERS, "kafka:9092")
+          ),
+      },
     ]),
   ],
 })
 export class AppModule {}
 ```
 
-#### Server Configuration
+#### Server Configuration (Kafka + HTTP)
 
 ```typescript
-import { NestFactory } from "@nestjs/core";
-import { createRabbitMQServerOptions } from "@axion/contracts";
+import { bootstrapMicroservice } from "@axion/nestjs-common";
+import { GRAPH_SERVICE_NAME } from "@axion/contracts";
+import { AppModule } from "./app.module";
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  app.connectMicroservice(
-    createRabbitMQServerOptions("graph-service", process.env.RABBITMQ_URL!)
-  );
-
-  await app.startAllMicroservices();
-  await app.listen(3000);
-}
-bootstrap();
+bootstrapMicroservice(AppModule, {
+  serviceName: GRAPH_SERVICE_NAME,
+  defaultPort: 3000,
+  kafkaBrokers: process.env.KAFKA_BROKERS,
+});
 ```
 
 #### Using MessagePattern Constants

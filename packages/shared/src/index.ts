@@ -16,3 +16,6 @@ export * from "./utils/index";
 
 // Export base services
 export * from "./services/base-service";
+
+// Export Kafka utilities
+export * from "./kafka";

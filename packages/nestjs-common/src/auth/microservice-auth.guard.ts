@@ -13,7 +13,7 @@ import { ModuleRef } from "@nestjs/core";
 import type { betterAuth } from "better-auth";
 
 /**
- * Auth Guard for Kafka/RabbitMQ microservices
+ * Auth Guard for Kafka microservices
  * Validates user session using Better Auth
  *
  * For microservices architecture:
@@ -65,7 +65,7 @@ export class MicroserviceAuthGuard implements CanActivate {
       return true;
     }
 
-    // For Kafka/RabbitMQ microservices, get data from RPC context
+    // For Kafka microservices, get data from RPC context
     const rpcContext = context.switchToRpc();
     const data = rpcContext.getData();
 

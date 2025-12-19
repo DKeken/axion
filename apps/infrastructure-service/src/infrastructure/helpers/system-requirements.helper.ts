@@ -7,7 +7,7 @@ export type SystemRequirementsInput = {
   averageDiskGb?: number;
   replicas?: number;
   overheadPercent?: number;
-  serverInfo?: ServerInfo;
+  serverInfo?: Partial<ServerInfo>;
 };
 
 export type SystemRequirementsResult = {
@@ -108,10 +108,3 @@ function round(value: number, precision: number) {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
 }
-
-
-
-
-
-
-

@@ -27,15 +27,15 @@ order: 1
 ```
 apps/_services/product-service/
 ├── src/
-│   ├── main.ts                    # ← main-entry.md
-│   ├── messaging/server.ts        # ← rabbitmq-server.md
+│   ├── main.ts                    # ← main-entry.mdx
+│   ├── messaging/http-rpc-server.ts # ← http-rpc-server.mdx
 │   ├── database/
-│   │   ├── connection.ts          # ← database/base/connection.md
-│   │   ├── schema.ts               # ← drizzle/schema.md
-│   │   └── repository.ts          # ← drizzle/repository.md
+│   │   ├── connection.ts          # ← database/base/connection.mdx
+│   │   ├── schema.ts               # ← drizzle/schema.mdx
+│   │   └── repository.ts          # ← drizzle/repository.mdx
 │   ├── modules/product/
 │   │   └── product.service.ts     # ← LLM сгенерировал
-│   └── health/health.check.ts     # ← health-check.md
+│   └── health/health.check.ts     # ← health-check.mdx
 └── proto/product.proto            # ← Автоматически
 ```
 
@@ -43,9 +43,9 @@ apps/_services/product-service/
 
 В этой папке находятся примеры сгенерированного кода:
 
-- **`main.ts`** — точка входа сервиса (сгенерировано из `main-entry.md`)
+- **`main.ts`** — точка входа сервиса (сгенерировано из `main-entry.mdx`)
 - **`product.service.ts`** — бизнес-логика (сгенерировано LLM)
-- **`schema.ts`** — схема базы данных (сгенерировано из `drizzle/schema.md`)
+- **`schema.ts`** — схема базы данных (сгенерировано из `drizzle/schema.mdx`)
 
 Все эти файлы демонстрируют результат работы системы генерации кода из графа.
 

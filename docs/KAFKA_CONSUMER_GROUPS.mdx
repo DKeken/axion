@@ -1,0 +1,549 @@
+---
+title: "Kafka Consumer Groups & Advanced Error Handling"
+description: "Продвинутая обработка ошибок, ретраи и идемпотентность для Kafka consumer groups"
+order: 14
+---
+
+# Kafka Consumer Groups & Advanced Error Handling
+
+Axion Stack использует Kafka Consumer Groups для масштабируемой обработки сообщений. Этот документ описывает продвинутые стратегии обработки ошибок, ретраи, идемпотентность и backpressure.
+
+## 📋 Consumer Groups Overview
+
+### Базовая концепция
+
+Consumer Groups позволяют:
+
+- **Горизонтальное масштабирование** - несколько инстансов сервиса работают параллельно
+- **Балансировка нагрузки** - Kafka автоматически распределяет партиции между consumer'ами
+- **Fault tolerance** - если consumer падает, его партиции перераспределяются
+
+### Конфигурация Consumer Group
+
+```typescript
+// packages/nestjs-common/src/kafka/client-helpers.ts
+import { Kafka, ConsumerConfig } from "kafkajs";
+
+export function createConsumerConfig(
+  serviceName: string,
+  groupId?: string
+): ConsumerConfig {
+  return {
+    groupId: groupId || `${serviceName}-group`,
+    sessionTimeout: 30000, // 30 seconds
+    heartbeatInterval: 3000, // 3 seconds
+    maxBytesPerPartition: 1048576, // 1 MB
+    maxBytes: 10485760, // 10 MB total
+    maxWaitTimeInMs: 5000, // 5 seconds
+  };
+}
+```
+
+## 🔄 Retry Policies
+
+### Immediate Retry vs Delayed Retry
+
+#### Immediate Retry (Transient Errors)
+
+Для временных ошибок (сеть, таймауты):
+
+```typescript
+// packages/shared/src/kafka/retry-policy.ts
+export interface RetryPolicy {
+  maxAttempts: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  multiplier: number;
+  retryableErrors: string[]; // Error codes that should be retried
+}
+
+export const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 3,
+  initialDelayMs: 100,
+  maxDelayMs: 5000,
+  multiplier: 2,
+  retryableErrors: ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "TEMPORARY_ERROR"],
+};
+
+export function shouldRetry(
+  error: Error,
+  attempt: number,
+  policy: RetryPolicy = DEFAULT_RETRY_POLICY
+): boolean {
+  if (attempt >= policy.maxAttempts) {
+    return false;
+  }
+
+  // Проверяем, является ли ошибка retryable
+  const isRetryableError = policy.retryableErrors.some((code) =>
+    error.message.includes(code)
+  );
+
+  if (!isRetryableError) {
+    return false;
+  }
+
+  return true;
+}
+
+export function getRetryDelay(
+  attempt: number,
+  policy: RetryPolicy = DEFAULT_RETRY_POLICY
+): number {
+  const delay = Math.min(
+    policy.initialDelayMs * Math.pow(policy.multiplier, attempt),
+    policy.maxDelayMs
+  );
+
+  // Добавляем jitter для избежания thundering herd
+  const jitter = Math.random() * 0.3 * delay;
+  return Math.floor(delay + jitter);
+}
+```
+
+#### Delayed Retry Topic (Permanent Errors)
+
+Для ошибок, которые требуют повторной обработки позже:
+
+```typescript
+// packages/shared/src/kafka/delayed-retry.ts
+export interface DelayedRetryConfig {
+  retryTopics: string[]; // Topics для delayed retry (например, ["retry-1m", "retry-5m", "retry-1h"])
+  maxRetries: number;
+}
+
+/**
+ * Отправляет сообщение в delayed retry topic
+ */
+export async function sendToDelayedRetry(
+  producer: Producer,
+  originalTopic: string,
+  message: KafkaMessage,
+  retryLevel: number,
+  config: DelayedRetryConfig
+): Promise<void> {
+  if (retryLevel >= config.maxRetries) {
+    // Отправляем в DLQ
+    return sendToDLQ(producer, originalTopic, message, "Max retries exceeded");
+  }
+
+  const retryTopic = config.retryTopics[retryLevel];
+  if (!retryTopic) {
+    throw new Error(`Invalid retry level: ${retryLevel}`);
+  }
+
+  await producer.send({
+    topic: retryTopic,
+    messages: [
+      {
+        key: message.key,
+        value: message.value,
+        headers: {
+          ...message.headers,
+          "x-original-topic": originalTopic,
+          "x-retry-level": retryLevel.toString(),
+          "x-retry-attempt": (
+            (message.headers?.["x-retry-attempt"] as number) || 0 + 1
+          ).toString(),
+        },
+      },
+    ],
+  });
+}
+```
+
+### Retry Interceptor
+
+```typescript
+// packages/nestjs-common/src/kafka/retry-interceptor.ts
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from "@nestjs/common";
+import { Observable, throwError } from "rxjs";
+import {
+  catchError,
+  retry,
+  retryWhen,
+  delay,
+  take,
+  mergeMap,
+} from "rxjs/operators";
+import {
+  shouldRetry,
+  getRetryDelay,
+  DEFAULT_RETRY_POLICY,
+} from "@axion/shared/kafka/retry-policy";
+
+@Injectable()
+export class KafkaRetryInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(
+      catchError((error) => {
+        const ctx = context.switchToRpc();
+        const metadata = ctx.getContext();
+        const attempt = parseInt(
+          metadata?.headers?.["x-retry-attempt"] || "0",
+          10
+        );
+
+        if (shouldRetry(error, attempt, DEFAULT_RETRY_POLICY)) {
+          const delayMs = getRetryDelay(attempt, DEFAULT_RETRY_POLICY);
+
+          return throwError(() => error).pipe(
+            delay(delayMs),
+            retry(1) // Retry once with delay
+          );
+        }
+
+        // Не retryable ошибка - пробрасываем дальше (пойдет в DLQ)
+        return throwError(() => error);
+      })
+    );
+  }
+}
+```
+
+## 🔒 Idempotency & Deduplication
+
+### At-Least-Once Semantics
+
+Kafka гарантирует at-least-once доставку. Для обеспечения идемпотентности нужна дедупликация.
+
+### Deduplication Key
+
+```typescript
+// packages/shared/src/kafka/idempotency.ts
+import { createHash } from "crypto";
+
+export interface IdempotencyKey {
+  topic: string;
+  partition: number;
+  offset: string;
+  correlationId?: string;
+  causationId?: string;
+}
+
+/**
+ * Генерирует deduplication key из Kafka message
+ */
+export function generateDeduplicationKey(
+  topic: string,
+  partition: number,
+  offset: string,
+  correlationId?: string,
+  causationId?: string
+): string {
+  const key: IdempotencyKey = {
+    topic,
+    partition,
+    offset,
+    correlationId,
+    causationId,
+  };
+
+  const hash = createHash("sha256").update(JSON.stringify(key)).digest("hex");
+
+  return hash;
+}
+
+/**
+ * Проверяет, был ли message уже обработан
+ */
+export async function isMessageProcessed(
+  redis: Redis,
+  deduplicationKey: string,
+  ttlSeconds: number = 86400 // 24 hours
+): Promise<boolean> {
+  const key = `kafka:dedupe:${deduplicationKey}`;
+  const exists = await redis.exists(key);
+
+  if (exists) {
+    return true; // Message already processed
+  }
+
+  // Помечаем как обработанный
+  await redis.setex(key, ttlSeconds, "1");
+  return false;
+}
+```
+
+### Idempotency Interceptor
+
+```typescript
+// packages/nestjs-common/src/kafka/idempotency-interceptor.ts
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from "@nestjs/common";
+import { Observable, throwError } from "rxjs";
+import {
+  isMessageProcessed,
+  generateDeduplicationKey,
+} from "@axion/shared/kafka/idempotency";
+import { convertKafkaHeaders } from "@axion/shared/kafka/headers-converter";
+
+@Injectable()
+export class KafkaIdempotencyInterceptor implements NestInterceptor {
+  constructor(private readonly redis: Redis) {}
+
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Promise<Observable<any>> {
+    const ctx = context.switchToRpc();
+    const kafkaContext = ctx.getContext() as KafkaContext;
+    const message = kafkaContext.getMessage();
+
+    const topic = kafkaContext.getTopic();
+    const partition = kafkaContext.getPartition();
+    const offset = message.offset;
+
+    const headers = convertKafkaHeaders(message.headers);
+    const correlationId = headers["x-correlation-id"] as string | undefined;
+    const causationId = headers["x-causation-id"] as string | undefined;
+
+    const deduplicationKey = generateDeduplicationKey(
+      topic,
+      partition,
+      offset,
+      correlationId,
+      causationId
+    );
+
+    const alreadyProcessed = await isMessageProcessed(
+      this.redis,
+      deduplicationKey
+    );
+
+    if (alreadyProcessed) {
+      // Message уже обработан - возвращаем cached результат или просто acknowledge
+      // В зависимости от бизнес-логики, можно вернуть cached response или просто завершить успешно
+      return new Observable((observer) => {
+        observer.next({ idempotent: true, message: "Already processed" });
+        observer.complete();
+      });
+    }
+
+    // Обрабатываем message
+    return next.handle();
+  }
+}
+```
+
+## 🚦 Backpressure & Concurrency Limits
+
+### Handler-Level Concurrency
+
+```typescript
+// packages/nestjs-common/src/kafka/concurrency-limiter.ts
+import { Injectable } from "@nestjs/common";
+import { Semaphore } from "async-mutex";
+
+export interface ConcurrencyConfig {
+  maxConcurrentHandlers: number;
+  queueSize?: number;
+}
+
+@Injectable()
+export class KafkaConcurrencyLimiter {
+  private semaphores = new Map<string, Semaphore>();
+
+  async acquire(
+    handlerName: string,
+    config: ConcurrencyConfig
+  ): Promise<() => void> {
+    if (!this.semaphores.has(handlerName)) {
+      this.semaphores.set(
+        handlerName,
+        new Semaphore(config.maxConcurrentHandlers)
+      );
+    }
+
+    const semaphore = this.semaphores.get(handlerName)!;
+    const [value, release] = await semaphore.acquire();
+
+    return release;
+  }
+}
+```
+
+### Backpressure Interceptor
+
+```typescript
+// packages/nestjs-common/src/kafka/backpressure-interceptor.ts
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from "@nestjs/common";
+import { Observable, throwError } from "rxjs";
+import { KafkaConcurrencyLimiter } from "./concurrency-limiter";
+
+@Injectable()
+export class KafkaBackpressureInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(KafkaBackpressureInterceptor.name);
+
+  constructor(private readonly concurrencyLimiter: KafkaConcurrencyLimiter) {}
+
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Promise<Observable<any>> {
+    const handler = context.getHandler();
+    const handlerName = handler.name;
+
+    const config = {
+      maxConcurrentHandlers: parseInt(
+        process.env.KAFKA_MAX_CONCURRENT_HANDLERS || "10",
+        10
+      ),
+    };
+
+    try {
+      const release = await this.concurrencyLimiter.acquire(
+        handlerName,
+        config
+      );
+
+      return new Observable((observer) => {
+        next.handle().subscribe({
+          next: (value) => {
+            release();
+            observer.next(value);
+          },
+          error: (error) => {
+            release();
+            observer.error(error);
+          },
+          complete: () => {
+            observer.complete();
+          },
+        });
+      });
+    } catch (error) {
+      this.logger.warn(`Concurrency limit exceeded for ${handlerName}`);
+      return throwError(() => new Error("Concurrency limit exceeded"));
+    }
+  }
+}
+```
+
+## 📊 Audit & Metrics
+
+### Lag Monitoring
+
+```typescript
+// packages/nestjs-common/src/kafka/lag-monitor.ts
+import { Consumer } from "kafkajs";
+import { Logger } from "@nestjs/common";
+
+export interface LagMetrics {
+  groupId: string;
+  topic: string;
+  partition: number;
+  lag: number;
+  currentOffset: number;
+  highWatermark: number;
+}
+
+export async function getConsumerLag(
+  consumer: Consumer,
+  groupId: string
+): Promise<LagMetrics[]> {
+  const admin = consumer.adminClient;
+  const topics = await admin.listTopics();
+
+  const metrics: LagMetrics[] = [];
+
+  for (const topic of topics) {
+    const partitions = await admin.fetchTopicOffsets(topic);
+    const groupOffsets = await admin.fetchOffsets({
+      groupId,
+      topics: [{ topic }],
+    });
+
+    for (const partition of partitions) {
+      const groupOffset = groupOffsets.find(
+        (o) => o.topic === topic && o.partition === partition.partition
+      );
+
+      if (groupOffset) {
+        const lag = partition.offset - groupOffset.offset;
+        metrics.push({
+          groupId,
+          topic,
+          partition: partition.partition,
+          lag,
+          currentOffset: groupOffset.offset,
+          highWatermark: partition.offset,
+        });
+      }
+    }
+  }
+
+  return metrics;
+}
+```
+
+### Error Rate Monitoring
+
+```typescript
+// packages/nestjs-common/src/kafka/error-metrics.ts
+import { Counter, Histogram } from "prom-client";
+
+export const kafkaMessageCounter = new Counter({
+  name: "kafka_messages_total",
+  help: "Total number of Kafka messages processed",
+  labelNames: ["topic", "group_id", "status"], // status: success, error, dlq
+});
+
+export const kafkaProcessingDuration = new Histogram({
+  name: "kafka_processing_duration_seconds",
+  help: "Duration of Kafka message processing",
+  labelNames: ["topic", "group_id"],
+  buckets: [0.1, 0.5, 1, 5, 10, 30, 60],
+});
+
+export function recordMessageProcessed(
+  topic: string,
+  groupId: string,
+  status: "success" | "error" | "dlq",
+  duration?: number
+): void {
+  kafkaMessageCounter.inc({ topic, group_id: groupId, status });
+
+  if (duration !== undefined) {
+    kafkaProcessingDuration.observe({ topic, group_id: groupId }, duration);
+  }
+}
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Kafka Consumer Configuration
+KAFKA_MAX_CONCURRENT_HANDLERS=10
+KAFKA_RETRY_MAX_ATTEMPTS=3
+KAFKA_RETRY_INITIAL_DELAY_MS=100
+KAFKA_RETRY_MAX_DELAY_MS=5000
+KAFKA_IDEMPOTENCY_TTL_SECONDS=86400
+
+# Delayed Retry Topics (comma-separated)
+KAFKA_DELAYED_RETRY_TOPICS=retry-1m,retry-5m,retry-1h
+KAFKA_MAX_DELAYED_RETRIES=3
+```
+
+## 🔗 См. также
+
+- [Kafka Headers](./KAFKA_HEADERS.mdx) - стандартизация headers
+- [Kafka DLQ](./KAFKA_DLQ.mdx) - Dead Letter Queue стратегия
+- [API Reference](./API_REFERENCE.mdx) - HTTP API документация

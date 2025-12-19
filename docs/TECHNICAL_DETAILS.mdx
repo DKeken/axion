@@ -37,7 +37,7 @@ order: 3
 **Уровни изоляции:**
 
 1. **Database Level** — `project_id` во всех таблицах, автоматическая фильтрация всех запросов
-2. **Network Level** — отдельные Docker сети, RabbitMQ vhost для каждого проекта
+2. **Network Level** — отдельные Docker сети для каждого проекта
 3. **Resource Level** — CPU/Memory limits на уровне Docker, отдельные Redis databases
 4. **Code Level** — код в `generated/{project_id}/`, каждый проект = отдельная монорепа
 
@@ -53,7 +53,7 @@ order: 3
 
 - Docker Compose генерирует изолированную сеть `axion-project-{project_id}`
 - Сервисы одного проекта не видят сервисы других проектов
-- RabbitMQ использует виртуальные хосты (vhost) для изоляции очередей
+- HTTP RPC общение происходит внутри изолированной Docker сети
 
 **Resource Isolation:**
 
@@ -297,7 +297,7 @@ Infrastructure Service → PostgreSQL (servers) → SSH Service → Client Serve
 Для генерируемых сервисов используется легковесный подход:
 
 - **ElysiaJS или Hono** — минималистичные HTTP фреймворки
-- **RabbitMQ** — для межсервисного общения (не нужен тяжелый NestJS microservices)
+- **HTTP RPC** — для межсервисного общения через внутренний IP Docker Swarm (DNS по имени сервиса)
 - **Drizzle ORM** — легковесная работа с БД
 - **Protobuf** — типобезопасные контракты
 
@@ -307,7 +307,7 @@ Infrastructure Service → PostgreSQL (servers) → SSH Service → Client Serve
 src/
 ├── main.ts              # Точка входа (Elysia/Hono app)
 ├── config/              # Конфигурация (env variables)
-├── messaging/           # RabbitMQ клиент/сервер
+├── messaging/           # HTTP RPC клиент/сервер
 │   ├── client.ts        # Клиент для вызова других сервисов
 │   ├── server.ts        # Сервер для обработки запросов
 │   └── contracts.ts     # Protobuf контракты
@@ -318,7 +318,7 @@ src/
 ├── modules/             # Бизнес-логика
 │   └── {entity}/        # Модуль сущности
 │       ├── {entity}.service.ts  # LLM генерит ТОЛЬКО это
-│       └── {entity}.handler.ts  # RabbitMQ handlers (автоматически)
+│       └── {entity}.handler.ts  # HTTP RPC handlers (автоматически)
 └── health/              # Health checks
     └── health.check.ts  # Health endpoint
 ```

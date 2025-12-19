@@ -57,7 +57,7 @@ Axion — это мета-фреймворк нового поколения, г
 │  │  ┌─────────────────────────────────────────────────────────┐  │  │
 │  │  │  React Flow Visual Editor                                │  │  │
 │  │  │  - Drag & Drop сервисов                                  │  │  │
-│  │  │  - Визуальные связи (RabbitMQ, HTTP, DB)                 │  │  │
+│  │  │  - Визуальные связи (HTTP RPC, HTTP, DB)                 │  │  │
 │  │  │  - Контекстное меню для создания                         │  │  │
 │  │  │  - Real-time синхронизация                                │  │  │
 │  │  └─────────────────────────────────────────────────────────┘  │  │
@@ -298,7 +298,7 @@ interface AxionGraph {
     id: string;
     source: string; // node_id источника
     target: string; // node_id цели
-    type: 'rabbitmq' | 'http' | 'database';
+    type: 'http' | 'database';
   }>;
 }
 
@@ -416,7 +416,6 @@ interface ServiceBlueprint {
       uiForm: UISchemaForm; // Форма для пользователя
     };
     cache?: { type: "redis"; enabled: boolean };
-    queue?: { type: "rabbitmq"; enabled: boolean };
   };
 
   // Контракты (генерируются автоматически)
@@ -653,7 +652,7 @@ async function generateServiceFromBlueprint(
 
       **docker-compose.yml:**
       - Все сервисы из графа
-      - Инфраструктура (PostgreSQL, Redis, RabbitMQ) если нужна
+      - Инфраструктура (PostgreSQL, Redis) если нужна
       - Сети из edges
 
    2. Генерит контракты в @repo/contracts:
@@ -1059,7 +1058,7 @@ async function checkProjectAccess(
 
 | Паттерн               | Описание                                  | Применение                               |
 | --------------------- | ----------------------------------------- | ---------------------------------------- |
-| **Retry**             | Exponential backoff для повторных попыток | Внешние зависимости (БД, RabbitMQ, API)  |
+| **Retry**             | Exponential backoff для повторных попыток | Внешние зависимости (БД, HTTP API)       |
 | **Circuit Breaker**   | Защита от каскадных сбоев                 | При проблемах с внешними сервисами       |
 | **Timeout**           | Ограничение времени выполнения            | Все асинхронные операции                 |
 | **Fallback**          | Альтернативные стратегии при сбое         | БД недоступна → использовать кеш         |
@@ -1087,7 +1086,7 @@ async function checkProjectAccess(
     {
       source: 'node-1',
       target: 'node-2',
-      type: 'rabbitmq',
+      type: 'http',
     },
   ],
 }
@@ -1101,15 +1100,9 @@ for (const edge of outgoingEdges) {
   const targetNode = graph.nodes.find(n => n.id === edge.target);
   const targetServiceName = targetNode.data.serviceName;
 
-  // 3. Генерит клиент в app.module.ts:
-  // ClientsModule.register([{
-  //   name: `${targetServiceName.toUpperCase()}_SERVICE`,
-  //   transport: Transport.RMQ,
-  //   options: {
-  //     urls: [process.env.RABBITMQ_URL],
-  //     queue: `axion.${'{'}targetServiceName{'}'}.service`,
-  //   },
-  // }])
+  // 3. Генерит HTTP RPC client, который вызывает сервис по адресу внутри Docker/Swarm:
+  //   baseUrl = process.env[`${TARGET_SERVICE}_URL`] ?? `http://${targetServiceName}:3000`
+  //   POST `${baseUrl}/rpc/<pattern>`
 }
 
 // 4. Генерит контракты с учетом связей
@@ -1480,7 +1473,7 @@ axion-stack/
 | ---------------- | ------------------------------ | ------------------------------ |
 | **Фреймворк**    | NestJS Microservices           | ElysiaJS/Hono (легковесный)    |
 | **Edge routing** | Traefik                        | Traefik (на стороне деплоя)    |
-| **Event Bus**    | Kafka                          | RabbitMQ                       |
+| **Event Bus**    | Kafka                          | HTTP RPC (Docker Swarm)        |
 | **База данных**  | Multiple PostgreSQL (Drizzle)  | Одна БД на сервис (Drizzle)    |
 | **Контракты**    | Protobuf                       | Protobuf                       |
 | **Auth**         | Better Auth                    | Не требуется                   |

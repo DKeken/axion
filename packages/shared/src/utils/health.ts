@@ -93,20 +93,6 @@ export function createDatabaseHealthDependency(
   );
 }
 
-export function createRabbitMQHealthDependency(
-  connected: boolean,
-  responseTimeMs?: number
-): HealthCheckDependency {
-  return createHealthDependency(
-    "rabbitmq",
-    connected
-      ? HealthStatus.HEALTH_STATUS_HEALTHY
-      : HealthStatus.HEALTH_STATUS_UNHEALTHY,
-    connected ? "Connected" : "Disconnected",
-    responseTimeMs
-  );
-}
-
 export function createRedisHealthDependency(
   connected: boolean,
   responseTimeMs?: number

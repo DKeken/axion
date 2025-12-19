@@ -26,9 +26,8 @@
     "@nestjs/core": "catalog:",
     "@nestjs/microservices": "catalog:",
     "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
     "@nestjs/bullmq": "^10.0.1",
-    "amqp-connection-manager": "catalog:",
-    "amqplib": "catalog:",
     "bullmq": "catalog:",
     "drizzle-orm": "catalog:",
     "js-yaml": "^4.1.1",
@@ -36,12 +35,13 @@
     "postgres": "catalog:",
     "zod": "catalog:",
     "reflect-metadata": "catalog:",
-    "rxjs": "catalog:"
+    "rxjs": "catalog:",
+    "class-validator": "catalog:",
+    "class-transformer": "catalog:"
   },
   "devDependencies": {
     "@axion-stack/eslint-config": "workspace:*",
     "@axion-stack/typescript-config": "workspace:*",
-    "@types/amqplib": "catalog:",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",

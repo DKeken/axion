@@ -84,8 +84,8 @@ export interface ValidationResult {
 ```typescript
 export enum ComponentType {
   MAIN_ENTRY = "main-entry",
-  RABBITMQ_SERVER = "rabbitmq-server",
-  RABBITMQ_CLIENT = "rabbitmq-client",
+  HTTP_RPC_SERVER = "http-rpc-server",
+  HTTP_RPC_CLIENT = "http-rpc-client",
   HEALTH_CHECK = "health-check",
   REPOSITORY = "repository",
   DRIZZLE_SCHEMA = "drizzle-schema",
@@ -101,7 +101,7 @@ export enum ComponentType {
 export const REQUIRED_COMPONENTS: Record<BlueprintType, ComponentType[]> = {
   [BlueprintType.SERVICE]: [
     ComponentType.MAIN_ENTRY,
-    ComponentType.RABBITMQ_SERVER,
+    ComponentType.HTTP_RPC_SERVER,
     ComponentType.HEALTH_CHECK,
     // БД компоненты добавляются опционально через database node
   ],
@@ -334,7 +334,7 @@ export const FRAMEWORK_BY_BLUEPRINT: Record<BlueprintType, FrameworkType> = {
 ```typescript
 export const DEFAULT_CONFIG = {
   PORT: 3000,
-  RABBITMQ_QUEUE_PREFIX: "axion",
+  RPC_PATH_PREFIX: "/rpc",
   HEALTH_CHECK_INTERVAL: 30000, // 30 seconds
   CIRCUIT_BREAKER_THRESHOLD: 5,
   CIRCUIT_BREAKER_TIMEOUT: 60000, // 1 minute

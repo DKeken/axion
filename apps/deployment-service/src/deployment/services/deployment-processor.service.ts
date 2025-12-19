@@ -115,14 +115,14 @@ export class DeploymentProcessor extends WorkerHost {
               deploymentId
             );
 
-          if (!statusResponse?.data) {
+          if (!statusResponse) {
             // No data - backoff and retry
           } else {
             const {
               status: agentStatus,
               serviceStatuses,
               progressPercent,
-            } = statusResponse.data;
+            } = statusResponse;
 
             if (typeof progressPercent === "number") {
               await job.updateProgress(progressPercent);

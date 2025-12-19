@@ -44,7 +44,7 @@ axion-stack/
 **Generated Services:**
 
 - ElysiaJS/Hono
-- RabbitMQ
+- HTTP RPC (внутренний IP Docker Swarm)
 - Protobuf
 
 **Frontend:**
@@ -77,6 +77,16 @@ cd axion-stack
 # Установить зависимости
 bun install
 
+# Проверить конфигурацию окружения
+bun run check:env
+
+# Скопировать шаблоны .env (если нужно)
+cp templates/env/.env.example apps/graph-service/.env
+cp templates/env/.env.example apps/codegen-service/.env
+# ... и т.д.
+
+# Заполнить значения в .env файлах
+
 # Запустить инфраструктуру (Kafka, PostgreSQL, Traefik)
 bun run docker:infra
 
@@ -98,6 +108,9 @@ bun run type-check
 
 # Линтинг
 bun run lint
+
+# Проверка конфигурации окружения
+bun run check:env
 
 # Форматирование
 bun run format

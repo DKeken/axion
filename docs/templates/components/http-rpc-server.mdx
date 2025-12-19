@@ -1,0 +1,86 @@
+---
+title: "Component: HTTP RPC Server"
+description: "HTTP RPC router для обработки межсервисных вызовов внутри Docker/Swarm."
+order: 6
+---
+
+# Component: HTTP RPC Server
+
+## Код
+
+```typescript
+// src/messaging/http-rpc-server.ts
+import type { Elysia } from "elysia";
+
+import {
+  createError,
+  createErrorResponse,
+  createNotFoundError,
+  createSuccessResponse,
+  ErrorCode,
+  type ResponseWithOneof,
+} from "@axion/contracts";
+
+export type RpcHandler = (
+  data: unknown
+) =>
+  | unknown
+  | ResponseWithOneof<unknown>
+  | Promise<unknown | ResponseWithOneof<unknown>>;
+
+export class HttpRpcServer {
+  private readonly handlers = new Map<string, RpcHandler>();
+
+  constructor(
+    private readonly config: {
+      pathPrefix?: string;
+    } = {}
+  ) {}
+
+  registerHandler(pattern: string, handler: RpcHandler) {
+    this.handlers.set(pattern, handler);
+  }
+
+  private isResponseWithOneof(
+    value: unknown
+  ): value is ResponseWithOneof<unknown> {
+    // Contract envelope always has numeric `status` enum (protobuf).
+    return (
+      !!value &&
+      typeof value === "object" &&
+      "status" in value &&
+      typeof (value as { status?: unknown }).status === "number"
+    );
+  }
+
+  attach(app: Elysia) {
+    const prefix = this.config.pathPrefix ?? "{RPC_PATH_PREFIX}";
+
+    app.post(`${prefix}/:pattern`, async ({ params, body, set }) => {
+      const pattern = params.pattern;
+      const handler = this.handlers.get(pattern);
+
+      if (!handler) {
+        // For RPC we prefer a consistent 200 + contract envelope over varying HTTP statuses.
+        // (Client can still fail fast on network/infra errors via non-2xx.)
+        set.status = 200;
+        return createErrorResponse(createNotFoundError("RpcHandler", pattern));
+      }
+
+      try {
+        const result = await handler(body);
+        if (this.isResponseWithOneof(result)) return result;
+        // Never return `data: undefined` because `extractData()` treats it as missing data.
+        return createSuccessResponse(result ?? null);
+      } catch (error) {
+        set.status = 200;
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        return createErrorResponse(
+          createError(ErrorCode.INTERNAL_ERROR, message)
+        );
+      }
+    });
+  }
+}
+```

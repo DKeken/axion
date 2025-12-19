@@ -1,9 +1,4 @@
-import {
-  type GraphData,
-  type Node,
-  NodeType,
-  EdgeType,
-} from "@axion/contracts";
+import { type GraphData, type Node, NodeType } from "@axion/contracts";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
@@ -45,8 +40,6 @@ export class ProtobufContractGeneratorService extends BaseService {
         try {
           const serviceName = this.extractServiceName(node);
           const protoContent = await this.generateServiceProto(
-            node,
-            graph,
             projectName,
             serviceName
           );
@@ -73,24 +66,15 @@ export class ProtobufContractGeneratorService extends BaseService {
    */
   @CatchError({ operation: "generating service proto contract" })
   private async generateServiceProto(
-    serviceNode: Node,
-    graph: GraphData,
     projectName: string,
     serviceName: string
   ): Promise<string> {
     const packageName = `${ProtobufContractGeneratorService.DEFAULT_PACKAGE}.${this.toSnakeCase(projectName)}`;
     const serviceNamePascal = this.toPascalCase(serviceName);
 
-    // Находим все edges, связанные с этим сервисом
-    const incomingEdges =
-      graph.edges?.filter((edge) => edge.target === serviceNode.id) || [];
-
     // Генерируем сообщения для запросов и ответов
     const messages = this.generateMessages(serviceNamePascal);
-    const serviceDefinition = this.generateServiceDefinition(
-      serviceNamePascal,
-      incomingEdges
-    );
+    const serviceDefinition = this.generateServiceDefinition(serviceNamePascal);
 
     // Собираем proto файл
     const protoContent = `syntax = "${ProtobufContractGeneratorService.PROTO_SYNTAX}";
@@ -163,10 +147,7 @@ message List${serviceNamePascal}sResponse {
   /**
    * Генерирует определение сервиса с методами
    */
-  private generateServiceDefinition(
-    serviceNamePascal: string,
-    edges: Array<{ id: string; type: EdgeType; source: string; target: string }>
-  ): string {
+  private generateServiceDefinition(serviceNamePascal: string): string {
     const methods: string[] = [];
 
     // Базовые CRUD методы
@@ -178,17 +159,6 @@ message List${serviceNamePascal}sResponse {
   rpc Delete${serviceNamePascal}(Delete${serviceNamePascal}Request) returns (google.protobuf.Empty);
   rpc List${serviceNamePascal}s(List${serviceNamePascal}sRequest) returns (List${serviceNamePascal}sResponse);`
     );
-
-    // Добавляем методы на основе edges (если есть специфичные паттерны)
-    for (const edge of edges) {
-      if (edge.type === EdgeType.EDGE_TYPE_RABBITMQ) {
-        // Для RabbitMQ edges можно добавить специфичные методы
-        const methodName = this.toPascalCase(edge.id);
-        methods.push(
-          `  rpc ${methodName}(google.protobuf.Empty) returns (google.protobuf.Empty);`
-        );
-      }
-    }
 
     return methods.join("\n");
   }

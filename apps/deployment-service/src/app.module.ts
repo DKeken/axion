@@ -3,6 +3,7 @@ import {
   INFRASTRUCTURE_SERVICE_NAME,
   CODEGEN_SERVICE_NAME,
   GRAPH_SERVICE_NAME,
+  RUNNER_AGENT_SERVICE_NAME,
 } from "@axion/contracts";
 import {
   AuthModule,
@@ -48,6 +49,14 @@ import { DeploymentModule } from "@/deployment/deployment.module";
         useFactory: () =>
           createKafkaClientOptions(
             GRAPH_SERVICE_NAME,
+            parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
+          ),
+      },
+      {
+        name: RUNNER_AGENT_SERVICE_NAME,
+        useFactory: () =>
+          createKafkaClientOptions(
+            RUNNER_AGENT_SERVICE_NAME,
             parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
           ),
       },

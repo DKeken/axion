@@ -1,6 +1,6 @@
 ---
 title: "Component: Main Entry Point"
-description: "Точка входа приложения. Инициализирует Elysia/Hono приложение, RabbitMQ сервер, регистрирует handlers."
+description: "Точка входа приложения. Инициализирует Elysia/Hono приложение, HTTP RPC router, регистрирует handlers."
 order: 3
 ---
 
@@ -8,7 +8,7 @@ order: 3
 
 ## Описание
 
-Точка входа приложения. Инициализирует Elysia/Hono приложение, RabbitMQ сервер, регистрирует handlers.
+Точка входа приложения. Инициализирует Elysia/Hono приложение, HTTP RPC router (service-to-service внутри Docker/Swarm), регистрирует handlers.
 
 **Используется в:** service blueprint
 
@@ -24,7 +24,6 @@ order: 3
 ```typescript
 // src/main.ts
 import { Elysia } from "elysia";
-import { RabbitMQServer } from "./messaging/server";
 import { healthCheck } from "./health/health.check";
 
 // Импорты сервисов (генерируются автоматически)
@@ -37,18 +36,12 @@ const app = new Elysia();
 // Health check endpoint
 app.get("/health", healthCheck);
 
-// RabbitMQ сервер для межсервисного общения
-const rabbitMQServer = new RabbitMQServer({
-  url: process.env.RABBITMQ_URL!,
-  vhost: `project_${process.env.PROJECT_ID}`,
-});
-
 // Инициализация сервисов
 {
   SERVICES_INIT;
 }
 
-// Регистрация RabbitMQ handlers
+// Регистрация RPC handlers
 {
   HANDLERS_REGISTRATION;
 }
@@ -57,12 +50,6 @@ const rabbitMQServer = new RabbitMQServer({
 const port = parseInt(process.env.PORT || "3000", 10);
 app.listen(port, () => {
   console.log(`{SERVICE_NAME} started on port ${port}`);
-});
-
-// Запуск RabbitMQ сервера
-rabbitMQServer.start().catch((error) => {
-  console.error("Failed to start RabbitMQ server:", error);
-  process.exit(1);
 });
 ```
 
@@ -75,5 +62,5 @@ rabbitMQServer.start().catch((error) => {
 - [ ] Импорты всех сервисов добавлены
 - [ ] Все handlers зарегистрированы
 - [ ] Health check endpoint работает
-- [ ] RabbitMQ сервер запускается
+- [ ] HTTP RPC router работает (service-to-service)
 - [ ] Переменные окружения настроены

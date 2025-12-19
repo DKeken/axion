@@ -19,18 +19,18 @@ order: 3
 
 **Обязательные:**
 
-- `main-entry.md` → `src/main.ts` (`ComponentType.MAIN_ENTRY`)
-- `rabbitmq-server.md` → `src/messaging/server.ts` (`ComponentType.RABBITMQ_SERVER`)
-- `health-check.md` → `src/health/health.check.ts` (`ComponentType.HEALTH_CHECK`)
+- `main-entry.mdx` → `src/main.ts` (`ComponentType.MAIN_ENTRY`)
+- `http-rpc-server.mdx` → `src/messaging/http-rpc-server.ts` (`ComponentType.HTTP_RPC_SERVER`)
+- `health-check.mdx` → `src/health/health.check.ts` (`ComponentType.HEALTH_CHECK`)
 
 **Опциональные:**
 
-- `rabbitmq-client.md` → только если есть edges к другим сервисам
-- `database/base/connection.md` + `{ORM}/schema.md` + `{ORM}/repository.md` → только если есть database node
+- `http-rpc-client.mdx` → только если есть edges (HTTP) к другим сервисам
+- `database/base/connection.mdx` + `{ORM}/schema.mdx` + `{ORM}/repository.mdx` → только если есть database node
 
 ## LLM Generation
 
-**ТОЛЬКО:** `service.ts.md` → `src/modules/{feature}/{feature}.service.ts` (`LLMGenerationPoint.SERVICE_METHODS`)
+**ТОЛЬКО:** `service.ts.mdx` → `src/modules/{feature}/{feature}.service.ts` (`LLMGenerationPoint.SERVICE_METHODS`)
 
 ## Процесс сборки
 

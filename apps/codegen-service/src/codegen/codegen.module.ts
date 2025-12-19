@@ -9,6 +9,7 @@ import { ValidationResultRepository } from "@/codegen/repositories/validation-re
 import { BlueprintsService } from "@/codegen/services/blueprints.service";
 import { ContractDiscoveryService } from "@/codegen/services/contract-discovery.service";
 import { DatabaseNodeCodeGeneratorService } from "@/codegen/services/database-node-code-generator.service";
+import { SchemaGeneratorService } from "@/codegen/services/schema-generator.service";
 import { DatabaseFactoryService } from "@/codegen/services/factories/database-factory.service";
 import { MessagingFactoryService } from "@/codegen/services/factories/messaging-factory.service";
 import { ServiceFactoryService } from "@/codegen/services/factories/service-factory.service";
@@ -36,6 +37,7 @@ import { TypeScriptValidatorService } from "@/codegen/services/validators/typesc
     OpenRouterService,
     PromptBuilderService,
     TemplateEngineService,
+    SchemaGeneratorService,
     DatabaseNodeCodeGeneratorService,
     DatabaseFactoryService,
     MessagingFactoryService,

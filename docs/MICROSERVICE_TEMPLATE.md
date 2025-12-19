@@ -66,8 +66,6 @@ apps/{service-name}/
     "@nestjs/core": "catalog:",
     "@nestjs/microservices": "catalog:",
     "@nestjs/platform-express": "catalog:",
-    "amqp-connection-manager": "catalog:",
-    "amqplib": "catalog:",
     "drizzle-orm": "catalog:",
     "kafkajs": "catalog:",
     "postgres": "catalog:",
@@ -77,7 +75,6 @@ apps/{service-name}/
   "devDependencies": {
     "@axion-stack/eslint-config": "workspace:*",
     "@axion-stack/typescript-config": "workspace:*",
-    "@types/amqplib": "catalog:",
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
     "tsx": "^4.19.2",

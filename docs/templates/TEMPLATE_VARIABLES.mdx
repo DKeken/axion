@@ -36,12 +36,11 @@ order: 3
 
 ### Infrastructure
 
-| Переменная       | Описание                  | Значение по умолчанию   |
-| ---------------- | ------------------------- | ----------------------- |
-| `{VHOST}`        | RabbitMQ виртуальный хост | `project_{PROJECT_ID}`  |
-| `{RABBITMQ_URL}` | URL RabbitMQ              | `amqp://localhost:5672` |
-| `{DATABASE_URL}` | URL базы данных           | -                       |
-| `{REDIS_URL}`    | URL Redis                 | -                       |
+| Переменная          | Описание             | Значение по умолчанию |
+| ------------------- | -------------------- | --------------------- |
+| `{RPC_PATH_PREFIX}` | HTTP RPC path prefix | `/rpc`                |
+| `{DATABASE_URL}`    | URL базы данных      | -                     |
+| `{REDIS_URL}`       | URL Redis            | -                     |
 
 ## Blueprint-Specific Variables
 
@@ -77,31 +76,28 @@ order: 3
 
 ## Component Variables
 
-### main-entry.md
+### main-entry.mdx
 
 | Переменная                | Описание                            |
 | ------------------------- | ----------------------------------- |
 | `{IMPORTS}`               | Импорты всех сервисов и компонентов |
 | `{SERVICES_INIT}`         | Инициализация сервисов              |
-| `{HANDLERS_REGISTRATION}` | Регистрация RabbitMQ handlers       |
+| `{HANDLERS_REGISTRATION}` | Регистрация RPC handlers            |
 
-### rabbitmq-server.md
+### http-rpc-server.mdx / http-rpc-client.mdx
 
-| Переменная       | Описание         | Значение по умолчанию |
-| ---------------- | ---------------- | --------------------- |
-| `{VHOST}`        | Виртуальный хост | -                     |
-| `{QUEUE_PREFIX}` | Префикс очередей | `axion`               |
-| `{QUEUE_NAME}`   | Имя очереди      | -                     |
-| `{HANDLERS}`     | Список handlers  | -                     |
+| Переменная          | Описание            | Значение по умолчанию |
+| ------------------- | ------------------- | --------------------- |
+| `{RPC_PATH_PREFIX}` | Path prefix для RPC | `/rpc`                |
 
-### health-check.md
+### health-check.mdx
 
-| Переменная       | Описание                | Возможные значения        |
-| ---------------- | ----------------------- | ------------------------- |
-| `{SERVICE_NAME}` | Имя сервиса             | -                         |
-| `{CHECKS}`       | Дополнительные проверки | database, redis, rabbitmq |
+| Переменная       | Описание                | Возможные значения |
+| ---------------- | ----------------------- | ------------------ |
+| `{SERVICE_NAME}` | Имя сервиса             | -                  |
+| `{CHECKS}`       | Дополнительные проверки | database, redis    |
 
-### drizzle/schema.md
+### drizzle/schema.mdx
 
 | Переменная      | Описание              |
 | --------------- | --------------------- |
@@ -109,7 +105,7 @@ order: 3
 | `{TABLE_NAME}`  | Имя таблицы           |
 | `{FIELDS}`      | Код полей из UI формы |
 
-### drizzle/repository.md
+### drizzle/repository.mdx
 
 | Переменная          | Описание            |
 | ------------------- | ------------------- |
@@ -120,7 +116,7 @@ order: 3
 
 ## LLM Generation Variables
 
-### service.ts.md
+### service.ts.mdx
 
 - `{LLM_GENERATED_METHODS}` — код который генерит LLM (заменяется)
 - `{FIELDS_DESCRIPTION}` — описание полей для LLM

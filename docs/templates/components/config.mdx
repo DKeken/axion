@@ -26,15 +26,18 @@ export const config = {
     name: "{SERVICE_NAME}",
     port: parseInt(process.env.PORT || "3000", 10),
   },
-  rabbitmq: {
-    url: process.env.RABBITMQ_URL!,
-    vhost: `project_${process.env.PROJECT_ID}`,
+  rpc: {
+    // Service-to-service calls inside Docker/Swarm go by DNS name:
+    //   http://<service-name>:<port>
+    // Override per-service via env:
+    //   <SERVICE_NAME>_URL, e.g. GRAPH_SERVICE_URL="http://graph-service:3000"
+    pathPrefix: "{RPC_PATH_PREFIX}",
   },
   database: {
     url: process.env.DATABASE_URL!,
   },
   validate() {
-    const required = ["RABBITMQ_URL", "PROJECT_ID", { REQUIRED_ENV_VARS }];
+    const required = [{ REQUIRED_ENV_VARS }];
     const missing = required.filter((key) => !process.env[key]);
     if (missing.length > 0) {
       throw new Error(

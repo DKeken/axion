@@ -14,6 +14,7 @@ export * from "./patterns/codegen-service";
 export * from "./patterns/deployment-service";
 export * from "./patterns/infrastructure-service";
 export * from "./patterns/billing-service";
+export * from "./patterns/runner-agent-service";
 
 /**
  * Error code constants

@@ -3,6 +3,7 @@
 Framework-agnostic shared utilities and helpers for Axion Stack.
 
 This package contains **pure functions and utilities** that can be used across the entire stack, including:
+
 - NestJS microservices
 - Next.js applications
 - CLI tools
@@ -12,6 +13,7 @@ This package contains **pure functions and utilities** that can be used across t
 ## Key Principle
 
 **This package has NO framework dependencies.** It only depends on:
+
 - `@axion/contracts` - for types and contract utilities
 - `@nestjs/microservices` - as peer dependency (for types only, not runtime)
 
@@ -56,6 +58,7 @@ catch (error) {
 ```
 
 **Features:**
+
 - ✅ Automatic error classification (Database, Validation, NotFound, etc.)
 - ✅ Appropriate log levels (warn for validation, error for internal)
 - ✅ Converts to Protobuf-compatible format
@@ -97,18 +100,89 @@ const projectId = getProjectIdFromMetadata(metadata);
 const newMetadata = createRequestMetadata(userId, projectId);
 ```
 
-#### RabbitMQ
+#### Kafka Headers
+
+Standardized Kafka headers for request tracing and context:
 
 ```typescript
-import { createRabbitMQContext } from "@axion/shared";
-// RabbitMQ-specific utilities
+import {
+  createKafkaHeaders,
+  extractMetadataFromHeaders,
+  getCorrelationIdFromHeaders,
+} from "@axion/shared";
+
+// Create headers from RequestMetadata
+const headers = createKafkaHeaders(metadata);
+
+// Extract metadata from Kafka message headers
+const metadata = extractMetadataFromHeaders(kafkaMessage.headers);
+
+// Get correlationId for logging
+const correlationId = getCorrelationIdFromHeaders(headers);
 ```
+
+See [Kafka Headers Documentation](../../docs/KAFKA_HEADERS.mdx) for detailed usage.
+
+#### Kafka DLQ
+
+Dead Letter Queue utilities for handling failed messages:
+
+```typescript
+import {
+  createDLQEventEnvelope,
+  getDLQTopicName,
+  prepareDLQReplay,
+  shouldSendToDLQ,
+} from "@axion/shared";
+
+// Create DLQ envelope
+const envelope = createDLQEventEnvelope(
+  "original-topic",
+  "key",
+  headers,
+  payload,
+  error,
+  3,
+  "graph-service"
+);
+
+// Get DLQ topic name
+const dlqTopic = getDLQTopicName("graph-service", false); // "graph-service-dlq"
+
+// Prepare replay
+const replay = prepareDLQReplay(envelope, {
+  resetAttempt: true,
+});
+```
+
+See [Kafka DLQ Documentation](../../docs/KAFKA_DLQ.mdx) for detailed usage.
 
 #### Status
 
 ```typescript
 import { mapServiceStatus } from "@axion/shared";
 // Status mapping utilities
+```
+
+#### Kafka Helpers
+
+```typescript
+import {
+  createKafkaServerOptions,
+  createKafkaClientOptions,
+} from "@axion/shared";
+
+// Create Kafka server options
+const serverOptions = createKafkaServerOptions(
+  GRAPH_SERVICE_NAME,
+  "localhost:9092"
+);
+
+// Create Kafka client options
+const clientOptions = createKafkaClientOptions(
+  GRAPH_SERVICE_NAME,
+  "localhost:9092"
+);
 ```
 
 ### Utils
@@ -182,12 +256,13 @@ import { checkHealth } from "@axion/shared/utils";
 ## When to Use
 
 ✅ **Use @axion/shared when:**
+
 - You need pure functions without framework dependencies
 - Working in non-NestJS contexts (CLI, scripts, Next.js)
 - Need helper functions that work everywhere
 
 ❌ **Don't use @axion/shared when:**
+
 - You need NestJS-specific components (use `@axion/nestjs-common`)
 - You need Protobuf types (use `@axion/contracts`)
 - You need response utilities (prefer `@axion/contracts`)
-

@@ -95,8 +95,8 @@ Service Node → Edge → Database Node
 
 | ORM                   | Используемые компоненты                                                     |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Drizzle**           | `components/drizzle/schema.md`, `components/drizzle/repository.md`          |
-| **TypeORM** (будущее) | `components/typeorm/schema.md`, `components/typeorm/repository.md`          |
+| **Drizzle**           | `components/drizzle/schema.mdx`, `components/drizzle/repository.mdx`        |
+| **TypeORM** (будущее) | `components/typeorm/schema.mdx`, `components/typeorm/repository.mdx`        |
 | **Другие ORM**        | Автоматически из `components/{orm}/` (см. [EXTENSIBILITY](./EXTENSIBILITY)) |
 
 ## Реализация
@@ -188,18 +188,18 @@ async function generateServiceCode(
 components/
 ├── database/
 │   └── base/
-│       └── connection.md      # Абстракция подключения
+│       └── connection.mdx      # Абстракция подключения
 ├── drizzle/
-│   ├── schema.md
-│   ├── repository.md
-│   └── connection.ts.md
+│   ├── schema.mdx
+│   ├── repository.mdx
+│   └── connection.ts.mdx
 └── (другие ORM можно добавить, см. [`EXTENSIBILITY`](../EXTENSIBILITY))
 ```
 
 ### Абстракция ORM
 
 ```typescript
-// components/database/base/connection.md
+// components/database/base/connection.mdx
 // Абстракция для подключения к БД
 
 import { {ORM_CONNECTION} } from "./{ORM}/connection";
@@ -304,8 +304,8 @@ export function getORMComponents(orm: ORMType): ComponentType[] {
 
 ## 🔗 Связанные Документы
 
-- **[`TYPES_AND_CONSTANTS.md`](./TYPES_AND_CONSTANTS)** — Типы для database nodes
-- **[`README.md`](./README)** — Процесс генерации кода с БД
+- **[`TYPES_AND_CONSTANTS.mdx`](./TYPES_AND_CONSTANTS)** — Типы для database nodes
+- **[`README.mdx`](./README)** — Процесс генерации кода с БД
 - **[`components/database/`](./components/database/)** — Templates для разных ORM
 
 ---

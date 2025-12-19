@@ -28,5 +28,8 @@ export * from "./ssh";
 // HTTP helpers (public API layer)
 export * from "./http";
 
+// Swagger/OpenAPI
+export * from "./swagger";
+
 // Bootstrap
 export * from "./bootstrap/bootstrap";

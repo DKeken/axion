@@ -373,7 +373,7 @@ export class GenerationService extends BaseService {
       content: serviceComponents.appModule,
     });
     files.push({
-      path: "src/health/health.controller.ts",
+      path: "src/health/health.check.ts",
       content: serviceComponents.health,
     });
 
@@ -399,12 +399,12 @@ export class GenerationService extends BaseService {
 
     // Добавляем messaging компоненты
     files.push({
-      path: "src/messaging/rabbitmq-server.ts",
+      path: "src/messaging/http-rpc-server.ts",
       content: serviceComponents.messaging.server,
     });
     if (serviceComponents.messaging.client) {
       files.push({
-        path: "src/messaging/rabbitmq-client.ts",
+        path: "src/messaging/http-rpc-client.ts",
         content: serviceComponents.messaging.client,
       });
     }

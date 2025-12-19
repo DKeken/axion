@@ -9,6 +9,7 @@ import {
   DEFAULT_ORM,
   TEMPLATE_PATHS,
 } from "@/codegen/constants/template-engine.constants";
+import { SchemaGeneratorService } from "@/codegen/services/schema-generator.service";
 import { TemplateEngineService } from "@/codegen/services/template-engine.service";
 import type {
   DatabaseCodeGenerationVariables,
@@ -21,7 +22,10 @@ import type {
  */
 @Injectable()
 export class DatabaseNodeCodeGeneratorService extends BaseService {
-  constructor(private readonly templateEngine: TemplateEngineService) {
+  constructor(
+    private readonly templateEngine: TemplateEngineService,
+    private readonly schemaGenerator: SchemaGeneratorService
+  ) {
     super(DatabaseNodeCodeGeneratorService.name);
   }
 
@@ -72,7 +76,7 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
       // Генерируем код для каждого компонента
       const [connection, schema, repository] = await Promise.all([
         this.generateConnection(ormTemplatesPath, connectionName, databaseType),
-        this.generateSchema(ormTemplatesPath, variables),
+        this.generateSchema(ormTemplatesPath, variables, node),
         this.generateRepository(ormTemplatesPath, variables),
       ]);
 
@@ -127,8 +131,30 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
   @CatchError({ operation: "generating schema code" })
   private async generateSchema(
     ormTemplatesPath: string,
-    variables: DatabaseCodeGenerationVariables
+    variables: DatabaseCodeGenerationVariables,
+    node?: Node
   ): Promise<string> {
+    // Если есть данные из UI формы в node, используем SchemaGeneratorService
+    if (node && this.hasUIFormData(node)) {
+      try {
+        const schema = await this.schemaGenerator.generateSchemaFromUIForm(
+          node,
+          {
+            entityName: variables.entityName || "Entity",
+            tableName: variables.tableName || "entities",
+          }
+        );
+        return schema;
+      } catch (error) {
+        this.logger.warn(
+          "Failed to generate schema from UI form, falling back to template",
+          error
+        );
+        // Fallback to template
+      }
+    }
+
+    // Fallback: используем template
     const templatePath = `${ormTemplatesPath}/schema.mdx`;
     const template = await this.templateEngine.loadTemplate(templatePath);
 
@@ -140,6 +166,24 @@ export class DatabaseNodeCodeGeneratorService extends BaseService {
     });
 
     return result.content;
+  }
+
+  /**
+   * Проверяет, есть ли данные UI формы в node
+   */
+  private hasUIFormData(node: Node): boolean {
+    const config = node.data?.config;
+    if (!config) {
+      return false;
+    }
+
+    // Проверяем наличие fields в config
+    const fields = config.fields;
+    return (
+      fields !== undefined &&
+      fields !== null &&
+      (Array.isArray(fields) || typeof fields === "object")
+    );
   }
 
   /**

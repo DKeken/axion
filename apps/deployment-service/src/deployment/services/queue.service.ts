@@ -3,8 +3,10 @@ import {
   DEFAULT_QUEUE_OPTIONS,
   QUEUE_NAMES,
   addStandardJob,
+  addStandardJobWithMetadata,
   type QueueOptions,
 } from "@axion/nestjs-common";
+import type { JobsOptions } from "bullmq";
 import { BaseService } from "@axion/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
@@ -30,17 +32,39 @@ export class QueueService extends BaseService {
     super(QueueService.name);
   }
 
-  private async addJob<TPayload extends object>(
+  private async addJob<TPayload extends Record<string, unknown>>(
     queue: Queue<TPayload>,
     queueName: string,
     jobId: string,
     payload: TPayload,
-    options: QueueOptions
+    options: QueueOptions,
+    metadata?: RequestMetadata | unknown
   ): Promise<string> {
-    const job = await addStandardJob(queue, queueName, payload, {
-      ...options,
+    // Convert QueueOptions to JobsOptions
+    const jobOptions: JobsOptions = {
       jobId,
-    });
+      attempts: options.attempts,
+      backoff: {
+        type: options.backoff.type === "exponential" ? "exponential" : "fixed",
+        delay: options.backoff.delay,
+      },
+      removeOnComplete: options.removeOnComplete,
+      removeOnFail: options.removeOnFail,
+    };
+
+    // Use metadata-aware helper if metadata is provided
+    const job = metadata
+      ? await addStandardJobWithMetadata(
+          queue,
+          queueName,
+          payload,
+          jobOptions,
+          metadata
+        )
+      : await addStandardJob(queue, queueName, payload, {
+          ...options,
+          jobId,
+        });
 
     if (!job.id) {
       throw new Error(`Job id is missing (queue=${queueName})`);
@@ -83,7 +107,8 @@ export class QueueService extends BaseService {
   async createDeploymentJob(
     deploymentId: string,
     data: Omit<DeploymentJobPayload, "deploymentId">,
-    options: QueueOptions = DEFAULT_QUEUE_OPTIONS
+    options: QueueOptions = DEFAULT_QUEUE_OPTIONS,
+    metadata?: RequestMetadata | unknown
   ): Promise<string> {
     this.logger.log(`Creating deployment job for deployment ${deploymentId}`);
 
@@ -96,7 +121,8 @@ export class QueueService extends BaseService {
           deploymentId,
           ...data,
         } satisfies DeploymentJobPayload,
-        options
+        options,
+        metadata
       );
 
       this.logger.log(
@@ -167,7 +193,8 @@ export class QueueService extends BaseService {
           serverId,
           metadata,
         } satisfies AgentInstallationJobPayload,
-        options
+        options,
+        metadata
       );
 
       this.logger.log(

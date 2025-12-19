@@ -1,0 +1,149 @@
+---
+title: "Contract Tests"
+description: "Тестирование совместимости Protobuf контрактов"
+order: 12
+---
+
+# Contract Tests
+
+Contract tests проверяют совместимость Protobuf контрактов между версиями и гарантируют, что изменения не ломают существующие интеграции.
+
+## 📋 Цель
+
+Contract tests обеспечивают:
+
+- **Обратную совместимость** - старые клиенты работают с новыми серверами
+- **Переднюю совместимость** - новые клиенты работают со старыми серверами
+- **Валидацию схем** - проверка правильности proto файлов
+- **Регрессии** - обнаружение breaking changes
+
+## 🏗️ Структура тестов
+
+```
+tests/
+├── contracts/
+│   ├── setup.ts              # Настройка тестов
+│   ├── compatibility.test.ts # Тесты совместимости
+│   ├── validation.test.ts    # Валидация схем
+│   └── fixtures/             # Тестовые данные
+│       ├── requests/         # Примеры request сообщений
+│       └── responses/        # Примеры response сообщений
+```
+
+## 🔧 Примеры тестов
+
+### Backward Compatibility
+
+```typescript
+// tests/contracts/compatibility.test.ts
+import { CreateProjectRequest } from "@axion/contracts";
+import { createRequestMetadata } from "@axion/contracts";
+
+test("CreateProjectRequest backward compatibility", () => {
+  // Старая версия (минимальные поля)
+  const oldRequest: CreateProjectRequest = {
+    metadata: createRequestMetadata("user-123"),
+    name: "Project Name",
+  };
+
+  // Должно валидироваться с новой версией
+  expect(oldRequest).toBeDefined();
+  expect(oldRequest.name).toBe("Project Name");
+
+  // Новые optional поля должны отсутствовать, но это не ошибка
+  expect(oldRequest.description).toBeUndefined();
+});
+
+test("CreateProjectRequest forward compatibility", () => {
+  // Новая версия (с дополнительными полями)
+  const newRequest: CreateProjectRequest = {
+    metadata: createRequestMetadata("user-123"),
+    name: "Project Name",
+    description: "Project Description", // Новое поле
+    tags: ["tag1", "tag2"], // Новое поле
+  };
+
+  // Должно работать со старыми серверами
+  // Старые серверы просто проигнорируют новые поля
+  expect(newRequest.name).toBe("Project Name");
+  expect(newRequest.description).toBe("Project Description");
+});
+```
+
+### Schema Validation
+
+```typescript
+// tests/contracts/validation.test.ts
+import {
+  CreateProjectRequest,
+  GetProjectRequest,
+  UpdateProjectRequest,
+} from "@axion/contracts";
+
+test("Required fields validation", () => {
+  // metadata должно быть обязательным
+  expect(() => {
+    const request: CreateProjectRequest = {
+      // @ts-expect-error - metadata is required
+      name: "Project",
+    };
+  }).toThrow();
+});
+
+test("Optional fields handling", () => {
+  const request: CreateProjectRequest = {
+    metadata: createRequestMetadata("user-123"),
+    name: "Project",
+    // description - optional, можно не указывать
+  };
+
+  expect(request.name).toBe("Project");
+  expect(request.description).toBeUndefined();
+});
+```
+
+### Message Pattern Consistency
+
+```typescript
+// tests/contracts/patterns.test.ts
+import { GRAPH_SERVICE_PATTERNS } from "@axion/contracts";
+
+test("Message patterns are defined", () => {
+  expect(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT).toBeDefined();
+  expect(GRAPH_SERVICE_PATTERNS.GET_PROJECT).toBeDefined();
+  expect(GRAPH_SERVICE_PATTERNS.UPDATE_PROJECT).toBeDefined();
+});
+
+test("Message patterns follow naming convention", () => {
+  // Все паттерны должны следовать формату: "{service}.{action}"
+  const pattern = GRAPH_SERVICE_PATTERNS.CREATE_PROJECT;
+  expect(pattern).toMatch(/^graph-service\./);
+});
+```
+
+## 🚀 Запуск тестов
+
+```bash
+# Запустить все contract tests
+bun test tests/contracts
+
+# Запустить только compatibility tests
+bun test tests/contracts/compatibility.test.ts
+
+# Запустить с coverage
+bun test --coverage tests/contracts
+```
+
+## 📝 Best Practices
+
+1. **Тестируйте минимальные версии** - проверяйте, что минимальные payload работают
+2. **Тестируйте расширенные версии** - проверяйте, что новые поля не ломают старые серверы
+3. **Валидируйте required fields** - убедитесь, что обязательные поля действительно обязательны
+4. **Проверяйте типы** - используйте TypeScript для проверки типов
+5. **Документируйте breaking changes** - когда делаете breaking change, обновите тесты
+
+## 🔗 См. также
+
+- [Protobuf Versioning](./PROTOBUF_VERSIONING.mdx) - политика версионирования
+- [Contracts & Validation](./CONTRACTS_AND_VALIDATION.mdx) - общая информация
+- [E2E Testing](./E2E_TESTING.mdx) - end-to-end тестирование

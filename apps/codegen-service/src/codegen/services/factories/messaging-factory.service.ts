@@ -8,21 +8,22 @@ import { CatchError } from "@axion/nestjs-common";
 import { BaseService, handleServiceError } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
-import {
-  RABBITMQ_DEFAULTS,
-  TEMPLATE_PATHS,
-} from "@/codegen/constants/template-engine.constants";
+import { TEMPLATE_PATHS } from "@/codegen/constants/template-engine.constants";
 import { TemplateEngineService } from "@/codegen/services/template-engine.service";
 import type { MessagingComponents } from "@/codegen/types/factory.types";
 
 /**
  * Messaging Factory Service
- * Автоматически создает messaging компоненты (RabbitMQ server, client) из графа
+ * Автоматически создает messaging компоненты для service-to-service вызовов.
+ *
+ * Генерируем HTTP RPC для межсервисного общения:
+ * - server: принимает POST {RPC_PATH_PREFIX}/:pattern и вызывает зарегистрированные handlers
+ * - client: отправляет POST на другой сервис по адресу внутри Docker Swarm (DNS по имени сервиса)
  */
 @Injectable()
 export class MessagingFactoryService extends BaseService {
-  private static readonly DEFAULT_VHOST = "default";
   private static readonly DEFAULT_SERVICE_NAME = "service";
+  private static readonly DEFAULT_RPC_PATH_PREFIX = "/rpc";
 
   constructor(private readonly templateEngine: TemplateEngineService) {
     super(MessagingFactoryService.name);
@@ -58,34 +59,27 @@ export class MessagingFactoryService extends BaseService {
     const serviceName =
       serviceNode.data?.serviceName ||
       MessagingFactoryService.DEFAULT_SERVICE_NAME;
-    // projectId может быть в config или metadata, пока используем пустую строку
-    const projectId = serviceNode.data?.config?.projectId || "";
 
     this.logger.log(
       `Creating messaging components for service ${serviceNode.id} (${serviceName})`
     );
 
     try {
-      // Генерируем RabbitMQ server код
-      const serverCode = await this.generateRabbitMQServer(
-        serviceName,
-        projectId
-      );
+      // Генерируем HTTP RPC server код
+      const serverCode = await this.generateHttpRpcServer(serviceName);
 
       // Проверяем, есть ли исходящие edges (сервис вызывает другие сервисы)
       const outgoingEdges =
         graph.edges?.filter((edge) => edge.source === serviceNode.id) || [];
 
       const hasOutgoingCalls = outgoingEdges.some(
-        (edge) =>
-          edge.type === EdgeType.EDGE_TYPE_RABBITMQ ||
-          edge.type === EdgeType.EDGE_TYPE_HTTP
+        (edge) => edge.type === EdgeType.EDGE_TYPE_HTTP
       );
 
       let clientCode: string | undefined;
       if (hasOutgoingCalls) {
-        // Генерируем RabbitMQ client код, если сервис вызывает другие сервисы
-        clientCode = await this.generateRabbitMQClient(serviceName, projectId);
+        // Генерируем HTTP RPC client код, если сервис вызывает другие сервисы
+        clientCode = await this.generateHttpRpcClient(serviceName);
       }
 
       return {
@@ -102,7 +96,6 @@ export class MessagingFactoryService extends BaseService {
           additional: {
             nodeId: serviceNode.id,
             serviceName,
-            projectId,
           },
         }
       ) as never;
@@ -110,51 +103,32 @@ export class MessagingFactoryService extends BaseService {
   }
 
   /**
-   * Генерирует RabbitMQ server код
+   * Генерирует HTTP RPC server код
    */
-  @CatchError({ operation: "generating RabbitMQ server code" })
-  private async generateRabbitMQServer(
-    serviceName: string,
-    projectId: string
-  ): Promise<string> {
-    const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/rabbitmq-server.mdx`;
+  @CatchError({ operation: "generating HTTP RPC server code" })
+  private async generateHttpRpcServer(serviceName: string): Promise<string> {
+    const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/http-rpc-server.mdx`;
     const template = await this.templateEngine.loadTemplate(templatePath);
-
-    const vhost = projectId
-      ? `project_${projectId}`
-      : MessagingFactoryService.DEFAULT_VHOST;
-    const queueName = `${serviceName}-queue`;
 
     const result = this.templateEngine.substituteVariables(template, {
       SERVICE_NAME: serviceName,
-      VHOST: vhost,
-      QUEUE_PREFIX: RABBITMQ_DEFAULTS.QUEUE_PREFIX,
-      QUEUE_NAME: queueName,
-      HANDLERS: "// Handlers will be registered here",
+      RPC_PATH_PREFIX: MessagingFactoryService.DEFAULT_RPC_PATH_PREFIX,
     });
 
     return result.content;
   }
 
   /**
-   * Генерирует RabbitMQ client код
+   * Генерирует HTTP RPC client код
    */
-  @CatchError({ operation: "generating RabbitMQ client code" })
-  private async generateRabbitMQClient(
-    serviceName: string,
-    projectId: string
-  ): Promise<string> {
-    const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/rabbitmq-client.mdx`;
+  @CatchError({ operation: "generating HTTP RPC client code" })
+  private async generateHttpRpcClient(serviceName: string): Promise<string> {
+    const templatePath = `${TEMPLATE_PATHS.COMPONENTS}/http-rpc-client.mdx`;
     const template = await this.templateEngine.loadTemplate(templatePath);
-
-    const vhost = projectId
-      ? `project_${projectId}`
-      : MessagingFactoryService.DEFAULT_VHOST;
 
     const result = this.templateEngine.substituteVariables(template, {
       SERVICE_NAME: serviceName,
-      VHOST: vhost,
-      RABBITMQ_URL: `process.env.RABBITMQ_URL || '${RABBITMQ_DEFAULTS.DEFAULT_URL}'`,
+      RPC_PATH_PREFIX: MessagingFactoryService.DEFAULT_RPC_PATH_PREFIX,
     });
 
     return result.content;
@@ -164,16 +138,19 @@ export class MessagingFactoryService extends BaseService {
    * Генерирует код для инициализации messaging в main.ts
    */
   @CatchError({ operation: "generating messaging initialization code" })
-  async generateMessagingInitializationCode(
-    serverCode: string,
-    clientCode?: string
-  ): Promise<string> {
-    let initCode = `// Initialize RabbitMQ server
-${serverCode}`;
+  generateMessagingInitializationCode(hasClient: boolean): string {
+    // В main.ts у нас уже есть доступ к app (Elysia) — просто подключаем RPC роутер.
+    let initCode = `// HTTP RPC (service-to-service inside Docker/Swarm)
+const rpcServer = new HttpRpcServer({
+  pathPrefix: "${MessagingFactoryService.DEFAULT_RPC_PATH_PREFIX}",
+});
+rpcServer.attach(app);`;
 
-    if (clientCode) {
-      initCode += `\n\n// Initialize RabbitMQ client
-${clientCode}`;
+    if (hasClient) {
+      initCode += `\n\n// HTTP RPC client factory (use service DNS names inside Docker/Swarm)
+const rpcClient = new HttpRpcClient({
+  pathPrefix: "${MessagingFactoryService.DEFAULT_RPC_PATH_PREFIX}",
+});`;
     }
 
     return initCode;

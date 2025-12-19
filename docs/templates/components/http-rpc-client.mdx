@@ -1,0 +1,113 @@
+---
+title: "Component: HTTP RPC Client"
+description: "Клиент для вызова других сервисов по HTTP внутри Docker/Swarm (DNS по имени сервиса)."
+order: 5
+---
+
+# Component: HTTP RPC Client
+
+## Код
+
+```typescript
+// src/messaging/http-rpc-client.ts
+import { extractData, type ResponseWithOneof } from "@axion/contracts";
+
+function normalizeServiceEnvKey(serviceName: string): string {
+  return `${serviceName}`.toUpperCase().replace(/-/g, "_");
+}
+
+function trimTrailingSlashes(url: string): string {
+  return url.replace(/\/+$/g, "");
+}
+
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function isResponseWithOneof(
+  value: unknown
+): value is ResponseWithOneof<unknown> {
+  // Contract envelope always has numeric `status` enum (protobuf).
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "status" in value &&
+    typeof (value as { status?: unknown }).status === "number"
+  );
+}
+
+export class HttpRpcClient {
+  constructor(
+    private readonly config: {
+      pathPrefix?: string;
+      defaultPort?: number;
+      defaultTimeoutMs?: number;
+    } = {}
+  ) {}
+
+  /**
+   * Resolves base URL for a service inside Docker/Swarm:
+   * - Prefer env override: <SERVICE>_URL (e.g. GRAPH_SERVICE_URL)
+   * - Fallback to DNS name: http://<service-name>:<port>
+   */
+  resolveBaseUrl(serviceName: string, port?: number): string {
+    const envKey = `${normalizeServiceEnvKey(serviceName)}_URL`;
+    const envUrl = process.env[envKey];
+    if (envUrl) return trimTrailingSlashes(envUrl);
+
+    const effectivePort = port ?? this.config.defaultPort ?? 3000;
+    return `http://${serviceName}:${effectivePort}`;
+  }
+
+  async call<T = unknown>(params: {
+    service: string;
+    pattern: string;
+    data?: unknown;
+    port?: number;
+    timeoutMs?: number;
+  }): Promise<T> {
+    const baseUrl = this.resolveBaseUrl(params.service, params.port);
+    const prefix = this.config.pathPrefix ?? "{RPC_PATH_PREFIX}";
+    const url = `${baseUrl}${prefix}/${encodeURIComponent(params.pattern)}`;
+
+    const controller = new AbortController();
+    const timeoutMs =
+      params.timeoutMs ?? this.config.defaultTimeoutMs ?? 30_000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(params.data ?? null),
+        signal: controller.signal,
+      });
+
+      const text = await res.text();
+      const payload = text ? safeJsonParse(text) : null;
+
+      if (!res.ok) {
+        throw new Error(
+          `RPC ${params.service}:${params.pattern} failed (${res.status}): ${text || res.statusText}`
+        );
+      }
+
+      // Prefer contract envelope (Axion standard): { status, result: { data|error } }
+      if (isResponseWithOneof(payload)) {
+        return extractData(payload as ResponseWithOneof<T>);
+      }
+
+      // Backward compatible: allow returning raw JSON without envelope
+      return payload as T;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+```

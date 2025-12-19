@@ -31,7 +31,7 @@ export interface AuthModuleAsyncOptions {
 
 /**
  * Auth Module for NestJS microservices
- * Provides authentication guards and helpers for Kafka/RabbitMQ microservices
+ * Provides authentication guards and helpers for Kafka microservices
  * with Better Auth session validation
  *
  * Usage (synchronous):

@@ -1,0 +1,162 @@
+---
+title: "Kafka Dead Letter Queue (DLQ)"
+description: "Стратегия обработки неудачных сообщений через Dead Letter Queue"
+order: 8
+---
+
+# Kafka Dead Letter Queue (DLQ)
+
+Axion Stack использует стандартизированную стратегию Dead Letter Queue для обработки сообщений, которые не удалось обработать после нескольких попыток.
+
+## 📋 Обзор
+
+DLQ (Dead Letter Queue) - это специальная очередь для сообщений, которые не удалось обработать после максимального количества попыток. Это позволяет:
+
+- Изолировать проблемные сообщения
+- Анализировать причины ошибок
+- Повторно обрабатывать сообщения после исправления проблем
+- Предотвращать бесконечные циклы retry
+
+## 🔧 Использование
+
+### Настройка DLQ Interceptor
+
+```typescript
+import { KafkaDLQInterceptor } from "@axion/nestjs-common";
+import { GRAPH_SERVICE_NAME } from "@axion/contracts";
+
+@Module({
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (dlqClient: ClientKafka) =>
+        new KafkaDLQInterceptor({
+          serviceName: GRAPH_SERVICE_NAME,
+          maxRetries: 3,
+          useCommonDLQ: false, // Использовать service-specific DLQ
+          dlqClient, // Optional: для отправки в DLQ topic
+          enabled: true,
+        }),
+      inject: [GRAPH_SERVICE_NAME], // Inject Kafka client
+    },
+  ],
+})
+export class AppModule {}
+```
+
+### DLQ Event Envelope
+
+Все сообщения в DLQ имеют стандартный формат envelope:
+
+```typescript
+interface DLQEventEnvelope {
+  originalTopic: string; // Исходный топик
+  originalKey?: string; // Исходный ключ
+  originalHeaders: Record<string, string>; // Исходные headers
+  originalPayload: unknown; // Исходный payload
+  attempt: number; // Количество попыток
+  error: {
+    message: string;
+    stack?: string;
+    code?: string;
+  };
+  dlqTimestamp: number; // Время отправки в DLQ
+  serviceName: string; // Сервис, который не смог обработать
+  messagePattern?: string; // MessagePattern
+  correlationId?: string; // Для трассировки
+}
+```
+
+### Топики DLQ
+
+По умолчанию используется service-specific DLQ:
+
+- `graph-service-dlq` - для Graph Service
+- `codegen-service-dlq` - для Codegen Service
+- `deployment-service-dlq` - для Deployment Service
+
+Или общий DLQ (если `useCommonDLQ: true`):
+
+- `axion-dlq` - общий DLQ для всех сервисов
+
+## 🔄 Replay из DLQ
+
+### Подготовка сообщения для replay
+
+```typescript
+import { prepareDLQReplay } from "@axion/shared";
+
+const replay = prepareDLQReplay(dlqEnvelope, {
+  targetTopic: "original-topic", // Опционально: другой топик
+  newCorrelationId: "new-req-id", // Опционально: новый correlationId
+  resetAttempt: true, // Сбросить счетчик попыток
+  additionalHeaders: {
+    "x-replay-reason": "fixed-bug",
+  },
+});
+
+// Отправить сообщение
+await kafkaClient.emit(replay.topic, replay.payload, {
+  key: replay.key,
+  headers: replay.headers,
+});
+```
+
+### Защита от циклов
+
+DLQ interceptor автоматически пропускает replay сообщения, чтобы предотвратить бесконечные циклы:
+
+```typescript
+// Сообщение с маркером x-dlq-replay будет пропущено
+headers: {
+  "x-dlq-replay": "true",
+  "x-dlq-original-topic": "original-topic",
+  "x-dlq-original-attempt": "3",
+}
+```
+
+## 📝 Best Practices
+
+1. **Настройте maxRetries** - обычно 3-5 попыток достаточно
+2. **Используйте service-specific DLQ** - для лучшей изоляции
+3. **Мониторьте DLQ топики** - регулярно проверяйте наличие сообщений
+4. **Анализируйте ошибки** - используйте envelope для диагностики
+5. **Replay с осторожностью** - убедитесь, что проблема исправлена
+
+## 🔍 Пример полного flow
+
+```typescript
+// 1. Сообщение приходит в сервис
+@MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+async createProject(@Payload() data: CreateProjectRequest) {
+  // Ошибка при обработке
+  throw new Error("Database connection failed");
+}
+
+// 2. DLQ Interceptor ловит ошибку
+// - Увеличивает attempt counter
+// - Если attempt > maxRetries, отправляет в DLQ
+
+// 3. Сообщение попадает в DLQ
+// Topic: graph-service-dlq
+// Payload: DLQEventEnvelope с полной информацией
+
+// 4. Администратор анализирует ошибку
+// - Смотрит error.message и error.stack
+// - Проверяет originalPayload
+// - Исправляет проблему
+
+// 5. Replay сообщения
+const replay = prepareDLQReplay(dlqEnvelope, {
+  resetAttempt: true,
+});
+await kafkaClient.emit(replay.topic, replay.payload, {
+  headers: replay.headers,
+});
+```
+
+## 🔗 См. также
+
+- [Kafka Headers](./KAFKA_HEADERS.mdx) - стандартизация headers
+- [Kafka Integration](./KAFKA_INTEGRATION.md) - базовая интеграция
+- [Architecture](./ARCHITECTURE.mdx) - архитектура системы

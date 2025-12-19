@@ -21,16 +21,21 @@ import {
   type GetDeploymentStatusRequest,
   type RollbackDeploymentRequest,
   type DeploymentStatusData,
+  type ServiceDeploymentStatus,
   type GenerateProjectResponse,
   type ServerResponse,
   type ClusterResponse,
 } from "@axion/contracts";
+import type {
+  DeploymentStatusData as RunnerDeploymentStatusData,
+  ServiceDeploymentStatus as RunnerServiceDeploymentStatus,
+} from "@axion/contracts/generated/runner-agent/deployment";
 import {
   createErrorResponse,
   createNotFoundError,
   createValidationError,
 } from "@axion/contracts";
-import { CatchError } from "@axion/nestjs-common";
+import { CatchError, DEFAULT_QUEUE_OPTIONS } from "@axion/nestjs-common";
 import { BaseService, enforceLimit, handleServiceError } from "@axion/shared";
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
@@ -244,18 +249,23 @@ export class DeploymentsService extends BaseService {
     // Создаем задачу в BullMQ очереди
     let jobId: string | undefined;
     try {
-      jobId = await this.queueService.createDeploymentJob(deployment.id, {
-        projectId: data.projectId,
-        clusterId: data.clusterId,
-        serverId: data.serverId,
-        config: {
-          dockerComposeYml,
-          dockerfiles,
-          dockerImages: {},
-          serviceDependencies,
+      jobId = await this.queueService.createDeploymentJob(
+        deployment.id,
+        {
+          projectId: data.projectId,
+          clusterId: data.clusterId,
+          serverId: data.serverId,
+          config: {
+            dockerComposeYml,
+            dockerfiles,
+            dockerImages: {},
+            serviceDependencies,
+          },
+          envVars: data.envVars || {},
         },
-        envVars: data.envVars || {},
-      });
+        DEFAULT_QUEUE_OPTIONS,
+        data.metadata
+      );
       this.logger.log(
         `Created deployment job ${jobId} for deployment ${deployment.id}`
       );
@@ -443,32 +453,46 @@ export class DeploymentsService extends BaseService {
     }
 
     // Используем статус от Runner Agent если доступен, иначе из БД
-    // Преобразуем ServiceDeploymentStatus из runner-agent в формат deployment
+    // Преобразуем DeploymentStatusData из runner-agent в формат deployment
+    // runnerStatus уже является DeploymentStatusData из runner-agent (не response)
     const deploymentContract = transformDeploymentToContract(deployment);
-    const statusData: DeploymentStatusData = runnerStatus?.data
-      ? {
-          status: runnerStatus.data.status,
-          serviceStatuses:
-            runnerStatus.data.serviceStatuses?.map((s) => ({
-              serviceId: s.serviceId,
-              nodeId: s.serviceId, // Используем serviceId как nodeId
-              serviceName: s.serviceName,
-              status: s.status,
-              serverId: "", // Runner Agent не предоставляет serverId
-              errorMessage: s.errorMessage || "",
-              deployedAt: s.deployedAt || 0,
-            })) || [],
-          currentStage: runnerStatus.data.currentStage || 0,
-          progressPercent: runnerStatus.data.progressPercent || 0,
-          errorMessage: runnerStatus.data.errorMessage || "",
-        }
-      : {
-          status: deploymentContract.status,
-          serviceStatuses: deploymentContract.serviceStatuses,
-          currentStage: 0, // DEPLOYMENT_STAGE_UNSPECIFIED
-          progressPercent: 0,
-          errorMessage: "",
-        };
+
+    // Runner Agent DeploymentStatusData и Deployment Service DeploymentStatusData
+    // имеют разные структуры ServiceDeploymentStatus, поэтому нужно преобразовать
+    let statusData: DeploymentStatusData;
+
+    if (runnerStatus) {
+      // Преобразуем runner-agent ServiceDeploymentStatus в deployment ServiceDeploymentStatus
+      const runnerStatusTyped = runnerStatus as RunnerDeploymentStatusData;
+      const mappedServiceStatuses: ServiceDeploymentStatus[] =
+        runnerStatusTyped.serviceStatuses?.map(
+          (s: RunnerServiceDeploymentStatus) => ({
+            serviceId: s.serviceId || "",
+            nodeId: s.serviceId || "", // Используем serviceId как nodeId
+            serviceName: s.serviceName || "",
+            status: s.status,
+            serverId: "", // Runner Agent не предоставляет serverId
+            errorMessage: s.errorMessage || "",
+            deployedAt: s.deployedAt || 0,
+          })
+        ) || [];
+
+      statusData = {
+        status: runnerStatusTyped.status,
+        serviceStatuses: mappedServiceStatuses,
+        currentStage: runnerStatusTyped.currentStage || 0,
+        progressPercent: runnerStatusTyped.progressPercent || 0,
+        errorMessage: runnerStatusTyped.errorMessage || "",
+      };
+    } else {
+      statusData = {
+        status: deploymentContract.status,
+        serviceStatuses: deploymentContract.serviceStatuses || [],
+        currentStage: 0, // DEPLOYMENT_STAGE_UNSPECIFIED
+        progressPercent: 0,
+        errorMessage: "",
+      };
+    }
 
     return createDeploymentStatusResponse(statusData);
   }

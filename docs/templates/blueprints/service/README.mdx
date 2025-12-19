@@ -19,18 +19,18 @@ order: 1
 
 **Обязательные:**
 
-- `main-entry.md` → `src/main.ts`
-- `rabbitmq-server.md` → `src/messaging/server.ts`
-- `health-check.md` → `src/health/health.check.ts`
+- `main-entry.mdx` → `src/main.ts`
+- `http-rpc-server.mdx` → `src/messaging/http-rpc-server.ts`
+- `health-check.mdx` → `src/health/health.check.ts`
 
 **Опциональные:**
 
-- `rabbitmq-client.md` → только если есть edges к другим сервисам
-- `database/base/connection.md` + `{ORM}/schema.md` + `{ORM}/repository.md` → только если есть database node
+- `http-rpc-client.mdx` → только если есть edges (HTTP) к другим сервисам
+- `database/base/connection.mdx` + `{ORM}/schema.mdx` + `{ORM}/repository.mdx` → только если есть database node
 
 ## LLM Generation
 
-**ТОЛЬКО:** `service.ts.md` → `src/modules/{feature}/{feature}.service.ts` (методы бизнес-логики)
+**ТОЛЬКО:** `service.ts.mdx` → `src/modules/{feature}/{feature}.service.ts` (методы бизнес-логики)
 
 ## Database Node
 
@@ -54,8 +54,8 @@ order: 1
 
 ## Связанные документы
 
-- [`structure.md`](./structure) — Компоненты
-- [`service.ts.md`](./service.ts) — LLM шаблон
+- [`structure.mdx`](./structure) — Компоненты
+- [`service.ts.mdx`](./service.ts) — LLM шаблон
 - [`../../DATABASE_NODES.md`](../../DATABASE_NODES) — Database Nodes
 
 ---

@@ -98,9 +98,11 @@ enum NodeType {
 // Edge types (для графа)
 enum EdgeType {
   EDGE_TYPE_UNSPECIFIED = 0;
-  EDGE_TYPE_RABBITMQ = 1;
   EDGE_TYPE_HTTP = 2;
   EDGE_TYPE_DATABASE = 3;
+
+  // Value reserved for backwards compatibility (removed transport).
+  reserved 1;
 }
 
 // Validation levels
@@ -141,7 +143,9 @@ enum CacheType {
 // Queue types
 enum QueueType {
   QUEUE_TYPE_UNSPECIFIED = 0;
-  QUEUE_TYPE_RABBITMQ = 1;
+
+  // Value reserved for backwards compatibility (removed transport).
+  reserved 1;
 }
 
 // Protocol types

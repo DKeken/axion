@@ -40,11 +40,12 @@ export const DEFAULT_DATABASE_TYPE = "postgresql" as const;
 export const DEFAULT_CONNECTION_NAME = "main-db" as const;
 
 /**
- * Default RabbitMQ configuration
+ * Default HTTP RPC configuration (service-to-service in Docker/Swarm)
  */
-export const RABBITMQ_DEFAULTS = {
-  QUEUE_PREFIX: "axion",
-  DEFAULT_URL: "amqp://localhost:5672",
+export const HTTP_RPC_DEFAULTS = {
+  DEFAULT_PROTOCOL: "http",
+  DEFAULT_PORT: 3000,
+  DEFAULT_RPC_PATH_PREFIX: "/rpc",
 } as const;
 
 /**

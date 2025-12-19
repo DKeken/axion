@@ -8,6 +8,12 @@ bootstrapMicroservice(AppModule, {
   serviceName: CODEGEN_SERVICE_NAME,
   port: env.port,
   kafkaBrokers: env.kafkaBrokers,
+  swagger: {
+    serviceName: "Codegen Service",
+    apiVersion: "v1",
+    description:
+      "Codegen Service API for code generation, validation, and blueprints",
+  },
 }).catch((error) => {
   console.error("Error starting Codegen Service:", error);
   process.exit(1);

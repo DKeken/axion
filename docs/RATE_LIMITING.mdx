@@ -1,0 +1,281 @@
+---
+title: "Rate Limiting"
+description: "Ограничение частоты запросов на уровне Traefik и приложения"
+order: 15
+---
+
+# Rate Limiting
+
+Axion Stack использует многоуровневую стратегию rate limiting для защиты API и обеспечения стабильности системы.
+
+## 📋 Стратегия Rate Limiting
+
+### Уровни ограничения
+
+1. **Traefik (Edge Level)** - глобальное ограничение на уровне reverse proxy
+2. **Application Level** - специфичные ограничения на уровне сервисов
+3. **User/Project Level** - ограничения на основе пользователя или проекта
+
+## 🔧 Traefik Rate Limiting
+
+### Middleware Configuration
+
+Traefik предоставляет встроенный middleware для rate limiting:
+
+```yaml
+# docker/traefik/dynamic/middlewares.yml
+http:
+  middlewares:
+    # Глобальный rate limiter
+    global-rate-limit:
+      rateLimit:
+        average: 100
+        period: 1s
+        burst: 50
+
+    # Rate limiter для аутентификации
+    auth-rate-limit:
+      rateLimit:
+        average: 10
+        period: 1m
+        burst: 5
+
+    # Rate limiter для API endpoints
+    api-rate-limit:
+      rateLimit:
+        average: 1000
+        period: 1m
+        burst: 200
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # Rate limiter на основе пользователя (требует authentication)
+    user-rate-limit:
+      rateLimit:
+        average: 500
+        period: 1m
+        burst: 100
+        sourceCriterion:
+          requestHeaderName: "X-User-ID"
+```
+
+### Применение к Router
+
+```yaml
+# docker/traefik/dynamic/routers.yml
+http:
+  routers:
+    graph-service:
+      rule: "Host(`api.axion.dev`) && PathPrefix(`/api/graph`)"
+      service: graph-service
+      middlewares:
+        - global-rate-limit
+        - api-rate-limit
+
+    auth-service:
+      rule: "Host(`api.axion.dev`) && PathPrefix(`/api/auth`)"
+      service: auth-service
+      middlewares:
+        - auth-rate-limit
+```
+
+### Redis-based Rate Limiting (Advanced)
+
+Для распределенного rate limiting с Redis:
+
+```yaml
+# docker/traefik/dynamic/middlewares.yml
+http:
+  middlewares:
+    redis-rate-limit:
+      rateLimit:
+        average: 1000
+        period: 1m
+        burst: 200
+        # Использует Redis для распределенного rate limiting
+        # Требует дополнительной конфигурации Traefik с Redis provider
+```
+
+## 🎯 Application-Level Rate Limiting
+
+### NestJS Rate Limiter
+
+Используем `@nestjs/throttler` для rate limiting на уровне приложения:
+
+```typescript
+// packages/nestjs-common/src/rate-limit/setup-rate-limit.ts
+import {
+  ThrottlerModule,
+  ThrottlerGuard,
+  ThrottlerStorageRedis,
+} from "@nestjs/throttler";
+import { APP_GUARD } from "@nestjs/core";
+import { Module } from "@nestjs/common";
+
+export function setupRateLimit(options?: {
+  ttl?: number;
+  limit?: number;
+  redisUrl?: string;
+}) {
+  const ttl = options?.ttl ?? 60; // seconds
+  const limit = options?.limit ?? 100;
+  const redisUrl = options?.redisUrl;
+
+  const storage = redisUrl
+    ? new ThrottlerStorageRedis({
+        host: redisUrl,
+        port: 6379,
+      })
+    : undefined; // In-memory storage (single instance)
+
+  return {
+    imports: [
+      ThrottlerModule.forRoot({
+        ttl,
+        limit,
+        storage,
+      }),
+    ],
+    providers: [
+      {
+        provide: APP_GUARD,
+        useClass: ThrottlerGuard,
+      },
+    ],
+  };
+}
+```
+
+### Controller-Level Rate Limiting
+
+```typescript
+// apps/graph-service/src/graph/graph.controller.ts
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
+
+@Controller("graph")
+@UseGuards(ThrottlerGuard)
+export class GraphController {
+  // Глобальный лимит: 100 requests per minute
+  // Этот endpoint: 10 requests per minute
+  @Get("projects")
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async listProjects() {
+    // ...
+  }
+
+  // Более строгий лимит для создания проектов
+  @Post("projects")
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async createProject() {
+    // ...
+  }
+}
+```
+
+### User-Based Rate Limiting
+
+```typescript
+// packages/nestjs-common/src/rate-limit/user-rate-limit.guard.ts
+import { Injectable, ExecutionContext, CanActivate } from "@nestjs/common";
+import { ThrottlerGuard, ThrottlerException } from "@nestjs/throttler";
+import { getUserIdFromMetadata } from "@axion/contracts";
+
+@Injectable()
+export class UserRateLimitGuard extends ThrottlerGuard {
+  protected getTracker(req: Record<string, any>): string {
+    // Используем user ID вместо IP для rate limiting
+    const userId = getUserIdFromMetadata(req.axion?.metadata);
+    return userId || super.getTracker(req);
+  }
+}
+```
+
+## 📊 Rate Limiting Metrics
+
+### Prometheus Metrics
+
+```typescript
+// packages/nestjs-common/src/rate-limit/rate-limit-metrics.ts
+import { Counter, Gauge } from "prom-client";
+
+export const rateLimitHits = new Counter({
+  name: "rate_limit_hits_total",
+  help: "Total number of rate limit hits",
+  labelNames: ["endpoint", "user_id", "ip"],
+});
+
+export const rateLimitActive = new Gauge({
+  name: "rate_limit_active_users",
+  help: "Number of users currently being rate limited",
+  labelNames: ["endpoint"],
+});
+
+export function recordRateLimitHit(
+  endpoint: string,
+  userId?: string,
+  ip?: string
+): void {
+  rateLimitHits.inc({
+    endpoint,
+    user_id: userId || "anonymous",
+    ip: ip || "unknown",
+  });
+}
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Global Rate Limiting
+RATE_LIMIT_TTL_SECONDS=60
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Redis for distributed rate limiting (optional)
+REDIS_URL=redis://localhost:6379
+RATE_LIMIT_USE_REDIS=true
+
+# Per-endpoint rate limits (JSON)
+RATE_LIMIT_ENDPOINTS={"POST /api/graph/projects": {"limit": 5, "ttl": 60000}}
+```
+
+### Traefik Configuration
+
+```yaml
+# docker/traefik/static/traefik.yml
+entryPoints:
+  web:
+    address: ":80"
+    # Rate limiting на уровне entry point
+    transport:
+      respondingTimeouts:
+        readTimeout: 30s
+        writeTimeout: 30s
+```
+
+## 🚨 Best Practices
+
+1. **Разные лимиты для разных endpoints**
+   - Строгие лимиты для создания/обновления ресурсов
+   - Более мягкие лимиты для чтения
+
+2. **User-based vs IP-based**
+   - Для аутентифицированных пользователей используем user-based
+   - Для публичных endpoints используем IP-based
+
+3. **Graceful degradation**
+   - Возвращаем HTTP 429 с заголовками `Retry-After`
+   - Не блокируем критичные операции (health checks)
+
+4. **Мониторинг**
+   - Отслеживаем rate limit hits
+   - Алертим при аномальном росте
+
+## 🔗 См. также
+
+- [API Reference](./API_REFERENCE.mdx) - HTTP API документация
+- [Architecture](./ARCHITECTURE.mdx) - архитектура системы
+- [Traefik Configuration](../docker/traefik/README.md) - конфигурация Traefik

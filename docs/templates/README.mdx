@@ -23,24 +23,24 @@ templates/
 │   └── service/             # Единый blueprint для всех генерируемых сервисов ⭐
 │
 ├── components/              # Переиспользуемые компоненты кода
-│   ├── main-entry.md        # Точка входа
-│   ├── rabbitmq-server.md   # RabbitMQ сервер
-│   ├── rabbitmq-client.md   # RabbitMQ клиент
-│   ├── health-check.md       # Health check
+│   ├── main-entry.mdx        # Точка входа
+│   ├── http-rpc-server.mdx   # HTTP RPC router (server-to-server внутри Docker/Swarm)
+│   ├── http-rpc-client.mdx   # HTTP RPC client (вызов других сервисов по DNS имени)
+│   ├── health-check.mdx      # Health check
 │   ├── database/            # Database компоненты
 │   │   ├── base/            # Базовые абстракции
-│   │   │   └── connection.md # Абстракция подключения
+│   │   │   └── connection.mdx # Абстракция подключения
 │   │   ├── drizzle/         # Drizzle ORM
-│   │   │   ├── schema.md
-│   │   │   ├── repository.md
-│   │   │   └── connection.ts.md
+│   │   │   ├── schema.mdx
+│   │   │   ├── repository.mdx
+│   │   │   └── connection.ts.mdx
 │   │   └── (другие ORM можно добавить, см. [`EXTENSIBILITY`](../EXTENSIBILITY))
 │   └── ...
 │
 ├── rules/                   # Общие правила и паттерны
-│   ├── contracts-schema.md  # Правила Protobuf контрактов
-│   ├── validation-system.md # Система валидации (6 уровней)
-│   └── resilience-patterns.md # Паттерны отказоустойчивости
+│   ├── contracts-schema.mdx  # Правила Protobuf контрактов
+│   ├── validation-system.mdx # Система валидации (6 уровней)
+│   └── resilience-patterns.mdx # Паттерны отказоустойчивости
 │
 ├── examples/               # Примеры готовых сервисов
 │   └── product-service/     # Полный пример CRUD сервиса
@@ -67,20 +67,20 @@ Blueprints описывают структуру и правила для раз
 
 Каждый blueprint содержит:
 
-- `README.md` — описание структуры и правил
-- `structure.md` — какие компоненты использовать
-- `service.ts.md` — шаблон для LLM (что генерит LLM)
-- `handler.ts.md` — шаблон handlers (генерируется автоматически)
+- `README.mdx` — описание структуры и правил
+- `structure.mdx` — какие компоненты использовать
+- `service.ts.mdx` — шаблон для LLM (что генерит LLM)
+- `handler.ts.mdx` — шаблон handlers (генерируется автоматически)
 
 ### 2. Components (Переиспользуемые Компоненты)
 
 Готовые шаблоны кода для переиспользования:
 
-- `main-entry.md` — точка входа приложения
-- `rabbitmq-server.md` — RabbitMQ сервер для межсервисного общения
-- `rabbitmq-client.md` — RabbitMQ клиент для вызова других сервисов
-- `health-check.md` — health check endpoint
-- `database/base/connection.md` — абстракция подключения к БД
+- `main-entry.mdx` — точка входа приложения
+- `http-rpc-server.mdx` — HTTP RPC router для межсервисного общения внутри Docker/Swarm
+- `http-rpc-client.mdx` — HTTP RPC client для вызова других сервисов по DNS имени
+- `health-check.mdx` — health check endpoint
+- `database/base/connection.mdx` — абстракция подключения к БД
 - `drizzle/` — компоненты для Drizzle ORM
 - И другие...
 
@@ -88,9 +88,9 @@ Blueprints описывают структуру и правила для раз
 
 Правила и паттерны применяемые ко всем сервисам:
 
-- **[`rules/contracts-schema.md`](./rules/contracts-schema)** — как создавать Protobuf контракты
-- **[`rules/validation-system.md`](./rules/validation-system)** — 6 уровней валидации
-- **[`rules/resilience-patterns.md`](./rules/resilience-patterns)** — retry, circuit breaker, timeout и т.д.
+- **[`rules/contracts-schema.mdx`](./rules/contracts-schema)** — как создавать Protobuf контракты
+- **[`rules/validation-system.mdx`](./rules/validation-system)** — 6 уровней валидации
+- **[`rules/resilience-patterns.mdx`](./rules/resilience-patterns)** — retry, circuit breaker, timeout и т.д.
 
 ## Процесс генерации
 
@@ -130,7 +130,7 @@ Database Nodes: [`DATABASE_NODES.md`](./DATABASE_NODES)
 
 ## Формат файлов
 
-Каждый `.md` файл содержит:
+Каждый `.mdx` файл содержит:
 
 ```markdown
 # Название Компонента
@@ -159,7 +159,7 @@ Database Nodes: [`DATABASE_NODES.md`](./DATABASE_NODES)
 Что проверить после генерации
 ```
 
-> **См. [`TEMPLATE_VARIABLES.md`](./TEMPLATE_VARIABLES)** для полного списка переменных.
+> **См. [`TEMPLATE_VARIABLES.mdx`](./TEMPLATE_VARIABLES)** для полного списка переменных.
 
 ## Быстрый старт
 
@@ -185,17 +185,17 @@ Database Nodes: [`DATABASE_NODES.md`](./DATABASE_NODES)
 | **3. Просмотреть Компоненты** | `templates/components/`                               | Переиспользуемые части                 |
 | **4. Редактировать**          | Отредактировать нужный template                       | Все сервисы используют обновленный код |
 
-| Тип генерации     | Источник                               | Результат                                  |
-| ----------------- | -------------------------------------- | ------------------------------------------ |
-| **Автоматически** | `components/*.md`                      | `src/*.ts`                                 |
-| **LLM**           | `blueprints/{blueprint}/service.ts.md` | `src/modules/{entity}/{entity}.service.ts` |
+| Тип генерации     | Источник                                | Результат                                  |
+| ----------------- | --------------------------------------- | ------------------------------------------ |
+| **Автоматически** | `components/*.mdx`                      | `src/*.ts`                                 |
+| **LLM**           | `blueprints/{blueprint}/service.ts.mdx` | `src/modules/{entity}/{entity}.service.ts` |
 
 ## Дополнительные ресурсы
 
-- **[`TEMPLATE_VARIABLES.md`](./TEMPLATE_VARIABLES)** — Справочник всех переменных
-- **[`TYPES_AND_CONSTANTS.md`](./TYPES_AND_CONSTANTS)** ⭐ — Типы, енамы и константы
-- **[`DATABASE_NODES.md`](./DATABASE_NODES)** ⭐ — Database Nodes в React Flow
-- **[`EXTENSIBILITY.md`](./EXTENSIBILITY)** ⭐ — Расширяемость системы (добавление ORM, blueprints)
+- **[`TEMPLATE_VARIABLES.mdx`](./TEMPLATE_VARIABLES)** — Справочник всех переменных
+- **[`TYPES_AND_CONSTANTS.mdx`](./TYPES_AND_CONSTANTS)** ⭐ — Типы, енамы и константы
+- **[`DATABASE_NODES.mdx`](./DATABASE_NODES)** ⭐ — Database Nodes в React Flow
+- **[`EXTENSIBILITY.mdx`](./EXTENSIBILITY)** ⭐ — Расширяемость системы (добавление ORM, blueprints)
 - **[`examples/`](./examples/)** — Примеры готовых сервисов
 - **[`rules/`](./rules/)** — Общие правила и паттерны
 
@@ -203,23 +203,23 @@ Database Nodes: [`DATABASE_NODES.md`](./DATABASE_NODES)
 
 ### Основная Архитектура
 
-- **[`../ARCHITECTURE.md`](../ARCHITECTURE)** ⭐ — Общая архитектура системы
+- **[`../ARCHITECTURE.mdx`](../ARCHITECTURE)** ⭐ — Общая архитектура системы
   - Phase 3: Code Generation описывает как templates используются для генерации кода
   - Blueprint System описывает концепцию blueprints
-- **[`../TECHNICAL_DETAILS.md`](../TECHNICAL_DETAILS)** — Технические детали реализации
+- **[`../TECHNICAL_DETAILS.mdx`](../TECHNICAL_DETAILS)** — Технические детали реализации
   - Раздел "Упрощенная Архитектура Генерируемых Сервисов" описывает почему легковесные фреймворки
-- **[`../RUNNER_AGENT.md`](../RUNNER_AGENT)** — Архитектура Runner Agent
+- **[`../RUNNER_AGENT.mdx`](../RUNNER_AGENT)** — Архитектура Runner Agent
   - Сгенерированные сервисы деплоятся через Runner Agent
-- **[`../CONTRACTS_AND_VALIDATION.md`](../CONTRACTS_AND_VALIDATION)** — Система контрактов и валидации
+- **[`../CONTRACTS_AND_VALIDATION.mdx`](../CONTRACTS_AND_VALIDATION)** — Система контрактов и валидации
   - Validation Pipeline (6 уровней) проверяет сгенерированный код
   - Protobuf контракты генерируются автоматически из графа
 
 ### Templates Документация
 
-- **[`TEMPLATE_VARIABLES.md`](./TEMPLATE_VARIABLES)** — Справочник всех переменных
-- **[`TYPES_AND_CONSTANTS.md`](./TYPES_AND_CONSTANTS)** ⭐ — Типы, енамы и константы
-- **[`DATABASE_NODES.md`](./DATABASE_NODES)** ⭐ — Database Nodes в React Flow
-- **[`EXTENSIBILITY.md`](./EXTENSIBILITY)** ⭐ — Расширяемость системы
+- **[`TEMPLATE_VARIABLES.mdx`](./TEMPLATE_VARIABLES)** — Справочник всех переменных
+- **[`TYPES_AND_CONSTANTS.mdx`](./TYPES_AND_CONSTANTS)** ⭐ — Типы, енамы и константы
+- **[`DATABASE_NODES.mdx`](./DATABASE_NODES)** ⭐ — Database Nodes в React Flow
+- **[`EXTENSIBILITY.mdx`](./EXTENSIBILITY)** ⭐ — Расширяемость системы
 
 ---
 
@@ -227,11 +227,11 @@ Database Nodes: [`DATABASE_NODES.md`](./DATABASE_NODES)
 
 **Templates являются частью полного флоу Axion:**
 
-1. **Визуальное проектирование** (React Flow) → [`ARCHITECTURE.md`](../ARCHITECTURE#phase-2-building-architecture)
+1. **Визуальное проектирование** (React Flow) → [`ARCHITECTURE.mdx`](../ARCHITECTURE#phase-2-building-architecture)
 2. **Выбор Blueprint** → этот документ (templates/blueprints/)
 3. **Генерация кода** → раздел "Процесс Генерации" выше
-4. **Валидация** → [`../CONTRACTS_AND_VALIDATION.md`](../CONTRACTS_AND_VALIDATION#-система-валидации)
-5. **Деплой через Runner Agent** → [`../RUNNER_AGENT.md`](../RUNNER_AGENT)
+4. **Валидация** → [`../CONTRACTS_AND_VALIDATION.mdx`](../CONTRACTS_AND_VALIDATION#-система-валидации)
+5. **Деплой через Runner Agent** → [`../RUNNER_AGENT.mdx`](../RUNNER_AGENT)
 
 **Сгенерированный код:**
 

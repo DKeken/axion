@@ -1,5 +1,5 @@
 // src/modules/product/product.service.ts
-// Сгенерировано из: blueprints/crud-service/service.ts.md
+// Сгенерировано из: blueprints/crud-service/service.ts.mdx
 // LLM сгенерировал только методы (между маркерами)
 
 import { ProductRepository } from "../../database/repository";

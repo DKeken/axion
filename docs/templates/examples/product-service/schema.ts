@@ -1,5 +1,5 @@
 // src/database/schema.ts
-// Сгенерировано из: components/drizzle/schema.md
+// Сгенерировано из: components/drizzle/schema.mdx
 // Конфигурация: из UI формы пользователя
 
 import {

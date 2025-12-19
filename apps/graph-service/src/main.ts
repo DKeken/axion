@@ -8,6 +8,12 @@ bootstrapMicroservice(AppModule, {
   serviceName: GRAPH_SERVICE_NAME,
   port: env.port,
   kafkaBrokers: env.kafkaBrokers,
+  swagger: {
+    serviceName: "Graph Service",
+    apiVersion: "v1",
+    description:
+      "Graph Service API for managing projects, graphs, and services",
+  },
 }).catch((error) => {
   console.error("Error starting Graph Service:", error);
   process.exit(1);

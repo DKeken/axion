@@ -13,6 +13,10 @@ export { GRAPH_SERVICE_PATTERNS } from "./constants/patterns/graph-service";
 export { CODEGEN_SERVICE_PATTERNS } from "./constants/patterns/codegen-service";
 export { INFRASTRUCTURE_SERVICE_PATTERNS } from "./constants/patterns/infrastructure-service";
 export { DEPLOYMENT_SERVICE_PATTERNS } from "./constants/patterns/deployment-service";
+export {
+  RUNNER_AGENT_SERVICE_PATTERNS,
+  RUNNER_AGENT_SERVICE_NAME,
+} from "./constants/patterns/runner-agent-service";
 export { SortOrder, PAGINATION_DEFAULTS } from "./constants/index";
 
 // Export contract utilities
