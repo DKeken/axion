@@ -6,7 +6,6 @@
 import type { MessageEvent } from "@nestjs/common";
 import { Injectable, Logger } from "@nestjs/common";
 import { Subject, Observable } from "rxjs";
-import typia from "typia";
 
 import type { ProjectEvent } from "@/graph/types/sse-events";
 
@@ -78,13 +77,10 @@ export class GraphSseService {
       return;
     }
 
-    // Validate and serialize the event using typia
-    const payload = typia.assert<ProjectEvent>(event);
-
     const messageEvent: MessageEvent = {
       type: event.type,
       id: `${event.type}-${Date.now()}`,
-      data: typia.json.stringify(payload),
+      data: JSON.stringify(event),
     };
 
     subject.next(messageEvent);

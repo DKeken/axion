@@ -15,9 +15,15 @@ import {
   toNonNegativeIntOrUndefined,
   type PaginationQuery,
 } from "@axion/nestjs-common";
-import { TypedBody, TypedParam, TypedQuery, TypedRoute } from "@nestia/core";
-import { Controller, UseGuards } from "@nestjs/common";
-import typia from "typia";
+import {
+  Controller,
+  UseGuards,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+} from "@nestjs/common";
 
 import { DeploymentService } from "@/deployment/deployment.service";
 
@@ -26,32 +32,28 @@ import { DeploymentService } from "@/deployment/deployment.service";
 export class DeploymentHttpController {
   constructor(private readonly deploymentService: DeploymentService) {}
 
-  @TypedRoute.Post("deployments")
+  @Post("deployments")
   async createDeployment(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedBody() body: Omit<DeployProjectRequest, "metadata">
+    @Body() body: Omit<DeployProjectRequest, "metadata">
   ) {
     const req: DeployProjectRequest = { metadata, ...body };
-    return this.deploymentService.deployProject(
-      typia.assert<DeployProjectRequest>(req)
-    );
+    return this.deploymentService.deployProject(req);
   }
 
-  @TypedRoute.Get("deployments/:deploymentId")
+  @Get("deployments/:deploymentId")
   async getDeployment(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("deploymentId") deploymentId: string
+    @Param("deploymentId") deploymentId: string
   ) {
     const req: GetDeploymentRequest = { metadata, deploymentId };
-    return this.deploymentService.getDeployment(
-      typia.assert<GetDeploymentRequest>(req)
-    );
+    return this.deploymentService.getDeployment(req);
   }
 
-  @TypedRoute.Get("deployments")
+  @Get("deployments")
   async listDeployments(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedQuery()
+    @Query()
     query: {
       projectId: string;
       statusFilter?: string;
@@ -65,45 +67,37 @@ export class DeploymentHttpController {
         toNonNegativeIntOrUndefined(query.statusFilter) ??
         DeploymentStatus.DEPLOYMENT_STATUS_UNSPECIFIED,
     };
-    return this.deploymentService.listDeployments(
-      typia.assert<ListDeploymentsRequest>(req)
-    );
+    return this.deploymentService.listDeployments(req);
   }
 
-  @TypedRoute.Get("deployments/:deploymentId/status")
+  @Get("deployments/:deploymentId/status")
   async getDeploymentStatus(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("deploymentId") deploymentId: string
+    @Param("deploymentId") deploymentId: string
   ) {
     const req: GetDeploymentStatusRequest = { metadata, deploymentId };
-    return this.deploymentService.getDeploymentStatus(
-      typia.assert<GetDeploymentStatusRequest>(req)
-    );
+    return this.deploymentService.getDeploymentStatus(req);
   }
 
-  @TypedRoute.Post("deployments/:deploymentId/cancel")
+  @Post("deployments/:deploymentId/cancel")
   async cancelDeployment(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("deploymentId") deploymentId: string,
-    @TypedBody()
+    @Param("deploymentId") deploymentId: string,
+    @Body()
     body: Omit<CancelDeploymentRequest, "metadata" | "deploymentId">
   ) {
     const req: CancelDeploymentRequest = { metadata, deploymentId, ...body };
-    return this.deploymentService.cancelDeployment(
-      typia.assert<CancelDeploymentRequest>(req)
-    );
+    return this.deploymentService.cancelDeployment(req);
   }
 
-  @TypedRoute.Post("deployments/:deploymentId/rollback")
+  @Post("deployments/:deploymentId/rollback")
   async rollbackDeployment(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("deploymentId") deploymentId: string,
-    @TypedBody()
+    @Param("deploymentId") deploymentId: string,
+    @Body()
     body: Omit<RollbackDeploymentRequest, "metadata" | "deploymentId">
   ) {
     const req: RollbackDeploymentRequest = { metadata, deploymentId, ...body };
-    return this.deploymentService.rollbackDeployment(
-      typia.assert<RollbackDeploymentRequest>(req)
-    );
+    return this.deploymentService.rollbackDeployment(req);
   }
 }

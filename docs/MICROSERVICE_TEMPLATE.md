@@ -105,12 +105,11 @@ apps/{service-name}/
 }
 ```
 
-## ✅ Typia/Nestia и общие helper-ы
+## ✅ Пагинация и общие helper-ы
 
-- Валидация: только Typia. Для Kafka — `createTypiaAssertPipe` / `createTypiaValidatePipe` из `@axion/nestjs-common`; для HTTP — `@nestia/core` (`TypedRoute`, `TypedBody`, `TypedParam`, `TypedQuery`, `TypedHeaders`) + `typia.assert/validate` при сборке DTO.
 - Пагинация: не парсить query руками в контроллерах. Использовать `normalizePagination` и `PaginationQuery` из `@axion/nestjs-common/http`. Для чисел из строк — `toNumberOrUndefined` / `toNonNegativeIntOrUndefined`.
 - Контроллеры/сервисы должны быть «тонкими»: парсинг, валидация, сборка pagination и прочие утилиты — в переиспользуемых helper-ах (`@axion/nestjs-common` или локальные `helpers/*.ts`), а не внутри методов.
-- Сериализация: для ответов/стримов предпочтительно `typia.json.stringify/assertStringify` вместо `JSON.stringify`.
+- Сериализация: стандартный JSON.stringify.
 - Contracts-first: все DTO/типы — из `@axion/contracts` (protobuf). Если типа нет, добавить в proto и сгенерировать.
 
 ## 🗄️ Database Connection

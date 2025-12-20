@@ -5,7 +5,6 @@ import {
 } from "@axion/contracts";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
-import typia from "typia";
 
 import { auth } from "@/auth/auth";
 import { env } from "@/config/env";
@@ -28,24 +27,10 @@ const app = new Elysia()
   .get("/health", () => ({ status: "ok" }))
   .post("/api/auth/validate-session", async ({ request }) => {
     try {
-      const body = (await request.json()) as Record<string, unknown>;
-
-      // Validate body structure using typia with contract type
-      const validatedBody = typia.validate<ValidateSessionHttpInput>(body);
-
-      if (!validatedBody.success) {
-        return {
-          status: Status.STATUS_ERROR,
-          error: {
-            code: "INVALID_REQUEST",
-            message: "Invalid request body",
-            details: {},
-          },
-        };
-      }
+      const body = (await request.json()) as ValidateSessionHttpInput;
 
       // Normalize to Protobuf contract format
-      const normalized = normalizeValidateSessionInput(validatedBody.data);
+      const normalized = normalizeValidateSessionInput(body);
       const sessionToken = normalized.sessionToken;
 
       if (!sessionToken || typeof sessionToken !== "string") {

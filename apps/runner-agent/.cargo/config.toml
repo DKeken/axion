@@ -1,0 +1,4 @@
+[env]
+OPENSSL_INCLUDE_DIR = "/opt/homebrew/opt/openssl@3/include"
+OPENSSL_LIB_DIR = "/opt/homebrew/opt/openssl@3/lib"
+OPENSSL_DIR = "/opt/homebrew/opt/openssl@3"

@@ -18,7 +18,6 @@ import {
   DelegateToService,
   MessagePatternWithLog,
   MicroserviceAuthGuard,
-  createTypiaAssertPipe,
 } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
@@ -34,118 +33,79 @@ export class GraphController {
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
   @DelegateToService("graphService", "createProject")
-  async createProject(
-    @Payload(createTypiaAssertPipe<CreateProjectRequest>())
-    data: CreateProjectRequest
-  ) {
+  async createProject(@Payload() data: CreateProjectRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_PROJECT)
   @DelegateToService("graphService", "getProject")
-  async getProject(
-    @Payload(createTypiaAssertPipe<GetProjectRequest>())
-    data: GetProjectRequest
-  ) {
+  async getProject(@Payload() data: GetProjectRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.UPDATE_PROJECT)
   @DelegateToService("graphService", "updateProject")
-  async updateProject(
-    @Payload(createTypiaAssertPipe<UpdateProjectRequest>())
-    data: UpdateProjectRequest
-  ) {
+  async updateProject(@Payload() data: UpdateProjectRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.DELETE_PROJECT)
   @DelegateToService("graphService", "deleteProject")
-  async deleteProject(
-    @Payload(createTypiaAssertPipe<DeleteProjectRequest>())
-    data: DeleteProjectRequest
-  ) {
+  async deleteProject(@Payload() data: DeleteProjectRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_PROJECTS)
   @DelegateToService("graphService", "listProjects")
-  async listProjects(
-    @Payload(createTypiaAssertPipe<ListProjectsRequest>())
-    data: ListProjectsRequest
-  ) {
+  async listProjects(@Payload() data: ListProjectsRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_GRAPH)
   @DelegateToService("graphService", "getGraph")
-  async getGraph(
-    @Payload(createTypiaAssertPipe<GetGraphRequest>())
-    data: GetGraphRequest
-  ) {
+  async getGraph(@Payload() data: GetGraphRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.UPDATE_GRAPH)
   @DelegateToService("graphService", "updateGraph")
-  async updateGraph(
-    @Payload(createTypiaAssertPipe<UpdateGraphRequest>())
-    data: UpdateGraphRequest
-  ) {
+  async updateGraph(@Payload() data: UpdateGraphRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_GRAPH_VERSIONS)
   @DelegateToService("graphService", "listGraphVersions")
-  async listGraphVersions(
-    @Payload(createTypiaAssertPipe<ListGraphVersionsRequest>())
-    data: ListGraphVersionsRequest
-  ) {
+  async listGraphVersions(@Payload() data: ListGraphVersionsRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.REVERT_GRAPH_VERSION)
   @DelegateToService("graphService", "revertGraphVersion")
-  async revertGraphVersion(
-    @Payload(createTypiaAssertPipe<RevertGraphVersionRequest>())
-    data: RevertGraphVersionRequest
-  ) {
+  async revertGraphVersion(@Payload() data: RevertGraphVersionRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.LIST_SERVICES)
   @DelegateToService("graphService", "listServices")
-  async listServices(
-    @Payload(createTypiaAssertPipe<ListServicesRequest>())
-    data: ListServicesRequest
-  ) {
+  async listServices(@Payload() data: ListServicesRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.GET_SERVICE)
   @DelegateToService("graphService", "getService")
-  async getService(
-    @Payload(createTypiaAssertPipe<GetServiceRequest>())
-    data: GetServiceRequest
-  ) {
+  async getService(@Payload() data: GetServiceRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.SYNC_GRAPH_WITH_SERVICES)
   @DelegateToService("graphService", "syncGraphWithServices")
-  async syncGraphWithServices(
-    @Payload(createTypiaAssertPipe<SyncGraphWithServicesRequest>())
-    data: SyncGraphWithServicesRequest
-  ) {
+  async syncGraphWithServices(@Payload() data: SyncGraphWithServicesRequest) {
     return data;
   }
 
   @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.VALIDATE_GRAPH)
   @DelegateToService("graphService", "validateGraph")
-  async validateGraph(
-    @Payload(createTypiaAssertPipe<ValidateGraphRequest>())
-    data: ValidateGraphRequest
-  ) {
+  async validateGraph(@Payload() data: ValidateGraphRequest) {
     return data;
   }
 }

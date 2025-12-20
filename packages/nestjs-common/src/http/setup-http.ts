@@ -9,7 +9,6 @@ import { RequestContextInterceptor } from "./request-context.interceptor";
  * Includes:
  * - Request context interceptor (correlationId, metadata)
  * - Contract response interceptor (protobuf errors → HTTP status)
- * - Typia-first validation handled in controllers via pipes / @nestia/core decorators
  *
  * Safe to call for services that expose only /health: interceptors are no-op
  * for non-contract responses.
@@ -20,6 +19,4 @@ export function setupHttpContractLayer(app: INestApplication): void {
 
   // Contract response interceptor (maps protobuf errors to HTTP status)
   app.useGlobalInterceptors(new ContractHttpResponseInterceptor());
-
-  // Validation is handled at controller level using Typia pipes or @nestia/core decorators.
 }

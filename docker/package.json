@@ -1,0 +1,14 @@
+{
+  "name": "@axion/docker-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Docker configuration and scripts for Axion Stack",
+  "scripts": {
+    "generate-traefik": "bun generate-traefik-config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

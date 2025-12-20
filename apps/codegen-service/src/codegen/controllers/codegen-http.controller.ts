@@ -16,9 +16,15 @@ import {
   toNumberOrUndefined,
   type PaginationQuery,
 } from "@axion/nestjs-common";
-import { TypedBody, TypedParam, TypedQuery, TypedRoute } from "@nestia/core";
-import { Controller, UseGuards } from "@nestjs/common";
-import typia from "typia";
+import {
+  Controller,
+  UseGuards,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+} from "@nestjs/common";
 
 import { CodegenService } from "@/codegen/codegen.service";
 
@@ -28,24 +34,22 @@ export class CodegenHttpController {
   constructor(private readonly codegenService: CodegenService) {}
 
   // Generation / Validation (MVP)
-  @TypedRoute.Post("projects/:projectId/generate")
+  @Post("projects/:projectId/generate")
   async generateProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("projectId") projectId: string,
-    @TypedBody() body: Omit<GenerateProjectRequest, "metadata" | "projectId">
+    @Param("projectId") projectId: string,
+    @Body() body: Omit<GenerateProjectRequest, "metadata" | "projectId">
   ) {
     const req: GenerateProjectRequest = { metadata, projectId, ...body };
-    return this.codegenService.generateProject(
-      typia.assert<GenerateProjectRequest>(req)
-    );
+    return this.codegenService.generateProject(req);
   }
 
-  @TypedRoute.Post("projects/:projectId/services/:nodeId/generate")
+  @Post("projects/:projectId/services/:nodeId/generate")
   async generateService(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("projectId") projectId: string,
-    @TypedParam("nodeId") nodeId: string,
-    @TypedBody()
+    @Param("projectId") projectId: string,
+    @Param("nodeId") nodeId: string,
+    @Body()
     body: Omit<GenerateServiceRequest, "metadata" | "projectId" | "nodeId">
   ) {
     const req: GenerateServiceRequest = {
@@ -54,29 +58,25 @@ export class CodegenHttpController {
       nodeId,
       ...body,
     };
-    return this.codegenService.generateService(
-      typia.assert<GenerateServiceRequest>(req)
-    );
+    return this.codegenService.generateService(req);
   }
 
-  @TypedRoute.Post("projects/:projectId/validate")
+  @Post("projects/:projectId/validate")
   async validateProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("projectId") projectId: string,
-    @TypedBody() body: Omit<ValidateProjectRequest, "metadata" | "projectId">
+    @Param("projectId") projectId: string,
+    @Body() body: Omit<ValidateProjectRequest, "metadata" | "projectId">
   ) {
     const req: ValidateProjectRequest = { metadata, projectId, ...body };
-    return this.codegenService.validateProject(
-      typia.assert<ValidateProjectRequest>(req)
-    );
+    return this.codegenService.validateProject(req);
   }
 
-  @TypedRoute.Post("projects/:projectId/services/:nodeId/validate")
+  @Post("projects/:projectId/services/:nodeId/validate")
   async validateService(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("projectId") projectId: string,
-    @TypedParam("nodeId") nodeId: string,
-    @TypedBody()
+    @Param("projectId") projectId: string,
+    @Param("nodeId") nodeId: string,
+    @Body()
     body: Omit<ValidateServiceRequest, "metadata" | "projectId" | "nodeId">
   ) {
     const req: ValidateServiceRequest = {
@@ -85,16 +85,14 @@ export class CodegenHttpController {
       nodeId,
       ...body,
     };
-    return this.codegenService.validateService(
-      typia.assert<ValidateServiceRequest>(req)
-    );
+    return this.codegenService.validateService(req);
   }
 
   // Blueprints
-  @TypedRoute.Get("blueprints")
+  @Get("blueprints")
   async listBlueprints(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedQuery() query?: { category?: string } & PaginationQuery
+    @Query() query?: { category?: string } & PaginationQuery
   ) {
     const categoryNumber = toNumberOrUndefined(query?.category);
     const req: ListBlueprintsRequest = {
@@ -106,46 +104,36 @@ export class CodegenHttpController {
             category: categoryNumber as ListBlueprintsRequest["category"],
           }
         : {}),
+      pagination: normalizePagination(query),
     };
-    return this.codegenService.listBlueprints(
-      typia.assert<ListBlueprintsRequest>({
-        ...req,
-        pagination: normalizePagination(query),
-      })
-    );
+    return this.codegenService.listBlueprints(req);
   }
 
-  @TypedRoute.Get("blueprints/:blueprintId")
+  @Get("blueprints/:blueprintId")
   async getBlueprint(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedParam("blueprintId") blueprintId: string
+    @Param("blueprintId") blueprintId: string
   ) {
     const req: GetBlueprintRequest = { metadata, blueprintId };
-    return this.codegenService.getBlueprint(
-      typia.assert<GetBlueprintRequest>(req)
-    );
+    return this.codegenService.getBlueprint(req);
   }
 
   // Contracts (useful for UI/CLI; optional for MVP but exposed for completeness)
-  @TypedRoute.Post("contracts/discover")
+  @Post("contracts/discover")
   async discoverContracts(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedBody() body: Omit<DiscoverContractsRequest, "metadata">
+    @Body() body: Omit<DiscoverContractsRequest, "metadata">
   ) {
     const req: DiscoverContractsRequest = { metadata, ...body };
-    return this.codegenService.discoverContracts(
-      typia.assert<DiscoverContractsRequest>(req)
-    );
+    return this.codegenService.discoverContracts(req);
   }
 
-  @TypedRoute.Post("contracts/validate")
+  @Post("contracts/validate")
   async validateContracts(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @TypedBody() body: Omit<ValidateContractsRequest, "metadata">
+    @Body() body: Omit<ValidateContractsRequest, "metadata">
   ) {
     const req: ValidateContractsRequest = { metadata, ...body };
-    return this.codegenService.validateContracts(
-      typia.assert<ValidateContractsRequest>(req)
-    );
+    return this.codegenService.validateContracts(req);
   }
 }

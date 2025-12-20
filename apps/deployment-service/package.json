@@ -37,9 +37,7 @@
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "class-validator": "catalog:",
-    "class-transformer": "catalog:",
-    "@nestia/core": "catalog:",
-    "typia": "catalog:"
+    "class-transformer": "catalog:"
   },
   "devDependencies": {
     "@axion-stack/eslint-config": "workspace:*",

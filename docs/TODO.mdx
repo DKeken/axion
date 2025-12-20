@@ -230,10 +230,10 @@ BullMQ уже используется в Deployment Service, но нужен о
   - [x] ✅ единая политика graceful shutdown (Kafka consumers + HTTP server + BullMQ workers)
 - [x] ✅ Валидация входа
   - [x] ✅ минимизировать локальные DTO (ориентироваться на типы из `@axion/contracts`) - используется через protobuf типы
-  - [x] ✅ валидация runtime: Typia guards + `@nestia/core` typed decorators для HTTP/Kafka
-  - [x] ✅ общий `TypiaValidationPipe` в `@axion/nestjs-common`
+  - [x] ✅ валидация входа (standard NestJS)
+  - [ ] ⏳ общий ValidationPipe в `@axion/nestjs-common`
 - [x] ✅ Сериализация/стримы
-  - [x] ✅ SSE payload → `typia.json.stringify` (Graph Service)
+  - [x] ✅ SSE payload (Graph Service)
 - [x] ✅ Ошибки/ответы
   - [x] ✅ единая маппинг-таблица protobuf errors → HTTP status (Phase 1.5)
   - [x] ✅ стандартизировать логирование ошибок через `handleServiceError` + контекст

@@ -22,11 +22,9 @@
     "@nestjs/bullmq": "^10.2.3",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
-    "@nestia/core": "catalog:",
     "bullmq": "catalog:",
     "rxjs": "catalog:",
-    "ssh2": "^1.17.0",
-    "typia": "catalog:"
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@axion-stack/typescript-config": "workspace:*",

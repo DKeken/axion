@@ -1,2 +1,2 @@
-export * from "./typia-validation.pipe";
-export * from "./typia-types";
+// No pipes currently defined
+export {};

@@ -1,0 +1,55 @@
+# Example configuration for Axion Runner Agent
+
+[agent]
+token = ""  # Set via environment variable: AXION_AGENT__AGENT__TOKEN
+version = "0.1.0"
+update_channel = "stable"
+auto_update_enabled = true
+
+[control_plane]
+grpc_url = "https://control.axion.dev:443"
+timeout = 30
+retry_attempts = 3
+
+[kafka]
+brokers = ["localhost:9092"]
+consumer_group = "runner-agent-{agent_id}"
+enable_ssl = false
+# ssl_ca_location = "/etc/axion/certs/kafka-ca.pem"
+
+[telemetry]
+enabled = true
+interval_seconds = 10
+batch_size = 100
+send_timeout = 5
+
+[health]
+check_interval = 30
+timeout = 10
+failure_threshold = 3
+port = 8080
+
+[update]
+check_interval = 3600
+download_timeout = 300
+install_timeout = 60
+rollback_on_failure = true
+max_backups = 5
+
+[logging]
+level = "info"
+format = "json"
+file = "/var/log/axion/agent.log"
+max_size_mb = 100
+max_files = 5
+
+[security]
+tls_verify = true
+# tls_ca_location = "/etc/axion/certs/ca.pem"
+min_tls_version = "1.2"
+
+[local]
+enabled = false
+ipc_socket_path = "/tmp/axion-runner-agent.sock"
+# ipc_pipe_name = r"\\.\pipe\axion-runner-agent"  # Windows only
+grpc_local_port = 50051

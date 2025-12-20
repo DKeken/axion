@@ -11,7 +11,6 @@ import {
   DelegateToService,
   MessagePatternWithLog,
   MicroserviceAuthGuard,
-  createTypiaAssertPipe,
 } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
@@ -27,55 +26,37 @@ export class DeploymentController {
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.DEPLOY_PROJECT)
   @DelegateToService("deploymentService", "deployProject")
-  async deployProject(
-    @Payload(createTypiaAssertPipe<DeployProjectRequest>())
-    data: DeployProjectRequest
-  ) {
+  async deployProject(@Payload() data: DeployProjectRequest) {
     return data;
   }
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.CANCEL_DEPLOYMENT)
   @DelegateToService("deploymentService", "cancelDeployment")
-  async cancelDeployment(
-    @Payload(createTypiaAssertPipe<CancelDeploymentRequest>())
-    data: CancelDeploymentRequest
-  ) {
+  async cancelDeployment(@Payload() data: CancelDeploymentRequest) {
     return data;
   }
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.GET_DEPLOYMENT)
   @DelegateToService("deploymentService", "getDeployment")
-  async getDeployment(
-    @Payload(createTypiaAssertPipe<GetDeploymentRequest>())
-    data: GetDeploymentRequest
-  ) {
+  async getDeployment(@Payload() data: GetDeploymentRequest) {
     return data;
   }
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.LIST_DEPLOYMENTS)
   @DelegateToService("deploymentService", "listDeployments")
-  async listDeployments(
-    @Payload(createTypiaAssertPipe<ListDeploymentsRequest>())
-    data: ListDeploymentsRequest
-  ) {
+  async listDeployments(@Payload() data: ListDeploymentsRequest) {
     return data;
   }
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.GET_DEPLOYMENT_STATUS)
   @DelegateToService("deploymentService", "getDeploymentStatus")
-  async getDeploymentStatus(
-    @Payload(createTypiaAssertPipe<GetDeploymentStatusRequest>())
-    data: GetDeploymentStatusRequest
-  ) {
+  async getDeploymentStatus(@Payload() data: GetDeploymentStatusRequest) {
     return data;
   }
 
   @MessagePatternWithLog(DEPLOYMENT_SERVICE_PATTERNS.ROLLBACK_DEPLOYMENT)
   @DelegateToService("deploymentService", "rollbackDeployment")
-  async rollbackDeployment(
-    @Payload(createTypiaAssertPipe<RollbackDeploymentRequest>())
-    data: RollbackDeploymentRequest
-  ) {
+  async rollbackDeployment(@Payload() data: RollbackDeploymentRequest) {
     return data;
   }
 }

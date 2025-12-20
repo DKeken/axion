@@ -21,7 +21,6 @@ import {
   DelegateToService,
   MessagePatternWithLog,
   MicroserviceAuthGuard,
-  createTypiaAssertPipe,
 } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
@@ -38,139 +37,94 @@ export class InfrastructureController {
   // Clusters
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.CREATE_CLUSTER)
   @DelegateToService("infrastructureService", "createCluster")
-  async createCluster(
-    @Payload(createTypiaAssertPipe<CreateClusterRequest>())
-    data: CreateClusterRequest
-  ) {
+  async createCluster(@Payload() data: CreateClusterRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.GET_CLUSTER)
   @DelegateToService("infrastructureService", "getCluster")
-  async getCluster(
-    @Payload(createTypiaAssertPipe<GetClusterRequest>())
-    data: GetClusterRequest
-  ) {
+  async getCluster(@Payload() data: GetClusterRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.UPDATE_CLUSTER)
   @DelegateToService("infrastructureService", "updateCluster")
-  async updateCluster(
-    @Payload(createTypiaAssertPipe<UpdateClusterRequest>())
-    data: UpdateClusterRequest
-  ) {
+  async updateCluster(@Payload() data: UpdateClusterRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.DELETE_CLUSTER)
   @DelegateToService("infrastructureService", "deleteCluster")
-  async deleteCluster(
-    @Payload(createTypiaAssertPipe<DeleteClusterRequest>())
-    data: DeleteClusterRequest
-  ) {
+  async deleteCluster(@Payload() data: DeleteClusterRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.LIST_CLUSTERS)
   @DelegateToService("infrastructureService", "listClusters")
-  async listClusters(
-    @Payload(createTypiaAssertPipe<ListClustersRequest>())
-    data: ListClustersRequest
-  ) {
+  async listClusters(@Payload() data: ListClustersRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.LIST_CLUSTER_SERVERS)
   @DelegateToService("infrastructureService", "listClusterServers")
-  async listClusterServers(
-    @Payload(createTypiaAssertPipe<ListClusterServersRequest>())
-    data: ListClusterServersRequest
-  ) {
+  async listClusterServers(@Payload() data: ListClusterServersRequest) {
     return data;
   }
 
   // Servers
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.CREATE_SERVER)
   @DelegateToService("infrastructureService", "createServer")
-  async createServer(
-    @Payload(createTypiaAssertPipe<CreateServerRequest>())
-    data: CreateServerRequest
-  ) {
+  async createServer(@Payload() data: CreateServerRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.GET_SERVER)
   @DelegateToService("infrastructureService", "getServer")
-  async getServer(
-    @Payload(createTypiaAssertPipe<GetServerRequest>())
-    data: GetServerRequest
-  ) {
+  async getServer(@Payload() data: GetServerRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.UPDATE_SERVER)
   @DelegateToService("infrastructureService", "updateServer")
-  async updateServer(
-    @Payload(createTypiaAssertPipe<UpdateServerRequest>())
-    data: UpdateServerRequest
-  ) {
+  async updateServer(@Payload() data: UpdateServerRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.DELETE_SERVER)
   @DelegateToService("infrastructureService", "deleteServer")
-  async deleteServer(
-    @Payload(createTypiaAssertPipe<DeleteServerRequest>())
-    data: DeleteServerRequest
-  ) {
+  async deleteServer(@Payload() data: DeleteServerRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.LIST_SERVERS)
   @DelegateToService("infrastructureService", "listServers")
-  async listServers(
-    @Payload(createTypiaAssertPipe<ListServersRequest>())
-    data: ListServersRequest
-  ) {
+  async listServers(@Payload() data: ListServersRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.TEST_SERVER_CONNECTION)
   @DelegateToService("infrastructureService", "testServerConnection")
-  async testServerConnection(
-    @Payload(createTypiaAssertPipe<TestServerConnectionRequest>())
-    data: TestServerConnectionRequest
-  ) {
+  async testServerConnection(@Payload() data: TestServerConnectionRequest) {
     return data;
   }
 
   // Agent Installation
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.INSTALL_AGENT)
   @DelegateToService("infrastructureService", "installAgent")
-  async installAgent(
-    @Payload(createTypiaAssertPipe<InstallAgentRequest>())
-    data: InstallAgentRequest
-  ) {
+  async installAgent(@Payload() data: InstallAgentRequest) {
     return data;
   }
 
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.GET_AGENT_STATUS)
   @DelegateToService("infrastructureService", "getAgentStatus")
-  async getAgentStatus(
-    @Payload(createTypiaAssertPipe<GetAgentStatusRequest>())
-    data: GetAgentStatusRequest
-  ) {
+  async getAgentStatus(@Payload() data: GetAgentStatusRequest) {
     return data;
   }
 
   // Server Configuration
   @MessagePatternWithLog(INFRASTRUCTURE_SERVICE_PATTERNS.CONFIGURE_SERVER)
   @DelegateToService("infrastructureService", "configureServer")
-  async configureServer(
-    @Payload(createTypiaAssertPipe<ConfigureServerRequest>())
-    data: ConfigureServerRequest
-  ) {
+  async configureServer(@Payload() data: ConfigureServerRequest) {
     return data;
   }
 
@@ -180,8 +134,7 @@ export class InfrastructureController {
   )
   @DelegateToService("infrastructureService", "calculateSystemRequirements")
   async calculateSystemRequirements(
-    @Payload(createTypiaAssertPipe<CalculateSystemRequirementsRequest>())
-    data: CalculateSystemRequirementsRequest
+    @Payload() data: CalculateSystemRequirementsRequest
   ) {
     return data;
   }

@@ -14,6 +14,7 @@ import {
   Injectable,
   Logger,
   Inject,
+  Optional,
 } from "@nestjs/common";
 import type { ClientKafka } from "@nestjs/microservices";
 import { firstValueFrom, timeout } from "rxjs";
@@ -45,7 +46,9 @@ export class MicroserviceAuthGuard implements CanActivate {
   private authServiceResolved = false;
 
   constructor(
-    @Inject(AUTH_SERVICE_NAME) private readonly injectedAuthClient?: ClientKafka
+    @Optional()
+    @Inject(AUTH_SERVICE_NAME)
+    private readonly injectedAuthClient?: ClientKafka
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

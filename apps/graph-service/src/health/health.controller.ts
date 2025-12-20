@@ -1,6 +1,5 @@
 import { HealthStatus } from "@axion/contracts";
-import { TypedRoute } from "@nestia/core";
-import { Controller, Logger } from "@nestjs/common";
+import { Controller, Logger, Get } from "@nestjs/common";
 import { MessagePattern, Ctx } from "@nestjs/microservices";
 import type { KafkaContext } from "@nestjs/microservices";
 
@@ -17,7 +16,7 @@ export class HealthController {
   /**
    * HTTP health check endpoint
    */
-  @TypedRoute.Get("health")
+  @Get("health")
   async httpHealthCheck() {
     try {
       const client = getClient();

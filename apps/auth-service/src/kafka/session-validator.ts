@@ -5,7 +5,6 @@ import {
   type ValidateSessionResponse,
 } from "@axion/contracts";
 import type { Consumer, EachMessagePayload, Producer } from "kafkajs";
-import typia from "typia";
 
 import { auth } from "@/auth/auth";
 
@@ -55,10 +54,10 @@ async function handleValidateSessionMessage(
   }
 
   try {
-    // Parse and validate request using typia
-    const request = typia.json.assertParse<ValidateSessionRequest>(
+    // Parse request
+    const request = JSON.parse(
       message.value.toString()
-    );
+    ) as ValidateSessionRequest;
 
     console.log(
       `[auth-service][session-validator] Validating session from ${topic}:${partition}`
@@ -71,13 +70,13 @@ async function handleValidateSessionMessage(
     const correlationId = message.headers?.["correlation_id"]?.toString();
 
     if (replyTopic && correlationId) {
-      // Send response back via producer using typia.json.stringify
+      // Send response back via producer
       await producer.send({
         topic: replyTopic,
         messages: [
           {
             key: correlationId,
-            value: typia.json.stringify<ValidateSessionResponse>(response),
+            value: JSON.stringify(response),
             headers: {
               correlation_id: correlationId,
             },
