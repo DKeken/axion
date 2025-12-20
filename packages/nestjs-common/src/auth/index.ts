@@ -4,11 +4,8 @@
 
 export { MicroserviceAuthGuard } from "./microservice-auth.guard";
 export { AuthHelper } from "./auth-helper";
-export {
-  AuthModule,
-  type AuthModuleOptions,
-  type AuthModuleAsyncOptions,
-} from "./auth.module";
+export { createAuthDatabaseConnection } from "./auth-database.helper";
+export { AuthModule } from "./auth.module";
 export {
   RequireAuth,
   AllowAnonymous,

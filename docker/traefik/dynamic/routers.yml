@@ -9,6 +9,16 @@ http:
       entryPoints:
         - web
       service: api@internal
+    auth:
+      rule: PathPrefix(`/api/auth`)
+      entryPoints:
+        - web
+      service: auth-service
+    auth-secure:
+      rule: PathPrefix(`/api/auth`)
+      entryPoints:
+        - websecure
+      service: auth-service
     graph:
       rule: PathPrefix(`/api/v1/graph`)
       entryPoints:
@@ -88,6 +98,10 @@ http:
       middlewares:
         - billing-stripprefix
   services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3010
     graph-service:
       loadBalancer:
         servers:

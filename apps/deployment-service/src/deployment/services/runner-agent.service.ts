@@ -1,3 +1,7 @@
+import {
+  RUNNER_AGENT_SERVICE_NAME,
+  RUNNER_AGENT_SERVICE_PATTERNS,
+} from "@axion/contracts";
 import type {
   DeployProjectCommand,
   DeployProjectResponse as RunnerDeployProjectResponse,
@@ -5,14 +9,10 @@ import type {
   CancelDeploymentRequest,
   GetDeploymentStatusRequest,
 } from "@axion/contracts/generated/runner-agent/deployment";
-import {
-  RUNNER_AGENT_SERVICE_NAME,
-  RUNNER_AGENT_SERVICE_PATTERNS,
-} from "@axion/contracts";
 import { BaseService } from "@axion/shared";
-import { firstValueFrom } from "rxjs";
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import type { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
 
 /**
  * Runner Agent Service

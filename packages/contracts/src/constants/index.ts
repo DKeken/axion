@@ -9,6 +9,7 @@ export * from "./service-names";
  * Format: {service-name}.{action}
  */
 
+export * from "./patterns/auth-service";
 export * from "./patterns/graph-service";
 export * from "./patterns/codegen-service";
 export * from "./patterns/deployment-service";

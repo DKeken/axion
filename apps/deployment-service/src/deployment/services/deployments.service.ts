@@ -26,15 +26,15 @@ import {
   type ServerResponse,
   type ClusterResponse,
 } from "@axion/contracts";
-import type {
-  DeploymentStatusData as RunnerDeploymentStatusData,
-  ServiceDeploymentStatus as RunnerServiceDeploymentStatus,
-} from "@axion/contracts/generated/runner-agent/deployment";
 import {
   createErrorResponse,
   createNotFoundError,
   createValidationError,
 } from "@axion/contracts";
+import type {
+  DeploymentStatusData as RunnerDeploymentStatusData,
+  ServiceDeploymentStatus as RunnerServiceDeploymentStatus,
+} from "@axion/contracts/generated/runner-agent/deployment";
 import { CatchError, DEFAULT_QUEUE_OPTIONS } from "@axion/nestjs-common";
 import { BaseService, enforceLimit, handleServiceError } from "@axion/shared";
 import { Inject, Injectable, Optional } from "@nestjs/common";

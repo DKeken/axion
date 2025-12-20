@@ -692,6 +692,319 @@ import { verifyProjectAccess } from "../helpers/project-access.helper";
 
 ---
 
+---
+
+## Typia/Nestia - Валидация и Типобезопасность
+
+### 1. Конфигурация TypeScript
+
+Все сервисы должны иметь Typia и Nestia transformers в `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      { "transform": "typia/lib/transform" },
+      { "transform": "@nestia/core/lib/transform" }
+    ]
+  }
+}
+```
+
+### 2. HTTP Controllers - Nestia
+
+**ВСЕГДА используй `@nestia/core` декораторы для HTTP endpoints:**
+
+```typescript
+import { TypedRoute, TypedBody, TypedParam, TypedQuery } from "@nestia/core";
+import { Controller, UseGuards } from "@nestjs/common";
+import typia from "typia";
+import type { CreateProjectRequest, RequestMetadata } from "@axion/contracts";
+import { AxionRequestMetadata, HttpAuthGuard, normalizePagination, type PaginationQuery } from "@axion/nestjs-common";
+
+@Controller("api")
+@UseGuards(HttpAuthGuard)
+export class GraphHttpController {
+  constructor(private readonly graphService: GraphService) {}
+
+  // ✅ ПРАВИЛЬНО - TypedRoute + TypedBody + TypedParam
+  @TypedRoute.Post("projects")
+  async createProject(
+    @AxionRequestMetadata() metadata: RequestMetadata,
+    @TypedBody() body: Omit<CreateProjectRequest, "metadata">
+  ) {
+    const req: CreateProjectRequest = { metadata, ...body };
+    // Валидация через typia.assert перед передачей в сервис
+    return this.graphService.createProject(
+      typia.assert<CreateProjectRequest>(req)
+    );
+  }
+
+  // ✅ TypedQuery для query parameters
+  @TypedRoute.Get("projects")
+  async listProjects(
+    @AxionRequestMetadata() metadata: RequestMetadata,
+    @TypedQuery() query?: PaginationQuery
+  ) {
+    const req: ListProjectsRequest = {
+      metadata,
+      pagination: normalizePagination(query), // Helper из @axion/nestjs-common
+    };
+    return this.graphService.listProjects(
+      typia.assert<ListProjectsRequest>(req)
+    );
+  }
+
+  // ✅ TypedParam для path parameters
+  @TypedRoute.Get("projects/:projectId")
+  async getProject(
+    @AxionRequestMetadata() metadata: RequestMetadata,
+    @TypedParam("projectId") projectId: string
+  ) {
+    const req: GetProjectRequest = { metadata, projectId };
+    return this.graphService.getProject(
+      typia.assert<GetProjectRequest>(req)
+    );
+  }
+}
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ НЕ используй стандартные NestJS декораторы для новых endpoints
+import { Body, Param, Query } from "@nestjs/common";
+
+@Post("projects")
+async createProject(
+  @Body() body: any, // ❌ Нет типобезопасности
+  @Param("id") id: string
+) { }
+```
+
+### 3. Kafka Controllers - Typia Pipes
+
+**ВСЕГДА используй `createTypiaAssertPipe` для Kafka message handlers:**
+
+```typescript
+import { Controller, UseGuards } from "@nestjs/common";
+import { Payload } from "@nestjs/microservices";
+import { 
+  GRAPH_SERVICE_PATTERNS,
+  type CreateProjectRequest 
+} from "@axion/contracts";
+import { 
+  MessagePatternWithLog,
+  MicroserviceAuthGuard,
+  createTypiaAssertPipe,
+  DelegateToService
+} from "@axion/nestjs-common";
+
+@Controller()
+@UseGuards(MicroserviceAuthGuard)
+export class GraphController {
+  constructor(private readonly graphService: GraphService) {
+    void this.graphService;
+  }
+
+  // ✅ ПРАВИЛЬНО - createTypiaAssertPipe для валидации
+  @MessagePatternWithLog(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+  @DelegateToService("graphService", "createProject")
+  async createProject(
+    @Payload(createTypiaAssertPipe<CreateProjectRequest>())
+    data: CreateProjectRequest
+  ) {
+    return data; // DelegateToService автоматически передаст в сервис
+  }
+}
+```
+
+**Доступные Typia Pipes:**
+- `createTypiaAssertPipe<T>()` - throws на первой ошибке (рекомендуется для Kafka)
+- `createTypiaValidatePipe<T>()` - собирает все ошибки (для детальной валидации)
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ НЕ используй @Payload() без pipe для Kafka
+@MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+async createProject(@Payload() data: any) { // ❌ Нет валидации
+  return this.graphService.createProject(data);
+}
+
+// ❌ НЕ используй class-validator
+import { IsString, IsOptional } from "class-validator";
+class CreateProjectDto { // ❌ Не создавай DTO классы
+  @IsString()
+  name: string;
+}
+```
+
+### 4. Валидация в Сервисах
+
+**Используй `typia.assert` или `typia.validate` для runtime валидации:**
+
+```typescript
+import typia from "typia";
+import type { CreateProjectRequest } from "@axion/contracts";
+
+@Injectable()
+export class ProjectsService extends BaseService {
+  async create(data: CreateProjectRequest) {
+    // ✅ typia.assert - throws TypeGuardError при ошибке
+    const validated = typia.assert<CreateProjectRequest>(data);
+    
+    // ✅ typia.validate - возвращает IValidation<T> с детальными ошибками
+    const result = typia.validate<CreateProjectRequest>(data);
+    if (!result.success) {
+      this.logger.error("Validation failed", result.errors);
+      return createErrorResponse(
+        createValidationError("Invalid data", "data")
+      );
+    }
+    
+    // ✅ typia.is - type guard, не throws
+    if (!typia.is<CreateProjectRequest>(data)) {
+      return createErrorResponse(
+        createValidationError("Invalid data format", "data")
+      );
+    }
+  }
+}
+```
+
+### 5. Сериализация - typia.json.stringify
+
+**Используй `typia.json.stringify` вместо `JSON.stringify` для производительности:**
+
+```typescript
+import typia from "typia";
+import type { GraphData } from "@axion/contracts";
+
+// ✅ SSE/Streaming - используй typia.json.stringify
+@Injectable()
+export class GraphSseService {
+  broadcast(projectId: string, event: ProjectEvent): void {
+    const payload = typia.assert<{
+      event: ProjectEvent["type"];
+      projectId: string;
+      data: ProjectEvent["data"];
+      timestamp: number;
+    }>({
+      event: event.type,
+      projectId: event.projectId,
+      data: event.data,
+      timestamp: event.timestamp,
+    });
+
+    const messageEvent: MessageEvent = {
+      type: event.type,
+      id: `${event.type}-${Date.now()}`,
+      data: typia.json.stringify(payload), // ✅ 2-5x быстрее JSON.stringify
+    };
+
+    subject.next(messageEvent);
+  }
+}
+
+// ✅ В любых местах где нужна сериализация
+const jsonString = typia.json.stringify<GraphData>(graphData);
+
+// ✅ assertStringify - валидация + сериализация
+const jsonString = typia.json.assertStringify<GraphData>(graphData);
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ НЕ используй JSON.stringify для типизированных данных
+const jsonString = JSON.stringify(graphData); // Медленнее и без проверки типов
+```
+
+### 6. Вынос общих Helper-ов
+
+**Запрещено держать утилиты в контроллерах/сервисах:**
+
+```typescript
+// ✅ ПРАВИЛЬНО - используй helpers из @axion/nestjs-common
+import { 
+  normalizePagination,
+  toNumberOrUndefined,
+  toNonNegativeIntOrUndefined,
+  type PaginationQuery 
+} from "@axion/nestjs-common/http";
+
+@TypedRoute.Get("projects")
+async listProjects(
+  @AxionRequestMetadata() metadata: RequestMetadata,
+  @TypedQuery() query?: PaginationQuery
+) {
+  const req: ListProjectsRequest = {
+    metadata,
+    pagination: normalizePagination(query), // ✅ Helper
+  };
+  return this.service.listProjects(typia.assert<ListProjectsRequest>(req));
+}
+```
+
+**НЕ ДЕЛАЙ:**
+```typescript
+// ❌ НЕ парси query/pagination вручную в контроллерах
+@Get("projects")
+async listProjects(@Query() query: any) {
+  const page = parseInt(query.page) || 1; // ❌ Inline парсинг
+  const limit = parseInt(query.limit) || 10; // ❌ Inline парсинг
+  // ...
+}
+```
+
+### 7. Contracts-First Approach
+
+**Любые DTO/структуры — только типы из `@axion/contracts` (protobuf):**
+
+```typescript
+// ✅ ПРАВИЛЬНО - типы из contracts
+import type { 
+  CreateProjectRequest,
+  CreateProjectResponse,
+  Project 
+} from "@axion/contracts";
+
+async createProject(data: CreateProjectRequest): Promise<CreateProjectResponse> {
+  // ...
+}
+
+// ❌ НЕПРАВИЛЬНО - локальные типы для данных из контрактов
+type CreateProjectRequest = { // ❌ НЕТ!
+  name: string;
+  description?: string;
+};
+```
+
+**Если типа нет:**
+1. Добавь `message` в `packages/contracts/proto/**/*.proto`
+2. Сгенерируй: `cd packages/contracts && bun run generate`
+3. Импортируй из `@axion/contracts`
+
+### 8. Typia Performance Tips
+
+**Typia генерирует оптимальный код на этапе компиляции:**
+
+```typescript
+// ✅ Typia functions генерируются в compile-time
+const assert = typia.assert<CreateProjectRequest>; // Compiled to optimized code
+const validate = typia.validate<GraphData>; // Compiled to optimized code
+const stringify = typia.json.stringify<Project>; // 2-5x faster than JSON.stringify
+
+// ❌ НЕ создавай повторяющиеся typia calls в горячих путях
+for (const item of items) {
+  typia.assert<Item>(item); // ❌ Лучше создать функцию один раз
+}
+
+// ✅ Создай функцию один раз
+const assertItem = typia.createAssert<Item>();
+for (const item of items) {
+  assertItem(item); // ✅ Переиспользуй
+}
+```
+
 ## Чеклист перед коммитом
 
 - [ ] Все типы импортируются из `@axion/contracts`
@@ -706,5 +1019,10 @@ import { verifyProjectAccess } from "../helpers/project-access.helper";
 - [ ] Нет дублирования кода между пакетами
 - [ ] Нет циклических зависимостей
 - [ ] Нет лишнего маппинга данных - отправляй данные из repository напрямую
+- [ ] HTTP controllers используют `@nestia/core` декораторы (`TypedRoute`, `TypedBody`, `TypedParam`, `TypedQuery`)
+- [ ] Kafka controllers используют `createTypiaAssertPipe` для валидации
+- [ ] Сериализация через `typia.json.stringify` вместо `JSON.stringify` для SSE/streaming
+- [ ] Используются helpers из `@axion/nestjs-common` (normalizePagination, toNumberOrUndefined и т.д.)
+- [ ] Нет class-validator/class-transformer - только Typia
 - [ ] `bun type-check` проходит успешно
 - [ ] `bun lint` проходит успешно

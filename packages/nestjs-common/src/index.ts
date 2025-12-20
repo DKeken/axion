@@ -33,3 +33,6 @@ export * from "./swagger";
 
 // Bootstrap
 export * from "./bootstrap/bootstrap";
+
+// Pipes
+export * from "./pipes";

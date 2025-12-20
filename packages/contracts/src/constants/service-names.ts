@@ -2,6 +2,7 @@
  * Service name constants for NestJS Microservices
  */
 
+export const AUTH_SERVICE_NAME = "AUTH_SERVICE";
 export const GRAPH_SERVICE_NAME = "GRAPH_SERVICE";
 export const CODEGEN_SERVICE_NAME = "CODEGEN_SERVICE";
 export const DEPLOYMENT_SERVICE_NAME = "DEPLOYMENT_SERVICE";

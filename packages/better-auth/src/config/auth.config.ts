@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { bearer } from "better-auth/plugins";
 import type { BetterAuthOptions } from "better-auth";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -20,6 +21,10 @@ export interface BetterAuthConfigOptions {
    */
   trustedOrigins?: string[];
   /**
+   * Enable bearer token plugin (default: true)
+   */
+  enableBearer?: boolean;
+  /**
    * Additional Better Auth options
    */
   options?: Partial<BetterAuthOptions>;
@@ -35,8 +40,14 @@ export function createBetterAuth(
     database,
     basePath = "/api/auth",
     trustedOrigins = [],
+    enableBearer = true,
     options = {},
   } = config;
+
+  const plugins = [];
+  if (enableBearer) {
+    plugins.push(bearer());
+  }
 
   const authConfig = {
     database: drizzleAdapter(database, {
@@ -47,6 +58,7 @@ export function createBetterAuth(
     emailAndPassword: {
       enabled: true,
     },
+    plugins,
     hooks: {}, // Required for @Hook decorators
     ...options,
   };

@@ -6,11 +6,10 @@ import {
   addStandardJobWithMetadata,
   type QueueOptions,
 } from "@axion/nestjs-common";
-import type { JobsOptions } from "bullmq";
 import { BaseService } from "@axion/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
-import { Queue, type Job } from "bullmq";
+import type { JobsOptions, Queue, Job } from "bullmq";
 
 import type {
   DeploymentJobPayload,

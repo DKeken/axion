@@ -9,7 +9,6 @@ import { ValidationResultRepository } from "@/codegen/repositories/validation-re
 import { BlueprintsService } from "@/codegen/services/blueprints.service";
 import { ContractDiscoveryService } from "@/codegen/services/contract-discovery.service";
 import { DatabaseNodeCodeGeneratorService } from "@/codegen/services/database-node-code-generator.service";
-import { SchemaGeneratorService } from "@/codegen/services/schema-generator.service";
 import { DatabaseFactoryService } from "@/codegen/services/factories/database-factory.service";
 import { MessagingFactoryService } from "@/codegen/services/factories/messaging-factory.service";
 import { ServiceFactoryService } from "@/codegen/services/factories/service-factory.service";
@@ -17,6 +16,7 @@ import { GenerationService } from "@/codegen/services/generation.service";
 import { OpenRouterService } from "@/codegen/services/openrouter.service";
 import { PromptBuilderService } from "@/codegen/services/prompt-builder.service";
 import { ProtobufContractGeneratorService } from "@/codegen/services/protobuf-contract-generator.service";
+import { SchemaGeneratorService } from "@/codegen/services/schema-generator.service";
 import { TemplateEngineService } from "@/codegen/services/template-engine.service";
 import { ValidationService } from "@/codegen/services/validation.service";
 import { BuildValidatorService } from "@/codegen/services/validators/build-validator.service";

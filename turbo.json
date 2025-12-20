@@ -16,7 +16,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["generate"],
+      "dependsOn": ["^build", "generate"],
       "env": ["NODE_ENV", "PORT"]
     },
     "start": {

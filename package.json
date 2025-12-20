@@ -31,7 +31,9 @@
     "zod": "^4.0.0",
     "@nestjs/swagger": "^8.0.7",
     "class-validator": "^0.14.1",
-    "class-transformer": "^0.5.1"
+    "class-transformer": "^0.5.1",
+    "@nestia/core": "^6.0.0",
+    "typia": "^10.1.0"
   },
   "scripts": {
     "dev": "bun run scripts/dev.ts",
@@ -87,6 +89,7 @@
   },
   "packageManager": "bun@1.2.0",
   "dependencies": {
-    "@casl/ability": "^6.7.3"
+    "@casl/ability": "^6.7.3",
+    "typia": "catalog:"
   }
 }

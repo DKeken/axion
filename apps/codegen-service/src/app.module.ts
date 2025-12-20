@@ -1,4 +1,8 @@
-import { CODEGEN_SERVICE_NAME, GRAPH_SERVICE_NAME } from "@axion/contracts";
+import {
+  CODEGEN_SERVICE_NAME,
+  GRAPH_SERVICE_NAME,
+  AUTH_SERVICE_NAME,
+} from "@axion/contracts";
 import { AuthModule, HealthModule } from "@axion/nestjs-common";
 import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
 import { Module } from "@nestjs/common";
@@ -6,7 +10,6 @@ import { ClientsModule } from "@nestjs/microservices";
 
 import { CodegenModule } from "@/codegen/codegen.module";
 import { env } from "@/config/env";
-import { db } from "@/database";
 import { getClient } from "@/database/connection";
 
 @Module({
@@ -21,15 +24,17 @@ import { getClient } from "@/database/connection";
             parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
           ),
       },
+      {
+        name: AUTH_SERVICE_NAME,
+        useFactory: () =>
+          createKafkaClientOptions(
+            AUTH_SERVICE_NAME,
+            parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
+          ),
+      },
     ]),
-    // Better Auth with optional injection for microservice authentication
-    AuthModule.forRootAsync({
-      useFactory: () => ({
-        database: db,
-        basePath: "/api/auth",
-        trustedOrigins: env.trustedOrigins,
-      }),
-    }),
+    // Auth Module (provides guards that use AUTH_SERVICE client)
+    AuthModule,
     // Universal Health Module
     HealthModule.forRoot({
       serviceName: CODEGEN_SERVICE_NAME,

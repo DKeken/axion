@@ -87,6 +87,27 @@ services:
     networks:
       - axion-network
 
+  # PostgreSQL для auth-service (Better Auth: users/sessions/accounts/etc.)
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: axion-postgres-auth
+    environment:
+      POSTGRES_USER: axion
+      POSTGRES_PASSWORD: axion_password
+      POSTGRES_DB: axion_auth
+      POSTGRES_INITDB_ARGS: "-U axion"
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || pg_isready -U axion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axion-network
+
   # KeyDB - кэш / временные данные / очереди (BullMQ) (высокопроизводительная замена Redis)
   keydb:
     image: eqalpha/keydb:latest
@@ -282,6 +303,8 @@ volumes:
   postgres_infrastructure_data:
     driver: local
   postgres_deployment_data:
+    driver: local
+  postgres_auth_data:
     driver: local
   keydb_data:
     driver: local

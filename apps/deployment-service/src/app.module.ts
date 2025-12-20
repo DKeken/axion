@@ -4,6 +4,7 @@ import {
   CODEGEN_SERVICE_NAME,
   GRAPH_SERVICE_NAME,
   RUNNER_AGENT_SERVICE_NAME,
+  AUTH_SERVICE_NAME,
 } from "@axion/contracts";
 import {
   AuthModule,
@@ -16,7 +17,6 @@ import { Module } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
 
 import { env } from "@/config/env";
-import { db } from "@/database";
 import { getClient } from "@/database/connection";
 import { DeploymentModule } from "@/deployment/deployment.module";
 
@@ -60,14 +60,17 @@ import { DeploymentModule } from "@/deployment/deployment.module";
             parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
           ),
       },
+      {
+        name: AUTH_SERVICE_NAME,
+        useFactory: () =>
+          createKafkaClientOptions(
+            AUTH_SERVICE_NAME,
+            parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
+          ),
+      },
     ]),
-    AuthModule.forRootAsync({
-      useFactory: () => ({
-        database: db,
-        basePath: "/api/auth",
-        trustedOrigins: env.trustedOrigins,
-      }),
-    }),
+    // Auth Module (provides guards that use AUTH_SERVICE client)
+    AuthModule,
     HealthModule.forRoot({
       serviceName: DEPLOYMENT_SERVICE_NAME,
       getDatabaseClient: () =>

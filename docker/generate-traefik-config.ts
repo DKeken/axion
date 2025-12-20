@@ -41,6 +41,7 @@ function generateTraefikConfig(isDev: boolean): TraefikConfig {
   };
 
   const API_BASE_PATH = "/api/v1";
+  const AUTH_BASE_PATH = "/api"; // Auth service uses /api/auth without version
 
   // Traefik dashboard
   config.http.routers.traefik = {
@@ -60,7 +61,10 @@ function generateTraefikConfig(isDev: boolean): TraefikConfig {
 
     // Path-based routing with basepath
     if (s.pathPrefix) {
-      const pathPrefix = `${API_BASE_PATH}/${s.pathPrefix}`;
+      // Special case for auth service: /api/auth (no version)
+      const isAuthService = s.routerName === "auth";
+      const basePath = isAuthService ? AUTH_BASE_PATH : API_BASE_PATH;
+      const pathPrefix = `${basePath}/${s.pathPrefix}`;
       const middlewares: string[] = [];
 
       // Strip prefix middleware if needed

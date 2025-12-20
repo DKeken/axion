@@ -12,36 +12,17 @@ import type {
   UpdateProjectRequest,
   RequestMetadata,
 } from "@axion/contracts";
-import { AxionRequestMetadata, HttpAuthGuard } from "@axion/nestjs-common";
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+  AxionRequestMetadata,
+  HttpAuthGuard,
+  normalizePagination,
+  type PaginationQuery,
+} from "@axion/nestjs-common";
+import { TypedBody, TypedParam, TypedQuery, TypedRoute } from "@nestia/core";
+import { Controller, UseGuards } from "@nestjs/common";
+import typia from "typia";
 
 import { GraphService } from "@/graph/graph.service";
-
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.floor(n);
-}
-
-function buildRequestPagination(page?: string, limit?: string) {
-  return {
-    page: parsePositiveInt(page, 1),
-    limit: parsePositiveInt(limit, 10),
-    total: 0,
-    totalPages: 0,
-  };
-}
 
 @Controller("api")
 @UseGuards(HttpAuthGuard)
@@ -49,123 +30,134 @@ export class GraphHttpController {
   constructor(private readonly graphService: GraphService) {}
 
   // Projects
-  @Get("projects")
+  @TypedRoute.Get("projects")
   async listProjects(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedQuery() query?: PaginationQuery
   ) {
     const req: ListProjectsRequest = {
       metadata,
-      pagination: buildRequestPagination(page, limit),
+      pagination: normalizePagination(query),
     };
-    return this.graphService.listProjects(req);
+    return this.graphService.listProjects(
+      typia.assert<ListProjectsRequest>(req)
+    );
   }
 
-  @Post("projects")
+  @TypedRoute.Post("projects")
   async createProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Body() body: Omit<CreateProjectRequest, "metadata">
+    @TypedBody() body: Omit<CreateProjectRequest, "metadata">
   ) {
-    return this.graphService.createProject({ metadata, ...body });
+    return this.graphService.createProject(
+      typia.assert<CreateProjectRequest>({ metadata, ...body })
+    );
   }
 
-  @Get("projects/:projectId")
+  @TypedRoute.Get("projects/:projectId")
   async getProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string
+    @TypedParam("projectId") projectId: string
   ) {
     const req: GetProjectRequest = { metadata, projectId };
-    return this.graphService.getProject(req);
+    return this.graphService.getProject(typia.assert<GetProjectRequest>(req));
   }
 
-  @Patch("projects/:projectId")
+  @TypedRoute.Patch("projects/:projectId")
   async updateProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Body() body: Omit<UpdateProjectRequest, "metadata" | "projectId">
+    @TypedParam("projectId") projectId: string,
+    @TypedBody() body: Omit<UpdateProjectRequest, "metadata" | "projectId">
   ) {
     const req: UpdateProjectRequest = { metadata, projectId, ...body };
-    return this.graphService.updateProject(req);
+    return this.graphService.updateProject(
+      typia.assert<UpdateProjectRequest>(req)
+    );
   }
 
-  @Delete("projects/:projectId")
+  @TypedRoute.Delete("projects/:projectId")
   async deleteProject(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string
+    @TypedParam("projectId") projectId: string
   ) {
     const req: DeleteProjectRequest = { metadata, projectId };
-    return this.graphService.deleteProject(req);
+    return this.graphService.deleteProject(
+      typia.assert<DeleteProjectRequest>(req)
+    );
   }
 
   // Graph
-  @Get("projects/:projectId/graph")
+  @TypedRoute.Get("projects/:projectId/graph")
   async getGraph(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string
+    @TypedParam("projectId") projectId: string
   ) {
     const req: GetGraphRequest = { metadata, projectId };
-    return this.graphService.getGraph(req);
+    return this.graphService.getGraph(typia.assert<GetGraphRequest>(req));
   }
 
-  @Put("projects/:projectId/graph")
+  @TypedRoute.Put("projects/:projectId/graph")
   async updateGraph(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Body() body: Pick<UpdateGraphRequest, "graphData">
+    @TypedParam("projectId") projectId: string,
+    @TypedBody() body: Pick<UpdateGraphRequest, "graphData">
   ) {
     const req: UpdateGraphRequest = { metadata, projectId, ...body };
-    return this.graphService.updateGraph(req);
+    return this.graphService.updateGraph(typia.assert<UpdateGraphRequest>(req));
   }
 
-  @Get("projects/:projectId/graph/versions")
+  @TypedRoute.Get("projects/:projectId/graph/versions")
   async listGraphVersions(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedParam("projectId") projectId: string,
+    @TypedQuery() query?: PaginationQuery
   ) {
     const req: ListGraphVersionsRequest = {
       metadata,
       projectId,
-      pagination: buildRequestPagination(page, limit),
+      pagination: normalizePagination(query),
     };
-    return this.graphService.listGraphVersions(req);
+    return this.graphService.listGraphVersions(
+      typia.assert<ListGraphVersionsRequest>(req)
+    );
   }
 
-  @Post("projects/:projectId/graph/revert")
+  @TypedRoute.Post("projects/:projectId/graph/revert")
   async revertGraphVersion(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Body() body: Pick<RevertGraphVersionRequest, "version">
+    @TypedParam("projectId") projectId: string,
+    @TypedBody() body: Pick<RevertGraphVersionRequest, "version">
   ) {
     const req: RevertGraphVersionRequest = { metadata, projectId, ...body };
-    return this.graphService.revertGraphVersion(req);
+    return this.graphService.revertGraphVersion(
+      typia.assert<RevertGraphVersionRequest>(req)
+    );
   }
 
   // Services
-  @Get("projects/:projectId/services")
+  @TypedRoute.Get("projects/:projectId/services")
   async listServices(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedParam("projectId") projectId: string,
+    @TypedQuery() query?: PaginationQuery
   ) {
     const req: ListServicesRequest = {
       metadata,
       projectId,
-      pagination: buildRequestPagination(page, limit),
+      pagination: normalizePagination(query),
     };
-    return this.graphService.listServices(req);
+    return this.graphService.listServices(
+      typia.assert<ListServicesRequest>(req)
+    );
   }
 
-  @Get("projects/:projectId/services/:nodeId")
+  @TypedRoute.Get("projects/:projectId/services/:nodeId")
   async getService(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("projectId") projectId: string,
-    @Param("nodeId") nodeId: string
+    @TypedParam("projectId") projectId: string,
+    @TypedParam("nodeId") nodeId: string
   ) {
     const req: GetServiceRequest = { metadata, projectId, nodeId };
-    return this.graphService.getService(req);
+    return this.graphService.getService(typia.assert<GetServiceRequest>(req));
   }
 }

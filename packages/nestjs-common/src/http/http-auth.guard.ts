@@ -1,4 +1,10 @@
-import { getUserIdFromSession } from "@axion/better-auth";
+import {
+  AUTH_SERVICE_NAME,
+  AUTH_SERVICE_PATTERNS,
+  Status,
+  type RequestMetadata,
+  type ValidateSessionResponse,
+} from "@axion/contracts";
 import { createRequestMetadata } from "@axion/shared";
 import {
   CanActivate,
@@ -6,14 +12,13 @@ import {
   Injectable,
   Logger,
   UnauthorizedException,
+  Inject,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { ModuleRef } from "@nestjs/core";
-import type { betterAuth } from "better-auth";
+import type { ClientKafka } from "@nestjs/microservices";
+import { firstValueFrom, timeout } from "rxjs";
 
 import { ALLOW_ANONYMOUS_KEY } from "../auth/auth.decorator";
-
-import type { RequestMetadata } from "@axion/contracts";
 
 type HttpRequest = {
   headers: Record<string, string | string[] | undefined>;
@@ -27,11 +32,12 @@ type HttpRequest = {
 @Injectable()
 export class HttpAuthGuard implements CanActivate {
   private readonly logger = new Logger(HttpAuthGuard.name);
-  private auth: ReturnType<typeof betterAuth> | null = null;
-  private authResolved = false;
+  private authServiceClient: ClientKafka | null = null;
+  private authServiceResolved = false;
 
   constructor(
-    private readonly moduleRef: ModuleRef,
+    @Inject(AUTH_SERVICE_NAME)
+    private readonly injectedAuthClient: ClientKafka | undefined,
     private readonly reflector: Reflector
   ) {}
 
@@ -48,56 +54,99 @@ export class HttpAuthGuard implements CanActivate {
       return true;
     }
 
-    // Lazily resolve BETTER_AUTH provider on first use (optional dependency)
-    if (!this.authResolved) {
-      try {
-        this.auth = this.moduleRef.get("BETTER_AUTH", { strict: false });
-        this.authResolved = true;
-        if (!this.auth) {
-          this.logger.warn(
-            "HttpAuthGuard: BETTER_AUTH not available - authentication will be disabled"
-          );
-        }
-      } catch {
-        this.authResolved = true;
+    // Lazily resolve auth service client on first use
+    if (!this.authServiceResolved) {
+      this.authServiceClient = this.injectedAuthClient || null;
+      this.authServiceResolved = true;
+
+      if (!this.authServiceClient) {
         this.logger.warn(
-          "HttpAuthGuard: Failed to resolve BETTER_AUTH - authentication will be disabled"
+          "HttpAuthGuard: AUTH_SERVICE client not available - authentication will be disabled"
         );
       }
     }
 
-    // If auth is not available, allow request (authentication disabled)
-    if (!this.auth) {
+    // If auth service is not available, allow request (authentication disabled)
+    if (!this.authServiceClient) {
       return true;
     }
 
     const req = context.switchToHttp().getRequest<HttpRequest>();
 
-    // Convert headers to the string-only map better-auth expects.
+    // Convert headers to the string-only map
     const headers: Record<string, string> = {};
     for (const [key, value] of Object.entries(req.headers ?? {})) {
       if (!value) continue;
       headers[key] = Array.isArray(value) ? value[0] : value;
     }
 
-    const session = await this.auth.api.getSession({ headers });
-    if (!session) {
-      throw new UnauthorizedException("Invalid or missing session");
+    // Extract session token from Authorization header or cookie
+    const authHeader = headers.authorization || headers.Authorization;
+    let sessionToken: string | undefined;
+
+    if (authHeader) {
+      const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+      if (bearerMatch?.[1]) {
+        sessionToken = bearerMatch[1];
+      }
     }
 
-    const userId = getUserIdFromSession(session);
-    if (!userId) {
-      throw new UnauthorizedException("Session does not contain user id");
+    // If no Bearer token, try cookie (better-auth stores session token in cookie)
+    if (!sessionToken && headers.cookie) {
+      const cookieMatch = headers.cookie.match(
+        /better-auth\.session_token=([^;]+)/
+      );
+      if (cookieMatch?.[1]) {
+        sessionToken = cookieMatch[1];
+      }
     }
 
-    // Store minimal request context for controllers → domain services.
-    req.axion = {
-      userId,
-      session,
-      metadata: createRequestMetadata(userId),
-    };
+    if (!sessionToken) {
+      throw new UnauthorizedException("Missing session token");
+    }
 
-    return true;
+    try {
+      // Validate session using auth-service via Kafka
+      const response = await firstValueFrom(
+        this.authServiceClient
+          .send<ValidateSessionResponse>(
+            AUTH_SERVICE_PATTERNS.VALIDATE_SESSION,
+            { sessionToken }
+          )
+          .pipe(timeout(5000)) // 5 second timeout
+      );
+
+      // Check response status (Protobuf contract format)
+      if (!response || response.status !== Status.STATUS_SUCCESS) {
+        const errorMessage =
+          response?.error?.message || "Invalid or expired session";
+        throw new UnauthorizedException(errorMessage);
+      }
+
+      // Extract session data from oneof result
+      if (!response.session) {
+        throw new UnauthorizedException("Session data not found in response");
+      }
+
+      const userId = response.session.userId;
+      if (!userId) {
+        throw new UnauthorizedException("Session does not contain user id");
+      }
+
+      // Store minimal request context for controllers → domain services.
+      req.axion = {
+        userId,
+        session: response.session,
+        metadata: createRequestMetadata(userId),
+      };
+
+      return true;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error("Error validating authentication", error);
+      throw new UnauthorizedException("Authentication failed");
+    }
   }
 }
-

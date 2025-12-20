@@ -10,6 +10,9 @@ import {
   BILLING_SERVICE_NAME,
 } from "@axion/contracts";
 
+// Auth service is not in contracts yet, so we define it here
+export const AUTH_SERVICE_NAME = "auth-service" as const;
+
 export interface ServiceConfig {
   serviceName: string;
   dockerServiceName: string;
@@ -24,6 +27,16 @@ export interface ServiceConfig {
 }
 
 export const SERVICES_CONFIG: Record<string, ServiceConfig> = {
+  // Auth service - special routing without version prefix
+  [AUTH_SERVICE_NAME]: {
+    serviceName: AUTH_SERVICE_NAME,
+    dockerServiceName: "auth-service",
+    routerName: "auth",
+    host: "auth.localhost",
+    port: 3010,
+    pathPrefix: "auth", // Path: /api/auth/* (no version)
+    stripPrefix: false, // Don't strip - auth service expects /api/auth
+  },
   [GRAPH_SERVICE_NAME]: {
     serviceName: GRAPH_SERVICE_NAME,
     dockerServiceName: "graph-service",

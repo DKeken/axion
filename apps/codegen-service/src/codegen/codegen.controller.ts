@@ -13,6 +13,7 @@ import {
   DelegateToService,
   MessagePatternWithLog,
   MicroserviceAuthGuard,
+  createTypiaAssertPipe,
 } from "@axion/nestjs-common";
 import { Controller, UseGuards } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
@@ -28,49 +29,73 @@ export class CodegenController {
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.GENERATE_PROJECT)
   @DelegateToService("codegenService", "generateProject")
-  async generateProject(@Payload() data: GenerateProjectRequest) {
-    return data as unknown;
+  async generateProject(
+    @Payload(createTypiaAssertPipe<GenerateProjectRequest>())
+    data: GenerateProjectRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.GENERATE_SERVICE)
   @DelegateToService("codegenService", "generateService")
-  async generateService(@Payload() data: GenerateServiceRequest) {
-    return data as unknown;
+  async generateService(
+    @Payload(createTypiaAssertPipe<GenerateServiceRequest>())
+    data: GenerateServiceRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.VALIDATE_PROJECT)
   @DelegateToService("codegenService", "validateProject")
-  async validateProject(@Payload() data: ValidateProjectRequest) {
-    return data as unknown;
+  async validateProject(
+    @Payload(createTypiaAssertPipe<ValidateProjectRequest>())
+    data: ValidateProjectRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.VALIDATE_SERVICE)
   @DelegateToService("codegenService", "validateService")
-  async validateService(@Payload() data: ValidateServiceRequest) {
-    return data as unknown;
+  async validateService(
+    @Payload(createTypiaAssertPipe<ValidateServiceRequest>())
+    data: ValidateServiceRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.LIST_BLUEPRINTS)
   @DelegateToService("codegenService", "listBlueprints")
-  async listBlueprints(@Payload() data: ListBlueprintsRequest) {
-    return data as unknown;
+  async listBlueprints(
+    @Payload(createTypiaAssertPipe<ListBlueprintsRequest>())
+    data: ListBlueprintsRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.GET_BLUEPRINT)
   @DelegateToService("codegenService", "getBlueprint")
-  async getBlueprint(@Payload() data: GetBlueprintRequest) {
-    return data as unknown;
+  async getBlueprint(
+    @Payload(createTypiaAssertPipe<GetBlueprintRequest>())
+    data: GetBlueprintRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.DISCOVER_CONTRACTS)
   @DelegateToService("codegenService", "discoverContracts")
-  async discoverContracts(@Payload() data: DiscoverContractsRequest) {
-    return data as unknown;
+  async discoverContracts(
+    @Payload(createTypiaAssertPipe<DiscoverContractsRequest>())
+    data: DiscoverContractsRequest
+  ) {
+    return data;
   }
 
   @MessagePatternWithLog(CODEGEN_SERVICE_PATTERNS.VALIDATE_CONTRACTS)
   @DelegateToService("codegenService", "validateContracts")
-  async validateContracts(@Payload() data: ValidateContractsRequest) {
-    return data as unknown;
+  async validateContracts(
+    @Payload(createTypiaAssertPipe<ValidateContractsRequest>())
+    data: ValidateContractsRequest
+  ) {
+    return data;
   }
 }

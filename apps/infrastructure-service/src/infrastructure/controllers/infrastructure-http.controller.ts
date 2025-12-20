@@ -17,35 +17,17 @@ import type {
   UpdateClusterRequest,
   UpdateServerRequest,
 } from "@axion/contracts";
-import { AxionRequestMetadata, HttpAuthGuard } from "@axion/nestjs-common";
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+  AxionRequestMetadata,
+  HttpAuthGuard,
+  normalizePagination,
+  type PaginationQuery,
+} from "@axion/nestjs-common";
+import { TypedBody, TypedParam, TypedQuery, TypedRoute } from "@nestia/core";
+import { Controller, UseGuards } from "@nestjs/common";
+import typia from "typia";
 
 import { InfrastructureService } from "@/infrastructure/infrastructure.service";
-
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.floor(n);
-}
-
-function buildRequestPagination(page?: string, limit?: string) {
-  return {
-    page: parsePositiveInt(page, 1),
-    limit: parsePositiveInt(limit, 10),
-    total: 0,
-    totalPages: 0,
-  };
-}
 
 @Controller("api")
 @UseGuards(HttpAuthGuard)
@@ -53,169 +35,197 @@ export class InfrastructureHttpController {
   constructor(private readonly infrastructureService: InfrastructureService) {}
 
   // Servers
-  @Get("servers")
+  @TypedRoute.Get("servers")
   async listServers(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Query("clusterId") clusterId?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedQuery() query?: { clusterId?: string } & PaginationQuery
   ) {
     const req: ListServersRequest = {
       metadata,
-      ...(clusterId ? { clusterId } : {}),
-      pagination: buildRequestPagination(page, limit),
+      ...(query?.clusterId ? { clusterId: query.clusterId } : {}),
+      pagination: normalizePagination(query),
     };
-    return this.infrastructureService.listServers(req);
+    return this.infrastructureService.listServers(
+      typia.assert<ListServersRequest>(req)
+    );
   }
 
-  @Post("servers")
+  @TypedRoute.Post("servers")
   async createServer(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Body() body: Omit<CreateServerRequest, "metadata">
+    @TypedBody() body: Omit<CreateServerRequest, "metadata">
   ) {
     const req: CreateServerRequest = { metadata, ...body };
-    return this.infrastructureService.createServer(req);
+    return this.infrastructureService.createServer(
+      typia.assert<CreateServerRequest>(req)
+    );
   }
 
-  @Get("servers/:serverId")
+  @TypedRoute.Get("servers/:serverId")
   async getServer(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string
+    @TypedParam("serverId") serverId: string
   ) {
     const req: GetServerRequest = { metadata, serverId };
-    return this.infrastructureService.getServer(req);
+    return this.infrastructureService.getServer(
+      typia.assert<GetServerRequest>(req)
+    );
   }
 
-  @Patch("servers/:serverId")
+  @TypedRoute.Patch("servers/:serverId")
   async updateServer(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string,
-    @Body() body: Omit<UpdateServerRequest, "metadata" | "serverId">
+    @TypedParam("serverId") serverId: string,
+    @TypedBody() body: Omit<UpdateServerRequest, "metadata" | "serverId">
   ) {
     const req: UpdateServerRequest = { metadata, serverId, ...body };
-    return this.infrastructureService.updateServer(req);
+    return this.infrastructureService.updateServer(
+      typia.assert<UpdateServerRequest>(req)
+    );
   }
 
-  @Delete("servers/:serverId")
+  @TypedRoute.Delete("servers/:serverId")
   async deleteServer(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string
+    @TypedParam("serverId") serverId: string
   ) {
     const req: DeleteServerRequest = { metadata, serverId };
-    return this.infrastructureService.deleteServer(req);
+    return this.infrastructureService.deleteServer(
+      typia.assert<DeleteServerRequest>(req)
+    );
   }
 
-  @Post("servers/test-ssh")
+  @TypedRoute.Post("servers/test-ssh")
   async testSsh(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Body() body: Omit<TestServerConnectionRequest, "metadata">
+    @TypedBody() body: Omit<TestServerConnectionRequest, "metadata">
   ) {
     const req: TestServerConnectionRequest = { metadata, ...body };
-    return this.infrastructureService.testServerConnection(req);
+    return this.infrastructureService.testServerConnection(
+      typia.assert<TestServerConnectionRequest>(req)
+    );
   }
 
-  @Post("servers/:serverId/configure")
+  @TypedRoute.Post("servers/:serverId/configure")
   async configureServer(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string,
-    @Body() body: Omit<ConfigureServerRequest, "metadata" | "serverId">
+    @TypedParam("serverId") serverId: string,
+    @TypedBody() body: Omit<ConfigureServerRequest, "metadata" | "serverId">
   ) {
     const req: ConfigureServerRequest = { metadata, serverId, ...body };
-    return this.infrastructureService.configureServer(req);
+    return this.infrastructureService.configureServer(
+      typia.assert<ConfigureServerRequest>(req)
+    );
   }
 
-  @Post("servers/:serverId/agent/install")
+  @TypedRoute.Post("servers/:serverId/agent/install")
   async installAgent(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string,
-    @Body() body: Omit<InstallAgentRequest, "metadata" | "serverId">
+    @TypedParam("serverId") serverId: string,
+    @TypedBody() body: Omit<InstallAgentRequest, "metadata" | "serverId">
   ) {
     const req: InstallAgentRequest = { metadata, serverId, ...body };
-    return this.infrastructureService.installAgent(req);
+    return this.infrastructureService.installAgent(
+      typia.assert<InstallAgentRequest>(req)
+    );
   }
 
-  @Get("servers/:serverId/agent/status")
+  @TypedRoute.Get("servers/:serverId/agent/status")
   async getAgentStatus(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("serverId") serverId: string
+    @TypedParam("serverId") serverId: string
   ) {
     const req: GetAgentStatusRequest = { metadata, serverId };
-    return this.infrastructureService.getAgentStatus(req);
+    return this.infrastructureService.getAgentStatus(
+      typia.assert<GetAgentStatusRequest>(req)
+    );
   }
 
-  @Post("servers/requirements")
+  @TypedRoute.Post("servers/requirements")
   async calculateSystemRequirements(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Body()
+    @TypedBody()
     body: Omit<CalculateSystemRequirementsRequest, "metadata">
   ) {
     const req: CalculateSystemRequirementsRequest = { metadata, ...body };
-    return this.infrastructureService.calculateSystemRequirements(req);
+    return this.infrastructureService.calculateSystemRequirements(
+      typia.assert<CalculateSystemRequirementsRequest>(req)
+    );
   }
 
   // Clusters
-  @Get("clusters")
+  @TypedRoute.Get("clusters")
   async listClusters(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedQuery() query?: PaginationQuery
   ) {
     const req: ListClustersRequest = {
       metadata,
-      pagination: buildRequestPagination(page, limit),
+      pagination: normalizePagination(query),
     };
-    return this.infrastructureService.listClusters(req);
+    return this.infrastructureService.listClusters(
+      typia.assert<ListClustersRequest>(req)
+    );
   }
 
-  @Post("clusters")
+  @TypedRoute.Post("clusters")
   async createCluster(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Body() body: Omit<CreateClusterRequest, "metadata">
+    @TypedBody() body: Omit<CreateClusterRequest, "metadata">
   ) {
     const req: CreateClusterRequest = { metadata, ...body };
-    return this.infrastructureService.createCluster(req);
+    return this.infrastructureService.createCluster(
+      typia.assert<CreateClusterRequest>(req)
+    );
   }
 
-  @Get("clusters/:clusterId")
+  @TypedRoute.Get("clusters/:clusterId")
   async getCluster(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("clusterId") clusterId: string
+    @TypedParam("clusterId") clusterId: string
   ) {
     const req: GetClusterRequest = { metadata, clusterId };
-    return this.infrastructureService.getCluster(req);
+    return this.infrastructureService.getCluster(
+      typia.assert<GetClusterRequest>(req)
+    );
   }
 
-  @Patch("clusters/:clusterId")
+  @TypedRoute.Patch("clusters/:clusterId")
   async updateCluster(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("clusterId") clusterId: string,
-    @Body() body: Omit<UpdateClusterRequest, "metadata" | "clusterId">
+    @TypedParam("clusterId") clusterId: string,
+    @TypedBody() body: Omit<UpdateClusterRequest, "metadata" | "clusterId">
   ) {
     const req: UpdateClusterRequest = { metadata, clusterId, ...body };
-    return this.infrastructureService.updateCluster(req);
+    return this.infrastructureService.updateCluster(
+      typia.assert<UpdateClusterRequest>(req)
+    );
   }
 
-  @Delete("clusters/:clusterId")
+  @TypedRoute.Delete("clusters/:clusterId")
   async deleteCluster(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("clusterId") clusterId: string
+    @TypedParam("clusterId") clusterId: string
   ) {
     const req: DeleteClusterRequest = { metadata, clusterId };
-    return this.infrastructureService.deleteCluster(req);
+    return this.infrastructureService.deleteCluster(
+      typia.assert<DeleteClusterRequest>(req)
+    );
   }
 
-  @Get("clusters/:clusterId/servers")
+  @TypedRoute.Get("clusters/:clusterId/servers")
   async listClusterServers(
     @AxionRequestMetadata() metadata: RequestMetadata,
-    @Param("clusterId") clusterId: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string
+    @TypedParam("clusterId") clusterId: string,
+    @TypedQuery() query?: PaginationQuery
   ) {
     const req: ListClusterServersRequest = {
       metadata,
       clusterId,
-      pagination: buildRequestPagination(page, limit),
+      pagination: normalizePagination(query),
     };
-    return this.infrastructureService.listClusterServers(req);
+    return this.infrastructureService.listClusterServers(
+      typia.assert<ListClusterServersRequest>(req)
+    );
   }
 }
