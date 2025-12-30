@@ -3,7 +3,7 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { DeploymentStatus } from "@axion/contracts";
 import { frontendApi } from "@/lib/frontend-api";
-import { formatProtoEnum } from "@/utils/proto-enum";
+import { formatProtoEnum } from "@/lib/proto-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";

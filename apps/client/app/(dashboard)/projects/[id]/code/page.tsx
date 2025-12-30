@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { ValidationStatus } from "@axion/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { frontendApi } from "@/lib/frontend-api";
-import { formatProtoEnum } from "@/utils/proto-enum";
+import { formatProtoEnum } from "@/lib/proto-utils";
 import { config } from "@/config/env";
 import { Button } from "@/components/ui/button";
 import {

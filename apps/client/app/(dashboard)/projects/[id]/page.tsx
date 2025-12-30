@@ -1,8 +1,7 @@
 "use client";
 
-import { useProjectGraph } from "./_hooks/use-project-graph";
-import { GraphSidebar } from "./_components/graph-sidebar";
-import { GraphEditor } from "./_components/graph-editor";
+import { useProjectGraph } from "@/hooks/graph/use-project-graph";
+import { GraphSidebar, GraphEditor } from "@/components/graph-editor";
 import { NodePropertiesSheet } from "@/components/graph-editor/node-properties-sheet";
 import { ROUTES } from "@/config/routes";
 import { Button } from "@/components/ui/button";

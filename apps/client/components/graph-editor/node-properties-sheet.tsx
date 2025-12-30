@@ -21,8 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { NodeType } from "@axion/contracts";
 import { useEffect, useState } from "react";
-import type { GraphFlowNodeData } from "@/utils/graph-converter";
-import { useBlueprints } from "@/app/(dashboard)/projects/[id]/_hooks/use-blueprints";
+import type { GraphFlowNodeData } from "@/lib/graph/converter";
+import { useBlueprints } from "@/hooks/graph/use-blueprints";
 
 // Fallback blueprints in case API fails or returns empty
 const FALLBACK_BLUEPRINTS = [

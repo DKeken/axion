@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import ReactFlow, {
   type Node,
   type Edge,
@@ -11,14 +11,19 @@ import ReactFlow, {
   Controls,
   MiniMap,
   type NodeTypes,
+  ReactFlowProvider,
+  type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { DatabaseNode } from "./database-node";
-import { ServiceNode } from "./service-node";
+import { DatabaseNode } from "./nodes/database-node";
+import { ServiceNode } from "./nodes/service-node";
+import { LogicNode } from "./nodes/logic-node";
+import { NodeType } from "@axion/contracts";
 
 const nodeTypes: NodeTypes = {
   database: DatabaseNode,
   service: ServiceNode,
+  logic: LogicNode,
 };
 
 export interface GraphEditorProps {
@@ -28,42 +33,101 @@ export interface GraphEditorProps {
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   onNodeClick?: (event: React.MouseEvent, node: Node) => void;
+  onDropNode: (type: NodeType, position: { x: number; y: number }) => void;
 }
 
-export function GraphEditor({
+function GraphEditorContent({
   nodes,
   edges,
   onNodesChange,
   onEdgesChange,
   onConnect,
   onNodeClick,
+  onDropNode,
 }: GraphEditorProps) {
-  const handleConnect = useCallback(
-    (params: Connection) => {
-      if (params.source && params.target) {
-        onConnect(params);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const typeString = event.dataTransfer.getData("application/reactflow");
+
+      if (
+        typeof typeString === "undefined" ||
+        !typeString ||
+        !reactFlowInstance ||
+        !reactFlowWrapper.current
+      ) {
+        return;
       }
+
+      const type = Number(typeString) as NodeType;
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      onDropNode(type, position);
     },
-    [onConnect]
+    [reactFlowInstance, onDropNode]
   );
 
   return (
-    <div className="w-full h-[600px] border border-border rounded-lg bg-card">
+    <div ref={reactFlowWrapper} className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={handleConnect}
+        onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onInit={setReactFlowInstance}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
         nodeTypes={nodeTypes}
         fitView
         className="bg-background"
+        minZoom={0.1}
+        maxZoom={2}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          animated: true,
+        }}
       >
-        <Background />
+        <Background gap={16} size={1} />
         <Controls />
-        <MiniMap />
+        <MiniMap
+          nodeColor={(n) => {
+            switch (n.type) {
+              case "database":
+                return "#2563eb";
+              case "logic":
+                return "#ea580c";
+              default:
+                return "#10b981";
+            }
+          }}
+          className="bottom-8! right-8! border rounded-lg overflow-hidden shadow-lg"
+        />
       </ReactFlow>
     </div>
+  );
+}
+
+export function GraphEditor(props: GraphEditorProps) {
+  return (
+    <ReactFlowProvider>
+      <GraphEditorContent {...props} />
+    </ReactFlowProvider>
   );
 }

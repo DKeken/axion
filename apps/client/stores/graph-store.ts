@@ -12,13 +12,13 @@ import {
   type EdgeChange,
 } from "reactflow";
 import { NodeType, EdgeType, type GraphData } from "@axion/contracts";
-import { NodeFactory } from "./node-factory";
+import { NodeFactory } from "@/lib/graph/node-factory";
 import {
   graphDataToFlow,
   flowToGraphData,
   type GraphFlowNodeData,
   type GraphFlowEdgeData,
-} from "@/utils/graph-converter";
+} from "@/lib/graph/converter";
 
 interface GraphState {
   nodes: Node<GraphFlowNodeData>[];
@@ -30,7 +30,7 @@ interface GraphState {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
-  addNode: (type: NodeType, position: { x: number; y: number }) => void;
+  addNode: (type: NodeType, position?: { x: number; y: number }) => void;
   selectNode: (id: string | null) => void;
   updateNodeData: (id: string, data: Partial<GraphFlowNodeData>) => void;
   deleteNode: (id: string) => void;
@@ -75,7 +75,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     });
   },
 
-  addNode: (type: NodeType, position: { x: number; y: number }) => {
+  addNode: (type: NodeType, position?: { x: number; y: number }) => {
     const newNode = NodeFactory.createNode(type, position);
     set((state) => ({
       nodes: [...state.nodes, newNode],
