@@ -4,7 +4,7 @@
  */
 
 import type { GraphData } from "@axion/contracts";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { GraphSseService } from "@/graph/services/graph-sse.service";
 import type {
@@ -15,7 +15,10 @@ import { SSE_EVENT_TYPES } from "@/graph/types/sse-events";
 
 @Injectable()
 export class GraphBroadcastService {
-  constructor(private readonly sseService: GraphSseService) {}
+  constructor(
+    @Inject(GraphSseService)
+    private readonly sseService: GraphSseService
+  ) {}
 
   /**
    * Broadcast graph update to project subscribers via SSE

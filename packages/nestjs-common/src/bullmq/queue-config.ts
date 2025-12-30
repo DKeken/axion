@@ -8,7 +8,7 @@ import type { WorkerOptions } from "bullmq";
 /**
  * Rate Limiter Configuration
  */
-export interface RateLimiterConfig {
+export type RateLimiterConfig = {
   /**
    * Maximum number of jobs to process in the duration window
    */
@@ -23,7 +23,7 @@ export interface RateLimiterConfig {
 /**
  * Queue Configuration Options
  */
-export interface QueueConfigOptions {
+export type QueueConfigOptions = {
   /**
    * Rate limiter configuration
    * Limits the number of jobs processed per time window
@@ -87,7 +87,7 @@ export function createQueueOptions(config: QueueConfigOptions = {}): {
 /**
  * Worker Configuration Options
  */
-export interface WorkerConfigOptions {
+export type WorkerConfigOptions = {
   /**
    * Maximum number of concurrent jobs to process
    * @default 1

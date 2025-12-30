@@ -21,7 +21,7 @@ import { Inject, Injectable, Optional } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 
-import { type GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
+import { GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
 import { ServiceFactoryService } from "@/codegen/services/factories/service-factory.service";
 import { OpenRouterService } from "@/codegen/services/openrouter.service";
 import { PromptBuilderService } from "@/codegen/services/prompt-builder.service";

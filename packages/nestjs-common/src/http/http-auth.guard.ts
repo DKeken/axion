@@ -13,6 +13,8 @@ import {
   Logger,
   UnauthorizedException,
   Inject,
+  Optional,
+  type OnModuleInit,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { ClientKafka } from "@nestjs/microservices";
@@ -30,16 +32,50 @@ type HttpRequest = {
 };
 
 @Injectable()
-export class HttpAuthGuard implements CanActivate {
+export class HttpAuthGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(HttpAuthGuard.name);
   private authServiceClient: ClientKafka | null = null;
   private authServiceResolved = false;
+  private authClientConnectFailed = false;
 
   constructor(
+    @Optional()
     @Inject(AUTH_SERVICE_NAME)
     private readonly injectedAuthClient: ClientKafka | undefined,
+    @Inject(Reflector)
     private readonly reflector: Reflector
   ) {}
+
+  async onModuleInit() {
+    if (this.injectedAuthClient) {
+      this.injectedAuthClient.subscribeToResponseOf(
+        AUTH_SERVICE_PATTERNS.VALIDATE_SESSION
+      );
+      // Never block the entire service boot on Kafka connectivity.
+      // Connect in background; guard will lazily disable auth if unavailable.
+      const isProduction = process.env.NODE_ENV === "production";
+      void Promise.race([
+        this.injectedAuthClient.connect(),
+        new Promise<void>((_, reject) => {
+          setTimeout(
+            () =>
+              reject(new Error("AUTH_SERVICE Kafka client connect timeout")),
+            5000
+          );
+        }),
+      ]).catch((error) => {
+        this.authClientConnectFailed = true;
+        this.logger.warn(
+          `HttpAuthGuard: failed to connect AUTH_SERVICE Kafka client (${error instanceof Error ? error.message : String(error)}). ` +
+            "Authentication will be disabled until auth-service is reachable."
+        );
+        if (isProduction) {
+          // In prod we still want a hard fail - surface as unhandled rejection.
+          throw error;
+        }
+      });
+    }
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== "http") {
@@ -56,7 +92,9 @@ export class HttpAuthGuard implements CanActivate {
 
     // Lazily resolve auth service client on first use
     if (!this.authServiceResolved) {
-      this.authServiceClient = this.injectedAuthClient || null;
+      this.authServiceClient = this.authClientConnectFailed
+        ? null
+        : this.injectedAuthClient || null;
       this.authServiceResolved = true;
 
       if (!this.authServiceClient) {
@@ -113,7 +151,7 @@ export class HttpAuthGuard implements CanActivate {
             AUTH_SERVICE_PATTERNS.VALIDATE_SESSION,
             { sessionToken }
           )
-          .pipe(timeout(5000)) // 5 second timeout
+          .pipe(timeout(10000)) // 10 second timeout
       );
 
       // Check response status (Protobuf contract format)

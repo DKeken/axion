@@ -10,20 +10,24 @@ import {
 import { transformGraphVersionToContract } from "@axion/database";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
-import { type GraphRepository } from "@/graph/repositories/graph.repository";
-import { type ProjectRepository } from "@/graph/repositories/project.repository";
+import { GraphRepository } from "@/graph/repositories/graph.repository";
+import { ProjectRepository } from "@/graph/repositories/project.repository";
 import { GraphBroadcastService } from "@/graph/services/graph-broadcast.service";
 import { GraphValidationService } from "@/graph/services/graph-validation.service";
 
 @Injectable()
 export class GraphOperationsService extends BaseService {
   constructor(
+    @Inject(ProjectRepository)
     private readonly projectRepository: ProjectRepository,
+    @Inject(GraphRepository)
     private readonly graphRepository: GraphRepository,
+    @Inject(GraphValidationService)
     private readonly validationService: GraphValidationService,
+    @Inject(GraphBroadcastService)
     private readonly broadcastService: GraphBroadcastService
   ) {
     super(GraphOperationsService.name);
@@ -43,6 +47,22 @@ export class GraphOperationsService extends BaseService {
     );
 
     if (!graphVersion || !graphVersion.graphData) {
+      // Check if project exists. If it does, create initial graph on the fly.
+      // This handles projects created before the fix in ProjectsService.create.
+      const project = await this.projectRepository.findById(data.projectId);
+      if (project) {
+        this.logger.log(
+          `Creating initial graph for project ${data.projectId} on the fly`
+        );
+        const initialGraphData = { nodes: [], edges: [] };
+        const newVersion = await this.graphRepository.create({
+          projectId: data.projectId,
+          version: project.graphVersion,
+          graphData: initialGraphData,
+        });
+        return createGraphResponse(newVersion.graphData ?? undefined);
+      }
+
       return this.createNotFoundResponse("Graph", data.projectId);
     }
 

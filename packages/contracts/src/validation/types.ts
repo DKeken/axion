@@ -6,7 +6,7 @@ import type { ContractErrorType } from "../../generated/common/common";
 
 export type { ContractErrorType };
 
-export interface DiscoveredContract {
+export type DiscoveredContract = {
   serviceName: string;
   messagePattern: string;
   requestType: string;
@@ -16,26 +16,26 @@ export interface DiscoveredContract {
   rpcName?: string;
 }
 
-export interface ContractValidationResult {
+export type ContractValidationResult = {
   valid: boolean;
   errors: ContractValidationError[];
   warnings: ContractValidationWarning[];
 }
 
-export interface ContractValidationError {
+export type ContractValidationError = {
   serviceName: string;
   messagePattern: string;
   errorType: ContractErrorType;
   message: string;
 }
 
-export interface ContractValidationWarning {
+export type ContractValidationWarning = {
   serviceName: string;
   messagePattern: string;
   message: string;
 }
 
-export interface ContractDiscoveryResult {
+export type ContractDiscoveryResult = {
   contracts: DiscoveredContract[];
   total: number;
   withProtobuf: number;

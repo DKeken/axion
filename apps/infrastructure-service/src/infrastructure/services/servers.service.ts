@@ -30,7 +30,7 @@ import { Injectable } from "@nestjs/common";
 import { env } from "@/config/env";
 import { verifyServerAccess } from "@/infrastructure/helpers/server-access.helper";
 import { transformServerToContract } from "@/infrastructure/helpers/type-transformers";
-import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
+import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 
 @Injectable()
 export class ServersService extends BaseService {

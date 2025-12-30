@@ -38,7 +38,18 @@ export const DEFAULT_RETRY_STATUS_CODES = [408, 409, 429, 500, 502, 503, 504];
 /**
  * Base API path for all requests
  */
-export const API_BASE_PATH = "api";
+export const API_BASE_PATH = "api/v1";
+
+/**
+ * Service specific API paths
+ * Matches Traefik routing in docker/services.config.ts
+ */
+export const SERVICE_PATHS = {
+  GRAPH: "graph/api",
+  CODEGEN: "codegen/api",
+  DEPLOYMENT: "deployment/api",
+  INFRASTRUCTURE: "infrastructure/api",
+} as const;
 
 // ============================================================================
 // TanStack Query Constants (staleTime in milliseconds)
@@ -94,6 +105,16 @@ export const STALE_TIME_VERY_LONG = 60_000;
  * Garbage collection time for validation results (1 minute)
  */
 export const GC_TIME_SHORT = 60_000;
+
+/**
+ * Garbage collection time for standard data (2.5 minutes)
+ */
+export const GC_TIME_MEDIUM = 150_000;
+
+/**
+ * Garbage collection time for stable data (5 minutes)
+ */
+export const GC_TIME_LONG = 300_000;
 
 /**
  * Refetch interval for active deployments (5 seconds)

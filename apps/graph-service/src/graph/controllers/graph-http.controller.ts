@@ -29,6 +29,7 @@ import {
   Body,
   Param,
   Query,
+  Inject,
 } from "@nestjs/common";
 
 import { GraphService } from "@/graph/graph.service";
@@ -36,7 +37,10 @@ import { GraphService } from "@/graph/graph.service";
 @Controller("api")
 @UseGuards(HttpAuthGuard)
 export class GraphHttpController {
-  constructor(private readonly graphService: GraphService) {}
+  constructor(
+    @Inject(GraphService)
+    private readonly graphService: GraphService
+  ) {}
 
   // Projects
   @Get("projects")

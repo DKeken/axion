@@ -5,7 +5,6 @@
 export * from "./access-control";
 export * from "./casl-abilities";
 export * from "./config";
-export * from "./kafka";
 export * from "./limits";
 export * from "./metadata";
 

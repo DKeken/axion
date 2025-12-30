@@ -3,11 +3,12 @@
  * Управление SSH задачами через BullMQ очереди
  */
 
-import { DEFAULT_QUEUE_OPTIONS, type QueueOptions } from "../../bullmq";
+import type { RequestMetadata } from "@axion/contracts";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
 
+import { DEFAULT_QUEUE_OPTIONS, type QueueOptions } from "../../bullmq";
 import { SSH_CONSTANTS } from "../constants";
 import { SSH_QUEUE_NAMES } from "../queue-names";
 import type {
@@ -16,7 +17,7 @@ import type {
   SshCollectInfoJobPayload,
   SshJobResult,
 } from "../types";
-import type { RequestMetadata } from "@axion/contracts";
+
 
 @Injectable()
 export class SshQueueService {
@@ -63,10 +64,10 @@ export class SshQueueService {
       );
 
       this.logger.log(
-        `SSH test connection job ${job.id} created for server ${payload.serverId || "new connection"}`
+        `SSH test connection job ${job.id || "unknown"} created for server ${payload.serverId || "new connection"}`
       );
 
-      return job.id!;
+      return job.id || "";
     } catch (error) {
       this.logger.error(`Failed to create SSH test connection job`, error);
       throw error;
@@ -105,10 +106,10 @@ export class SshQueueService {
       );
 
       this.logger.log(
-        `SSH command job ${job.id} created for server ${payload.serverId}`
+        `SSH command job ${job.id || "unknown"} created for server ${payload.serverId}`
       );
 
-      return job.id!;
+      return job.id || "";
     } catch (error) {
       this.logger.error(
         `Failed to create SSH command job for server ${payload.serverId}`,
@@ -171,10 +172,10 @@ export class SshQueueService {
       );
 
       this.logger.log(
-        `SSH info collection job ${job.id} created for server ${payload.serverId}`
+        `SSH info collection job ${job.id || "unknown"} created for server ${payload.serverId}`
       );
 
-      return job.id!;
+      return job.id || "";
     } catch (error) {
       this.logger.error(
         `Failed to create SSH info collection job for server ${payload.serverId}`,

@@ -1,7 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
-export interface SwaggerOptions {
+export type SwaggerOptions = {
   /**
    * Service name (e.g., "Graph Service")
    */

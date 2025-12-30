@@ -12,9 +12,10 @@ import {
   Optional,
 } from "@nestjs/common";
 import { Observable, throwError } from "rxjs";
+
 import { KafkaConcurrencyLimiter } from "./concurrency-limiter";
 
-export interface BackpressureInterceptorOptions {
+export type BackpressureInterceptorOptions = {
   /**
    * Maximum concurrent handlers per message handler
    * @default 10
@@ -115,7 +116,7 @@ export class KafkaBackpressureInterceptor implements NestInterceptor {
           subscription.unsubscribe();
         };
       });
-    } catch (error) {
+    } catch (_error) {
       const activeCount = this.concurrencyLimiter.getActiveCount(handlerName);
       this.logger.warn(
         `Concurrency limit exceeded for handler ${handlerName} (active: ${activeCount}, limit: ${this.defaultMaxConcurrent})`

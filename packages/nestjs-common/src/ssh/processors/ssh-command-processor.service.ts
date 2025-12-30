@@ -8,18 +8,18 @@ import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { Job } from "bullmq";
 
 import { SSH_QUEUE_NAMES } from "../queue-names";
+import { SshConnectionService } from "../services/ssh-connection.service";
+import { SshEncryptionService } from "../services/ssh-encryption.service";
 import type {
   SshExecuteCommandJobPayload,
   SshJobResult,
   SshConnectionInfo,
 } from "../types";
-import { SshConnectionService } from "../services/ssh-connection.service";
-import { SshEncryptionService } from "../services/ssh-encryption.service";
 
 /**
  * Интерфейс для получения сервера из репозитория
  */
-export interface IServerRepository {
+export type IServerRepository = {
   findById(id: string): Promise<{
     id: string;
     host: string;

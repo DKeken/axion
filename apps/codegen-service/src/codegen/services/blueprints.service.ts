@@ -13,7 +13,7 @@ import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
 import { transformBlueprintToContract } from "@/codegen/helpers/type-transformers";
-import { type BlueprintRepository } from "@/codegen/repositories/blueprint.repository";
+import { BlueprintRepository } from "@/codegen/repositories/blueprint.repository";
 import type { Blueprint as DbBlueprint } from "@/database/schema";
 
 @Injectable()

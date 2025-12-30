@@ -4,6 +4,7 @@
 
 import { ContractErrorType } from "../../generated/common/common";
 import { messagePatternToRpc, isValidMessagePattern } from "../contract-utils";
+
 import type { DiscoveredContract, ContractValidationResult } from "./types";
 
 export function validateMessagePatternContract(

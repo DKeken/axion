@@ -1,5 +1,5 @@
-import type { UserSession } from "@thallesp/nestjs-better-auth";
 import type { RequestMetadata } from "@axion/contracts";
+import type { UserSession } from "@thallesp/nestjs-better-auth";
 
 /**
  * Convert Better Auth session to Axion request metadata

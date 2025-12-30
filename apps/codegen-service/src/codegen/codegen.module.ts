@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 
 import { CodegenController } from "@/codegen/codegen.controller";
-import { CodegenService } from "@/codegen/codegen.service";
 import { CodegenHttpController } from "@/codegen/controllers/codegen-http.controller";
 import { BlueprintRepository } from "@/codegen/repositories/blueprint.repository";
 import { GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
 import { ValidationResultRepository } from "@/codegen/repositories/validation-result.repository";
 import { BlueprintsService } from "@/codegen/services/blueprints.service";
+import { CodegenOrchestratorService } from "@/codegen/services/codegen-orchestrator.service";
 import { ContractDiscoveryService } from "@/codegen/services/contract-discovery.service";
 import { DatabaseNodeCodeGeneratorService } from "@/codegen/services/database-node-code-generator.service";
 import { DatabaseFactoryService } from "@/codegen/services/factories/database-factory.service";
@@ -29,7 +29,7 @@ import { TypeScriptValidatorService } from "@/codegen/services/validators/typesc
 @Module({
   controllers: [CodegenController, CodegenHttpController],
   providers: [
-    CodegenService,
+    CodegenOrchestratorService,
     BlueprintsService,
     GenerationService,
     ValidationService,

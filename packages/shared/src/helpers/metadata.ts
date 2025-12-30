@@ -75,7 +75,70 @@ export function isValidRequestMetadata(
   if (!isRecord(metadata)) {
     return false;
   }
-  return !!(metadata.user_id || metadata.userId);
+
+  const userId = metadata.user_id ?? metadata.userId;
+  const timestamp = metadata.timestamp;
+
+  return (
+    typeof userId === "string" &&
+    userId.length > 0 &&
+    typeof timestamp === "number"
+  );
+}
+
+/**
+ * Normalize request metadata from unknown input.
+ * Ensures all required fields are present and correctly named (camelCase).
+ * Handles both snake_case and camelCase inputs.
+ */
+export function normalizeRequestMetadata(
+  metadata: unknown,
+  fallbackUserId?: string
+): RequestMetadata {
+  if (!isRecord(metadata)) {
+    return {
+      userId: fallbackUserId ?? "",
+      projectId: "",
+      requestId: "",
+      timestamp: Date.now(),
+    };
+  }
+
+  const userId = (metadata.user_id ??
+    metadata.userId ??
+    fallbackUserId ??
+    "") as string;
+  const projectId = (metadata.project_id ?? metadata.projectId ?? "") as string;
+  const requestId = (metadata.request_id ?? metadata.requestId ?? "") as string;
+
+  let timestamp = Date.now();
+  if (typeof metadata.timestamp === "number" && metadata.timestamp > 0) {
+    timestamp = metadata.timestamp;
+  } else if (typeof metadata.timestamp === "string") {
+    const parsed = parseInt(metadata.timestamp, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      timestamp = parsed;
+    }
+  }
+
+  return {
+    userId: String(userId),
+    projectId: String(projectId),
+    requestId: String(requestId),
+    timestamp,
+  };
+}
+
+/**
+ * Extract and normalize metadata from any payload object.
+ * Useful for NestJS @Payload() where metadata is a property.
+ * Always returns a valid RequestMetadata object even if input is invalid.
+ */
+export function extractMetadata(payload: unknown): RequestMetadata {
+  if (isRecord(payload) && "metadata" in payload) {
+    return normalizeRequestMetadata(payload.metadata);
+  }
+  return normalizeRequestMetadata(payload);
 }
 
 /**

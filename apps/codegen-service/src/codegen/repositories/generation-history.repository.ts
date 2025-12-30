@@ -19,6 +19,7 @@ export class GenerationHistoryRepository extends BaseRepository<
 > {
   constructor() {
     super(db, generationHistory);
+    console.log("GenerationHistoryRepository initialized");
   }
 
   /**

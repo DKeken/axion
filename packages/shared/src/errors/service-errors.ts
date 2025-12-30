@@ -5,7 +5,7 @@
 
 import { ErrorCode } from "./error-codes";
 
-export interface ErrorContext {
+export type ErrorContext = {
   operation?: string;
   resourceId?: string;
   resourceType?: string;

@@ -1,13 +1,14 @@
 "use client";
 
+import { ROUTES } from "@/config/routes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Projects", href: "/projects" },
-  { name: "Infrastructure", href: "/infrastructure" },
-  { name: "Deployments", href: "/deployments" },
+  { name: "Projects", href: ROUTES.DASHBOARD.PROJECTS.ROOT },
+  { name: "Infrastructure", href: ROUTES.DASHBOARD.INFRASTRUCTURE.ROOT },
+  { name: "Deployments", href: ROUTES.DASHBOARD.DEPLOYMENTS.ROOT },
 ];
 
 export function Navigation() {

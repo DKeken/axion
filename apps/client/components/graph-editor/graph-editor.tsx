@@ -27,6 +27,7 @@ export interface GraphEditorProps {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
+  onNodeClick?: (event: React.MouseEvent, node: Node) => void;
 }
 
 export function GraphEditor({
@@ -35,6 +36,7 @@ export function GraphEditor({
   onNodesChange,
   onEdgesChange,
   onConnect,
+  onNodeClick,
 }: GraphEditorProps) {
   const handleConnect = useCallback(
     (params: Connection) => {
@@ -53,6 +55,7 @@ export function GraphEditor({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
+        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
         className="bg-background"

@@ -3,6 +3,7 @@
  */
 
 import type { RequestMetadata as GeneratedRequestMetadata } from "../../generated/common/common";
+
 import type { Status } from "./enums";
 
 /**
@@ -19,14 +20,14 @@ export type RequestMetadata = GeneratedRequestMetadata & {
 /**
  * Базовый интерфейс для всех Request сообщений
  */
-export interface BaseRequest {
+export type BaseRequest = {
   metadata?: RequestMetadata;
 }
 
 /**
  * Базовый интерфейс для всех Response сообщений
  */
-export interface BaseResponse {
+export type BaseResponse = {
   status: Status;
   result?: {
     error?: Error;
@@ -37,7 +38,7 @@ export interface BaseResponse {
 /**
  * Error response
  */
-export interface Error {
+export type Error = {
   code: string;
   message: string;
   details?: Record<string, string>;

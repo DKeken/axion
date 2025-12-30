@@ -4,15 +4,15 @@
  */
 
 import {
-  SERVICE_STATUS_DB,
-  SERVER_STATUS_DB,
-  DEPLOYMENT_STATUS_DB,
-} from "../constants";
-import {
   ServiceStatus,
   ServerStatus,
   DeploymentStatus,
 } from "../../generated/common/common";
+import {
+  SERVICE_STATUS_DB,
+  SERVER_STATUS_DB,
+  DEPLOYMENT_STATUS_DB,
+} from "../constants";
 
 /**
  * Maps database enum value (lowercase string) to Protobuf ServiceStatus enum

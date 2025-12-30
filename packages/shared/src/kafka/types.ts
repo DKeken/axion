@@ -6,7 +6,7 @@
 /**
  * Kafka message structure compatible with KafkaJS and NestJS KafkaContext
  */
-export interface KafkaMessagePayload {
+export type KafkaMessagePayload = {
   topic?: string;
   partition?: number;
   offset?: string;

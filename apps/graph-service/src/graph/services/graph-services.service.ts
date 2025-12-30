@@ -8,16 +8,18 @@ import {
 import { transformProjectServiceToContract } from "@axion/database";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
-import { type ProjectRepository } from "@/graph/repositories/project.repository";
-import { type ServiceRepository } from "@/graph/repositories/service.repository";
+import { ProjectRepository } from "@/graph/repositories/project.repository";
+import { ServiceRepository } from "@/graph/repositories/service.repository";
 
 @Injectable()
 export class GraphServicesService extends BaseService {
   constructor(
+    @Inject(ProjectRepository)
     private readonly projectRepository: ProjectRepository,
+    @Inject(ServiceRepository)
     private readonly serviceRepository: ServiceRepository
   ) {
     super(GraphServicesService.name);

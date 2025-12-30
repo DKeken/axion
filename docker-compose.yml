@@ -270,7 +270,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # Traefik dashboard
+      - "8082:8080" # Traefik dashboard
+      - "8080:80"   # Gateway port
     volumes:
       - ./docker/traefik/static:/etc/traefik/static:ro
       - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro

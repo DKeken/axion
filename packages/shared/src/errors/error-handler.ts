@@ -10,8 +10,8 @@ import {
   createForbiddenError,
   type Error as ContractError,
 } from "@axion/contracts";
-import { Logger } from "@nestjs/common";
 
+import { classifyDatabaseError } from "./database-error-handler";
 import {
   ServiceError,
   ValidationError,
@@ -21,7 +21,16 @@ import {
   isServiceError,
   type ErrorContext,
 } from "./service-errors";
-import { classifyDatabaseError } from "./database-error-handler";
+
+/**
+ * Minimal logger interface to avoid direct dependency on @nestjs/common in frontend
+ */
+export type ILogger = {
+  error: (message: string, error?: unknown) => void;
+  warn?: (message: string, error?: unknown) => void;
+  debug?: (message: string, error?: unknown) => void;
+  log?: (message: string, error?: unknown) => void;
+}
 
 /**
  * Convert ServiceError to Contract Error
@@ -141,7 +150,7 @@ function serviceErrorToErrorResponse(
  * Log error with appropriate level based on error type
  */
 function logError(
-  logger: Logger | { error: (message: string, error?: unknown) => void },
+  logger: ILogger,
   serviceError: ServiceError,
   operation: string
 ): void {
@@ -152,15 +161,15 @@ function logError(
 
   if (serviceError instanceof ValidationError) {
     // Validation errors are usually expected
-    if ("warn" in logger && typeof logger.warn === "function") {
-      (logger as Logger).warn(logMessage, serviceError.originalError);
+    if (typeof logger.warn === "function") {
+      logger.warn(logMessage, serviceError.originalError);
     } else {
       logger.error(logMessage, serviceError.originalError);
     }
   } else if (serviceError instanceof NotFoundError) {
     // Not found is usually expected
-    if ("debug" in logger && typeof logger.debug === "function") {
-      (logger as Logger).debug(logMessage, serviceError.originalError);
+    if (typeof logger.debug === "function") {
+      logger.debug(logMessage, serviceError.originalError);
     } else {
       logger.error(logMessage, serviceError.originalError);
     }
@@ -183,7 +192,7 @@ function logError(
  * ```
  */
 export function handleServiceError(
-  logger: Logger | { error: (message: string, error?: unknown) => void },
+  logger: ILogger,
   operation: string,
   error: unknown,
   context?: ErrorContext

@@ -7,6 +7,7 @@ import {
   extractServiceName,
   isValidMessagePattern,
 } from "../contract-utils";
+
 import type { DiscoveredContract, ContractDiscoveryResult } from "./types";
 
 export function createDiscoveredContract(

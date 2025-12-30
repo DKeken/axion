@@ -13,7 +13,7 @@ import {
  * Kafka authentication configuration
  * Uses types from kafkajs library
  */
-export interface KafkaAuthConfig {
+export type KafkaAuthConfig = {
   mechanism?: SASLMechanism;
   username?: string;
   password?: string;
@@ -149,10 +149,16 @@ export function createKafkaServerOptions(
 export function createKafkaClientOptions(
   serviceName: string,
   brokers: string | string[],
-  authConfig?: KafkaAuthConfig
+  authConfig?: KafkaAuthConfig & {
+    clientIdSuffix?: string;
+    groupIdSuffix?: string;
+  }
 ): { name: string } & KafkaOptions {
   const normalizedName = serviceName.toLowerCase().replace(/_/g, "-");
   const brokerList = Array.isArray(brokers) ? brokers : brokers.split(",");
+
+  const clientIdSuffix = authConfig?.clientIdSuffix ? `-${authConfig.clientIdSuffix}` : "";
+  const groupIdSuffix = authConfig?.groupIdSuffix ? `-${authConfig.groupIdSuffix}` : "";
 
   // Get auth config from parameters or environment variables
   const auth =
@@ -193,7 +199,7 @@ export function createKafkaClientOptions(
   }
 
   const clientConfig: KafkaConfig = {
-    clientId: `axion-${normalizedName}-client`,
+    clientId: `axion-${normalizedName}-client${clientIdSuffix}`,
     brokers: brokerList,
     // Connection timeout settings - increased for initial connection
     connectionTimeout: 10000, // 10 seconds for initial connection
@@ -215,7 +221,7 @@ export function createKafkaClientOptions(
     options: {
       client: clientConfig,
       consumer: {
-        groupId: `axion-${normalizedName}-client-group`,
+        groupId: `axion-${normalizedName}-client-group${groupIdSuffix}`,
         allowAutoTopicCreation: true,
         // Session and heartbeat configuration to prevent rebalancing errors
         // Must match Kafka broker settings: min=3000ms, max=10000ms (from docker-compose.yml)

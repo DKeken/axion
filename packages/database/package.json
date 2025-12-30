@@ -2,9 +2,9 @@
   "name": "@axion/database",
   "version": "1.0.0",
   "description": "Database connection and setup utilities for Axion Stack",
-  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -16,6 +16,8 @@
     }
   },
   "scripts": {
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "prebuild": "rm -rf dist",
     "build": "tsc --project tsconfig.build.json --skipLibCheck",
@@ -26,8 +28,11 @@
     "postgres": "catalog:"
   },
   "devDependencies": {
+    "@axion-stack/eslint-config": "workspace:*",
+    "@axion-stack/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
+    "eslint": "^9",
     "typescript": "catalog:"
   },
   "peerDependencies": {

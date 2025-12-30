@@ -19,8 +19,8 @@ import {
   transformClusterToContract,
   transformServerToContract,
 } from "@/infrastructure/helpers/type-transformers";
-import { type ClusterRepository } from "@/infrastructure/repositories/cluster.repository";
-import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
+import { ClusterRepository } from "@/infrastructure/repositories/cluster.repository";
+import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 
 @Injectable()
 export class ClustersService extends BaseService {

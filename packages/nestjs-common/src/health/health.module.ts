@@ -17,7 +17,7 @@ import type { KafkaContext } from "@nestjs/microservices";
 
 const HEALTH_OPTIONS_TOKEN = Symbol("HEALTH_OPTIONS");
 
-export interface HealthCheckOptions {
+export type HealthCheckOptions = {
   /**
    * Service name for health check responses
    */
@@ -75,36 +75,32 @@ class HealthController {
         const client = this.getDatabaseClient();
         if (client) {
           const startTime = Date.now();
-          try {
-            // Try different client APIs
-            if (typeof client === "function") {
-              // Direct tagged template function (postgres client)
-              await (client as (
-                strings: TemplateStringsArray,
-                ...values: unknown[]
-              ) => Promise<unknown>)`SELECT 1`;
-            } else if (
-              typeof (client as { sql?: unknown }).sql === "function"
-            ) {
-              // Client with sql method
-              await (
-                client as {
-                  sql: (
-                    strings: TemplateStringsArray,
-                    ...values: unknown[]
-                  ) => Promise<unknown>;
-                }
-              ).sql`SELECT 1`;
-            } else if (
-              typeof (client as { query?: unknown }).query === "function"
-            ) {
-              // Client with query method
-              await (
-                client as { query: (sql: unknown) => Promise<unknown> }
-              ).query("SELECT 1");
-            }
-          } catch (error) {
-            throw error;
+          // Try different client APIs
+          if (typeof client === "function") {
+            // Direct tagged template function (postgres client)
+            await (client as (
+              strings: TemplateStringsArray,
+              ...values: unknown[]
+            ) => Promise<unknown>)`SELECT 1`;
+          } else if (
+            typeof (client as { sql?: unknown }).sql === "function"
+          ) {
+            // Client with sql method
+            await (
+              client as {
+                sql: (
+                  strings: TemplateStringsArray,
+                  ...values: unknown[]
+                ) => Promise<unknown>;
+              }
+            ).sql`SELECT 1`;
+          } else if (
+            typeof (client as { query?: unknown }).query === "function"
+          ) {
+            // Client with query method
+            await (
+              client as { query: (sql: unknown) => Promise<unknown> }
+            ).query("SELECT 1");
           }
           const responseTime = Date.now() - startTime;
           checks.database = {

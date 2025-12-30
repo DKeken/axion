@@ -14,15 +14,18 @@ import {
   MessagePatternWithLog,
   MicroserviceAuthGuard,
 } from "@axion/nestjs-common";
-import { Controller, UseGuards } from "@nestjs/common";
+import { Controller, UseGuards, Inject } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
 
-import { CodegenService } from "@/codegen/codegen.service";
+import { CodegenOrchestratorService } from "@/codegen/services/codegen-orchestrator.service";
 
 @Controller()
 @UseGuards(MicroserviceAuthGuard)
 export class CodegenController {
-  constructor(private readonly codegenService: CodegenService) {
+  constructor(
+    @Inject(CodegenOrchestratorService)
+    private readonly codegenService: CodegenOrchestratorService
+  ) {
     void this.codegenService;
   }
 

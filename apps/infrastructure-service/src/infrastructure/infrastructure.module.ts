@@ -2,10 +2,9 @@ import { SshModule } from "@axion/nestjs-common";
 import { Module } from "@nestjs/common";
 
 import { InfrastructureHttpController } from "@/infrastructure/controllers/infrastructure-http.controller";
+import { InfrastructureDataModule } from "@/infrastructure/infrastructure-data.module";
 import { InfrastructureController } from "@/infrastructure/infrastructure.controller";
 import { InfrastructureService } from "@/infrastructure/infrastructure.service";
-import { ClusterRepository } from "@/infrastructure/repositories/cluster.repository";
-import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 import { AgentInstallationService } from "@/infrastructure/services/agent-installation.service";
 import { AgentStatusService } from "@/infrastructure/services/agent-status.service";
 import { ClustersService } from "@/infrastructure/services/clusters.service";
@@ -15,7 +14,8 @@ import { SshKeyRotationService } from "@/infrastructure/services/ssh-key-rotatio
 
 @Module({
   imports: [
-    // SSH Module (ServerRepository будет предоставлен через provider)
+    InfrastructureDataModule,
+    // SSH Module (ServerRepository будет предоставлен через InfrastructureDataModule)
     SshModule.forRoot(),
   ],
   controllers: [InfrastructureController, InfrastructureHttpController],
@@ -27,14 +27,6 @@ import { SshKeyRotationService } from "@/infrastructure/services/ssh-key-rotatio
     AgentStatusService,
     ServerConfigurationService,
     SshKeyRotationService,
-    ClusterRepository,
-    ServerRepository,
-    // Предоставляем ServerRepository для SSH processors через токен
-    {
-      provide: "SERVER_REPOSITORY",
-      useExisting: ServerRepository,
-    },
   ],
-  exports: [ServerRepository],
 })
 export class InfrastructureModule {}

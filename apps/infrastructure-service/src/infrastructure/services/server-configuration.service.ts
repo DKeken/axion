@@ -31,7 +31,7 @@ import {
   calculateSystemRequirements,
   type SystemRequirementsResult,
 } from "@/infrastructure/helpers/system-requirements.helper";
-import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
+import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 
 @Injectable()
 export class ServerConfigurationService extends BaseService {

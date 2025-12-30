@@ -19,7 +19,7 @@ import {
   MessagePatternWithLog,
   MicroserviceAuthGuard,
 } from "@axion/nestjs-common";
-import { Controller, UseGuards } from "@nestjs/common";
+import { Controller, UseGuards, Inject } from "@nestjs/common";
 import { Payload } from "@nestjs/microservices";
 
 import { GraphService } from "@/graph/graph.service";
@@ -27,7 +27,10 @@ import { GraphService } from "@/graph/graph.service";
 @Controller()
 @UseGuards(MicroserviceAuthGuard)
 export class GraphController {
-  constructor(private readonly graphService: GraphService) {
+  constructor(
+    @Inject(GraphService)
+    private readonly graphService: GraphService
+  ) {
     void this.graphService;
   }
 

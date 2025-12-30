@@ -3,8 +3,8 @@
  */
 
 import type { Job, JobsOptions, Queue } from "bullmq";
-import type { BullMQConnectionConfig } from "./types";
-import type { QueueOptions } from "./types";
+
+import type { BullMQConnectionConfig , QueueOptions } from "./types";
 
 /**
  * Парсит Redis URL в конфигурацию подключения для BullMQ
@@ -32,7 +32,7 @@ export function parseRedisUrl(redisUrl: string): BullMQConnectionConfig {
       port,
       password,
     };
-  } catch (error) {
+  } catch (_error) {
     // Если URL некорректный, используем значения по умолчанию
     return {
       host: "localhost",
@@ -51,7 +51,15 @@ export function createBullMQConnectionConfig(
   redisUrl?: string
 ): BullMQConnectionConfig {
   const url = redisUrl || process.env.REDIS_URL || "redis://localhost:6379";
-  return parseRedisUrl(url);
+  const config = parseRedisUrl(url);
+  
+  // Lazy connect в dev чтобы не блокировать старт сервиса
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev) {
+    (config as unknown as { lazyConnect: boolean }).lazyConnect = true;
+  }
+  
+  return config;
 }
 
 /**

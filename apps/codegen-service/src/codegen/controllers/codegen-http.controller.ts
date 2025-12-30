@@ -24,14 +24,18 @@ import {
   Body,
   Param,
   Query,
+  Inject,
 } from "@nestjs/common";
 
-import { CodegenService } from "@/codegen/codegen.service";
+import { CodegenOrchestratorService } from "@/codegen/services/codegen-orchestrator.service";
 
 @Controller("api")
 @UseGuards(HttpAuthGuard)
 export class CodegenHttpController {
-  constructor(private readonly codegenService: CodegenService) {}
+  constructor(
+    @Inject(CodegenOrchestratorService)
+    private readonly codegenService: CodegenOrchestratorService
+  ) {}
 
   // Generation / Validation (MVP)
   @Post("projects/:projectId/generate")

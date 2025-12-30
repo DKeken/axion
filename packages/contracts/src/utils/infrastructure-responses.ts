@@ -4,20 +4,7 @@
  */
 
 import { Status } from "../../generated/common/common";
-import type {
-  Server,
-  ServerResponse,
-  ListServersResponse,
-  ListServersData,
-  TestServerConnectionResponse,
-  ServerConnectionTestResult,
-} from "../../generated/infrastructure/servers";
-import type {
-  Cluster,
-  ClusterResponse,
-  ListClustersResponse,
-  ListClustersData,
-} from "../../generated/infrastructure/clusters";
+import type { Pagination } from "../../generated/common/common";
 import type {
   InstallAgentResponse,
   AgentInstallationResult,
@@ -25,12 +12,23 @@ import type {
   AgentStatus,
 } from "../../generated/infrastructure/agents";
 import type {
+  Cluster,
+  ClusterResponse,
+  ListClustersResponse,
+  ListClustersData,
+} from "../../generated/infrastructure/clusters";
+import type {
+  Server,
+  ServerResponse,
+  ListServersResponse,
+  ListServersData,
+  TestServerConnectionResponse,
+  ServerConnectionTestResult,
   ConfigureServerResponse,
   ServerConfigurationResult,
   CalculateSystemRequirementsResponse,
   SystemRequirementsEstimation,
 } from "../../generated/infrastructure/servers";
-import type { Pagination } from "../../generated/common/common";
 
 /**
  * Create ServerResponse with correct structure: { status, error?, server? }

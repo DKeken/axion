@@ -11,11 +11,11 @@ import {
 } from "@axion/contracts";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 
 import { transformValidationStatus } from "@/codegen/helpers/type-transformers";
-import { type GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
-import { type ValidationResultRepository } from "@/codegen/repositories/validation-result.repository";
+import { GenerationHistoryRepository } from "@/codegen/repositories/generation-history.repository";
+import { ValidationResultRepository } from "@/codegen/repositories/validation-result.repository";
 import { BuildValidatorService } from "@/codegen/services/validators/build-validator.service";
 import { ContractDiscoveryValidatorService } from "@/codegen/services/validators/contract-discovery-validator.service";
 import { ContractValidatorService } from "@/codegen/services/validators/contract-validator.service";
@@ -30,7 +30,9 @@ import { TypeScriptValidatorService } from "@/codegen/services/validators/typesc
 @Injectable()
 export class ValidationService extends BaseService {
   constructor(
+    @Inject(forwardRef(() => GenerationHistoryRepository))
     private readonly generationHistoryRepository: GenerationHistoryRepository,
+    @Inject(forwardRef(() => ValidationResultRepository))
     private readonly validationResultRepository: ValidationResultRepository,
     private readonly structuralValidator: StructuralValidatorService,
     private readonly contractValidator: ContractValidatorService,
@@ -40,6 +42,16 @@ export class ValidationService extends BaseService {
     private readonly contractDiscoveryValidator: ContractDiscoveryValidatorService
   ) {
     super(ValidationService.name);
+    console.log("ValidationService initialized with:", {
+      generationHistoryRepository: !!this.generationHistoryRepository,
+      validationResultRepository: !!this.validationResultRepository,
+      structuralValidator: !!this.structuralValidator,
+      contractValidator: !!this.contractValidator,
+      typescriptValidator: !!this.typescriptValidator,
+      buildValidator: !!this.buildValidator,
+      healthCheckValidator: !!this.healthCheckValidator,
+      contractDiscoveryValidator: !!this.contractDiscoveryValidator,
+    });
   }
 
   @CatchError({ operation: "validating project" })

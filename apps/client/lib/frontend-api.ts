@@ -5,13 +5,18 @@ import { authClient } from "@/lib/auth-client";
 const frontendApi = createFrontendApi({
   baseUrl: config.apiUrl,
   getAuthToken: async () => {
-    const result = await authClient.getSession();
-    
-    if ("data" in result) {
-      return result.data?.session?.token ?? null;
+    // 1. Try to get token from localStorage first (handled by bearerClient plugin)
+    if (typeof window !== "undefined") {
+      const storedToken = localStorage.getItem("bearer_token");
+      if (storedToken) return storedToken;
     }
 
-    return null;
+    // 2. Fallback to getSession
+    const result = await authClient.getSession();
+
+    // Some versions of better-auth might include token in session object
+    // if the bearer plugin is used on the server.
+    return (result.data?.session as { token?: string })?.token ?? null;
   },
 });
 

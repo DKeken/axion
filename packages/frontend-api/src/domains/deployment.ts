@@ -12,21 +12,25 @@ import {
   type RollbackDeploymentRequest,
   type RollbackDeploymentResponse,
 } from "@axion/contracts";
-import type { PaginationQuery } from "@axion/nestjs-common";
+import type { PaginationQuery } from "@axion/shared";
 
 import {
   API_BASE_PATH,
+  SERVICE_PATHS,
   REFETCH_INTERVAL_DEPLOYMENT_STATUS,
   STALE_TIME_MEDIUM,
   STALE_TIME_VERY_SHORT,
 } from "../constants";
 import type { HttpClient } from "../http-client";
-import { defineQuery, type AxionQueryOptions } from "../query-options";
+import { defineQuery } from "../query-options";
+import type { AxionQueryOptions } from "../query-options";
 import type {
   OmitMetadata,
   OmitMetadataAndFields,
   RequestOptions,
 } from "../types";
+
+const BASE_PATH = `${API_BASE_PATH}/${SERVICE_PATHS.DEPLOYMENT}`;
 
 /**
  * Query keys factory for deployment domain
@@ -62,7 +66,7 @@ export function createDeploymentApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<DeployProjectResponse>(
-        `${API_BASE_PATH}/deployments`,
+        `${BASE_PATH}/deployments`,
         data,
         options
       ),
@@ -70,7 +74,7 @@ export function createDeploymentApi(client: HttpClient) {
     // Get deployment
     getDeployment: (deploymentId: string, options?: RequestOptions) =>
       client.get<DeploymentResponse>(
-        `${API_BASE_PATH}/deployments/${deploymentId}`,
+        `${BASE_PATH}/deployments/${deploymentId}`,
         options
       ),
 
@@ -91,7 +95,7 @@ export function createDeploymentApi(client: HttpClient) {
       }
 
       return client.get<ListDeploymentsResponse>(
-        `${API_BASE_PATH}/deployments`,
+        `${BASE_PATH}/deployments`,
         {
           ...options,
           query,
@@ -102,7 +106,7 @@ export function createDeploymentApi(client: HttpClient) {
     // Get deployment status
     getDeploymentStatus: (deploymentId: string, options?: RequestOptions) =>
       client.get<DeploymentStatusResponse>(
-        `${API_BASE_PATH}/deployments/${deploymentId}/status`,
+        `${BASE_PATH}/deployments/${deploymentId}/status`,
         options
       ),
 
@@ -113,7 +117,7 @@ export function createDeploymentApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<RollbackDeploymentResponse>(
-        `${API_BASE_PATH}/deployments/${deploymentId}/rollback`,
+        `${BASE_PATH}/deployments/${deploymentId}/rollback`,
         data,
         options
       ),
@@ -121,7 +125,7 @@ export function createDeploymentApi(client: HttpClient) {
     // Cancel deployment
     cancelDeployment: (deploymentId: string, options?: RequestOptions) =>
       client.post<void>(
-        `${API_BASE_PATH}/deployments/${deploymentId}/cancel`,
+        `${BASE_PATH}/deployments/${deploymentId}/cancel`,
         {},
         options
       ),

@@ -2,14 +2,13 @@
   "name": "@axion/contracts",
   "version": "1.0.0",
   "description": "Protobuf contracts for Axion Control Plane services",
-  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "require": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./generated": {
       "types": "./generated/index.d.ts",
@@ -35,6 +34,10 @@
   "scripts": {
     "generate": "bun run generate:types",
     "generate:types": "mkdir -p generated && find proto -name '*.proto' -type f -exec protoc --plugin=protoc-gen-ts_proto=$(pwd)/scripts/protoc-gen-ts_proto.mjs --ts_proto_out=./generated --ts_proto_opt=nestJs=true,esModuleInterop=true,outputServices=generic-definitions,outputClientImpl=false,useOptionals=messages --proto_path=./proto {} +",
+    "build": "tsc",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "type-check": "tsc --noEmit",
     "clean": "rm -rf generated"
   },
   "dependencies": {
@@ -42,7 +45,10 @@
     "protobufjs": "^7.3.2"
   },
   "devDependencies": {
+    "@axion-stack/eslint-config": "workspace:*",
+    "@axion-stack/typescript-config": "workspace:*",
     "@types/node": "catalog:",
+    "eslint": "^9",
     "ts-proto": "^2.4.0",
     "typescript": "catalog:"
   },

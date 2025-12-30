@@ -96,18 +96,18 @@ const app = new Elysia()
 
 app.listen(env.port);
 
-console.log(
+console.warn(
   `[auth-service] HTTP server listening on http://localhost:${env.port}`
 );
 
 // Start Kafka consumer for session validation (if configured)
 if (env.kafkaBrokers) {
-  console.log(`[auth-service] Starting Kafka consumer...`);
+  console.warn(`[auth-service] Starting Kafka consumer...`);
   getConsumer("axion-auth-service-group")
     .then(async (consumer) => {
       const producer = await getProducer();
       await startSessionValidator(consumer, producer);
-      console.log("[auth-service] Kafka consumer started successfully");
+      console.warn("[auth-service] Kafka consumer started successfully");
     })
     .catch((error) => {
       console.error("[auth-service] Failed to start Kafka consumer:", error);
@@ -116,18 +116,18 @@ if (env.kafkaBrokers) {
       );
     });
 } else {
-  console.log(
+  console.warn(
     "[auth-service] Kafka brokers not configured - running in HTTP-only mode"
   );
 }
 
 // Graceful shutdown
 const shutdown = async () => {
-  console.log("\n[auth-service] Shutting down gracefully...");
+  console.warn("\n[auth-service] Shutting down gracefully...");
 
   try {
     await disconnectKafka();
-    console.log("[auth-service] Kafka disconnected");
+    console.warn("[auth-service] Kafka disconnected");
   } catch (error) {
     console.error("[auth-service] Error disconnecting Kafka:", error);
   }

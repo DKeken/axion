@@ -76,6 +76,8 @@ Generate only the source code files.`;
   ): string {
     const serviceName = node.data?.serviceName || "unknown-service";
     const serviceType = node.data?.config?.type || "generic";
+    const blueprint = node.data?.blueprintId || "custom";
+    const description = node.data?.config?.description || "";
     const dependencies = this.extractDependencies(node, graph);
 
     const prompt = `Generate a complete NestJS microservice with the following specifications:
@@ -84,6 +86,8 @@ Generate only the source code files.`;
 - Project Name: ${projectName}
 - Service Name: ${serviceName}
 - Service Type: ${serviceType}
+- Blueprint: ${blueprint}
+${description ? `- User Description: ${description}` : ""}
 
 **Service Details:**
 ${this.formatNodeData(node)}
@@ -100,6 +104,7 @@ ${dependencies.length > 0 ? this.formatDependencies(dependencies) : "No external
 6. Use @axion/contracts for all types and constants
 7. Implement health checks
 8. Use Repository pattern for database access
+9. If connected to a Logic node, implement the logic flow within the service methods.
 
 **Technical Stack:**
 - Framework: NestJS
@@ -266,7 +271,15 @@ Focus on:
         const targetName =
           dep.targetNode.data?.serviceName || dep.targetNode.id;
         const targetType = this.getNodeTypeName(dep.targetNode.type);
-        return `- Depends on: ${targetName} (${targetType}) via ${dep.edgeType}`;
+        
+        let details = "";
+        if (dep.targetNode.type === NodeType.NODE_TYPE_LOGIC) {
+             const logicType = dep.targetNode.data?.config?.subtype || "unknown logic";
+             const expression = dep.targetNode.data?.config?.expression || "";
+             details = ` (Logic: ${logicType}, Expression: "${expression}")`;
+        }
+
+        return `- Depends on: ${targetName} (${targetType})${details} via ${dep.edgeType}`;
       })
       .join("\n");
   }
@@ -284,6 +297,8 @@ Focus on:
         return "Database";
       case NodeType.NODE_TYPE_GATEWAY:
         return "Gateway";
+      case NodeType.NODE_TYPE_LOGIC:
+        return "Logic Node (Flow Control)";
       default:
         return "unknown";
     }

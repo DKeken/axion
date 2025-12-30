@@ -3,32 +3,32 @@
  * Ensures message processing idempotency by deduplicating messages
  */
 
-import type {
-  CallHandler,
-  ExecutionContext,
-  NestInterceptor,
-} from "@nestjs/common";
-import { Injectable, Logger, Optional } from "@nestjs/common";
-import type { Observable } from "rxjs";
-import { of } from "rxjs";
 import {
   generateDeduplicationKey,
   isMessageProcessed,
   convertKafkaHeaders,
   getCorrelationIdFromHeaders,
 } from "@axion/shared";
+import type {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+} from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import type { KafkaContext } from "@nestjs/microservices";
+import type { Observable } from "rxjs";
+import { of } from "rxjs";
 
 /**
  * Redis client interface for idempotency
  * Compatible with ioredis, node-redis, and other Redis clients
  */
-export interface RedisClient {
+export type RedisClient = {
   exists: (key: string) => Promise<number>;
   setex: (key: string, seconds: number, value: string) => Promise<string>;
 }
 
-export interface IdempotencyInterceptorOptions {
+export type IdempotencyInterceptorOptions = {
   redis?: RedisClient;
   ttlSeconds?: number;
   enabled?: boolean;

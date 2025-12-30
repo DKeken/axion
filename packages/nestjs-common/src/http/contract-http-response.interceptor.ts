@@ -1,10 +1,10 @@
+import { isErrorResponse, isSuccessResponse } from "@axion/contracts";
+import type { ResponseWithOneof } from "@axion/contracts";
 import type { CallHandler, ExecutionContext } from "@nestjs/common";
 import { Injectable, NestInterceptor } from "@nestjs/common";
 import type { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 
-import { isErrorResponse, isSuccessResponse } from "@axion/contracts";
-import type { ResponseWithOneof } from "@axion/contracts";
 
 import { mapContractErrorToHttpStatus } from "./error-to-http-status";
 

@@ -11,15 +11,21 @@ import {
 import { transformProjectToContract } from "@axion/database";
 import { CatchError } from "@axion/nestjs-common";
 import { BaseService, enforceLimit } from "@axion/shared";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { env } from "@/config/env";
 import { verifyProjectAccess } from "@/graph/helpers/project-access.helper";
-import { type ProjectRepository } from "@/graph/repositories/project.repository";
+import { ProjectRepository } from "@/graph/repositories/project.repository";
+import { GraphRepository } from "@/graph/repositories/graph.repository";
 
 @Injectable()
 export class ProjectsService extends BaseService {
-  constructor(private readonly projectRepository: ProjectRepository) {
+  constructor(
+    @Inject(ProjectRepository)
+    private readonly projectRepository: ProjectRepository,
+    @Inject(GraphRepository)
+    private readonly graphRepository: GraphRepository
+  ) {
     super(ProjectsService.name);
   }
 
@@ -46,6 +52,13 @@ export class ProjectsService extends BaseService {
           infrastructureConfig: data.infrastructureConfig,
         }),
       graphVersion: 1,
+    });
+
+    // Create initial empty graph version
+    await this.graphRepository.create({
+      projectId: project.id,
+      version: 1,
+      graphData: { nodes: [], edges: [] },
     });
 
     return createProjectResponse(transformProjectToContract(project));

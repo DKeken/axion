@@ -5,7 +5,7 @@
 
 import { Injectable, Logger } from "@nestjs/common";
 
-export interface ConcurrencyLimitConfig {
+export type ConcurrencyLimitConfig = {
   maxConcurrentHandlers: number;
 }
 

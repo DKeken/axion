@@ -6,13 +6,14 @@
 import { Module } from "@nestjs/common";
 
 import { GraphSseController } from "@/graph/controllers/graph-sse.controller";
-import { ProjectRepository } from "@/graph/repositories/project.repository";
+import { GraphDataModule } from "@/graph/graph-data.module";
 import { GraphBroadcastService } from "@/graph/services/graph-broadcast.service";
 import { GraphSseService } from "@/graph/services/graph-sse.service";
 
 @Module({
+  imports: [GraphDataModule],
   controllers: [GraphSseController],
-  providers: [GraphSseService, GraphBroadcastService, ProjectRepository],
+  providers: [GraphSseService, GraphBroadcastService],
   exports: [GraphBroadcastService],
 })
 export class GraphSseModule {}

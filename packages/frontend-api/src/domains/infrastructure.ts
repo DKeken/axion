@@ -2,7 +2,7 @@
  * Infrastructure API domain - Servers, Clusters, and Agents
  */
 
-import type {
+import {
   AgentStatusResponse,
   CalculateSystemRequirementsRequest,
   CalculateSystemRequirementsResponse,
@@ -21,17 +21,26 @@ import type {
   UpdateClusterRequest,
   UpdateServerRequest,
 } from "@axion/contracts";
-import type { PaginationQuery } from "@axion/nestjs-common";
+import type { PaginationQuery } from "@axion/shared";
 
+import {
+  API_BASE_PATH,
+  SERVICE_PATHS,
+  STALE_TIME_LONG,
+  STALE_TIME_STANDARD,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_VERY_LONG,
+} from "../constants";
 import type { HttpClient } from "../http-client";
-import { defineQuery, type AxionQueryOptions } from "../query-options";
+import { defineQuery } from "../query-options";
+import type { AxionQueryOptions } from "../query-options";
 import type {
   OmitMetadata,
   OmitMetadataAndFields,
   RequestOptions,
 } from "../types";
 
-import { API_BASE_PATH, STALE_TIME_LONG, STALE_TIME_STANDARD, STALE_TIME_MEDIUM, STALE_TIME_VERY_LONG } from "../constants";
+const BASE_PATH = `${API_BASE_PATH}/${SERVICE_PATHS.INFRASTRUCTURE}`;
 
 /**
  * Query keys factory for infrastructure domain
@@ -92,18 +101,18 @@ export function createInfrastructureApi(client: HttpClient) {
       params?: { clusterId?: string } & PaginationQuery,
       options?: RequestOptions
     ) =>
-      client.get<ListServersResponse>(`${API_BASE_PATH}/servers`, {
+      client.get<ListServersResponse>(`${BASE_PATH}/servers`, {
         ...options,
         query: params as Record<string, string>,
       }),
 
     getServer: (serverId: string, options?: RequestOptions) =>
-      client.get<ServerResponse>(`${API_BASE_PATH}/servers/${serverId}`, options),
+      client.get<ServerResponse>(`${BASE_PATH}/servers/${serverId}`, options),
 
     createServer: (
       data: OmitMetadata<CreateServerRequest>,
       options?: RequestOptions
-    ) => client.post<ServerResponse>(`${API_BASE_PATH}/servers`, data, options),
+    ) => client.post<ServerResponse>(`${BASE_PATH}/servers`, data, options),
 
     updateServer: (
       serverId: string,
@@ -111,20 +120,20 @@ export function createInfrastructureApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.patch<ServerResponse>(
-        `${API_BASE_PATH}/servers/${serverId}`,
+        `${BASE_PATH}/servers/${serverId}`,
         data,
         options
       ),
 
     deleteServer: (serverId: string, options?: RequestOptions) =>
-      client.delete<void>(`${API_BASE_PATH}/servers/${serverId}`, options),
+      client.delete<void>(`${BASE_PATH}/servers/${serverId}`, options),
 
     testServerConnection: (
       data: OmitMetadata<TestServerConnectionRequest>,
       options?: RequestOptions
     ) =>
       client.post<TestServerConnectionResponse>(
-        `${API_BASE_PATH}/servers/test-ssh`,
+        `${BASE_PATH}/servers/test-ssh`,
         data,
         options
       ),
@@ -135,28 +144,28 @@ export function createInfrastructureApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<ConfigureServerResponse>(
-        `${API_BASE_PATH}/servers/${serverId}/configure`,
+        `${BASE_PATH}/servers/${serverId}/configure`,
         data,
         options
       ),
 
     // Clusters
     listClusters: (params?: PaginationQuery, options?: RequestOptions) =>
-      client.get<ListClustersResponse>(`${API_BASE_PATH}/clusters`, {
+      client.get<ListClustersResponse>(`${BASE_PATH}/clusters`, {
         ...options,
         query: params as Record<string, string>,
       }),
 
     getCluster: (clusterId: string, options?: RequestOptions) =>
       client.get<ClusterResponse>(
-        `${API_BASE_PATH}/clusters/${clusterId}`,
+        `${BASE_PATH}/clusters/${clusterId}`,
         options
       ),
 
     createCluster: (
       data: OmitMetadata<CreateClusterRequest>,
       options?: RequestOptions
-    ) => client.post<ClusterResponse>(`${API_BASE_PATH}/clusters`, data, options),
+    ) => client.post<ClusterResponse>(`${BASE_PATH}/clusters`, data, options),
 
     updateCluster: (
       clusterId: string,
@@ -164,17 +173,17 @@ export function createInfrastructureApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.patch<ClusterResponse>(
-        `${API_BASE_PATH}/clusters/${clusterId}`,
+        `${BASE_PATH}/clusters/${clusterId}`,
         data,
         options
       ),
 
     deleteCluster: (clusterId: string, options?: RequestOptions) =>
-      client.delete<void>(`${API_BASE_PATH}/clusters/${clusterId}`, options),
+      client.delete<void>(`${BASE_PATH}/clusters/${clusterId}`, options),
 
     listClusterServers: (clusterId: string, options?: RequestOptions) =>
       client.get<ListServersResponse>(
-        `${API_BASE_PATH}/clusters/${clusterId}/servers`,
+        `${BASE_PATH}/clusters/${clusterId}/servers`,
         options
       ),
 
@@ -185,14 +194,14 @@ export function createInfrastructureApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<InstallAgentResponse>(
-        `${API_BASE_PATH}/servers/${serverId}/agent/install`,
+        `${BASE_PATH}/servers/${serverId}/agent/install`,
         data,
         options
       ),
 
     getAgentStatus: (serverId: string, options?: RequestOptions) =>
       client.get<AgentStatusResponse>(
-        `${API_BASE_PATH}/servers/${serverId}/agent/status`,
+        `${BASE_PATH}/servers/${serverId}/agent/status`,
         options
       ),
 
@@ -202,7 +211,7 @@ export function createInfrastructureApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<CalculateSystemRequirementsResponse>(
-        `${API_BASE_PATH}/servers/requirements`,
+        `${BASE_PATH}/servers/requirements`,
         data,
         options
       ),

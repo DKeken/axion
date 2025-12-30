@@ -20,7 +20,7 @@ export async function startSessionValidator(
   const topic = AUTH_SERVICE_PATTERNS.VALIDATE_SESSION;
 
   await consumer.subscribe({ topic, fromBeginning: false });
-  console.log(
+  console.warn(
     `[auth-service][session-validator] Subscribed to topic: ${topic}`
   );
 
@@ -37,7 +37,7 @@ export async function startSessionValidator(
     },
   });
 
-  console.log("[auth-service][session-validator] Session validator started");
+  console.warn("[auth-service][session-validator] Session validator started");
 }
 
 async function handleValidateSessionMessage(
@@ -59,17 +59,30 @@ async function handleValidateSessionMessage(
       message.value.toString()
     ) as ValidateSessionRequest;
 
-    console.log(
-      `[auth-service][session-validator] Validating session from ${topic}:${partition}`
+    console.warn(
+      `[auth-service][session-validator] Validating session from ${topic}:${partition}`,
+      { 
+        headerKeys: Object.keys(message.headers || {}),
+        headers: message.headers 
+      }
     );
 
     const response = await validateSession(request);
 
-    // Extract reply topic from message headers (Kafka Request-Reply pattern)
-    const replyTopic = message.headers?.["reply_topic"]?.toString();
-    const correlationId = message.headers?.["correlation_id"]?.toString();
+    // NestJS Kafka protocol:
+    // Support both default NestJS headers and kafka-prefixed headers (some versions/drivers)
+    const correlationId = (
+      message.headers?.["__nest-correlation-id"] || 
+      message.headers?.["kafka_correlationId"] ||
+      message.headers?.["kafka_correlationid"] // case insensitive check
+    )?.toString();
+    
+    const replyTopic = (
+      message.headers?.["__nest-reply-topic"] || 
+      message.headers?.["kafka_replyTopic"]
+    )?.toString() || `${topic}.reply`;
 
-    if (replyTopic && correlationId) {
+    if (correlationId) {
       // Send response back via producer
       await producer.send({
         topic: replyTopic,
@@ -78,13 +91,14 @@ async function handleValidateSessionMessage(
             key: correlationId,
             value: JSON.stringify(response),
             headers: {
-              correlation_id: correlationId,
+              "__nest-correlation-id": correlationId,
+              "kafka_correlationId": correlationId, // Send both just in case
             },
           },
         ],
       });
 
-      console.log(
+      console.warn(
         `[auth-service][session-validator] Sent reply to ${replyTopic}`,
         {
           correlationId,
@@ -94,7 +108,8 @@ async function handleValidateSessionMessage(
       );
     } else {
       console.warn(
-        "[auth-service][session-validator] No reply_topic or correlation_id in message headers - cannot send response"
+        "[auth-service][session-validator] No correlation ID in message headers - cannot send response",
+        { headers: message.headers }
       );
     }
   } catch (error) {
@@ -111,6 +126,9 @@ async function handleValidateSessionMessage(
 async function validateSession(
   request: ValidateSessionRequest
 ): Promise<ValidateSessionResponse> {
+  console.warn("[auth-service][session-validator] Validating token:", {
+    token: request.sessionToken?.substring(0, 10) + "...",
+  });
   try {
     if (!request.sessionToken) {
       return {
@@ -124,10 +142,23 @@ async function validateSession(
     }
 
     // Use Better Auth API to validate the session
-    const session = await auth.api.getSession({
-      headers: {
-        authorization: `Bearer ${request.sessionToken}`,
-      },
+    console.warn("[auth-service][session-validator] Calling better-auth getSession...");
+    
+    // Add a race to prevent hanging
+    const session = await Promise.race([
+      auth.api.getSession({
+        headers: {
+          authorization: `Bearer ${request.sessionToken}`,
+        },
+      }),
+      new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error("better-auth getSession timeout")), 5000)
+      )
+    ]);
+    
+    console.warn("[auth-service][session-validator] getSession result:", {
+      success: !!session,
+      userId: session?.user?.id,
     });
 
     if (!session || !session.user) {

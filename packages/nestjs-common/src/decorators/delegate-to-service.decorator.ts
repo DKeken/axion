@@ -5,7 +5,7 @@
  * (which are incompatible with strict TS settings in some workspaces).
  */
 
-type AnyFn = (...args: any[]) => any;
+type AnyFn = (...args: unknown[]) => unknown;
 
 export function DelegateToService(
   serviceProperty: string,

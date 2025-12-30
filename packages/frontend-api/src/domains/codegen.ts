@@ -2,7 +2,7 @@
  * Codegen API domain - Code generation and validation
  */
 
-import type {
+import {
   GenerateProjectRequest,
   GenerateProjectResponse,
   GenerateServiceRequest,
@@ -11,12 +11,25 @@ import type {
   ValidateProjectResponse,
   ValidateServiceRequest,
   ValidateServiceResponse,
+  ListBlueprintsRequest,
+  ListBlueprintsResponse,
+  BlueprintResponse,
 } from "@axion/contracts";
 
-import { API_BASE_PATH, GC_TIME_SHORT, STALE_TIME_SHORT } from "../constants";
+import {
+  API_BASE_PATH,
+  SERVICE_PATHS,
+  GC_TIME_SHORT,
+  STALE_TIME_SHORT,
+  GC_TIME_LONG,
+  STALE_TIME_LONG,
+} from "../constants";
 import type { HttpClient } from "../http-client";
-import { defineQuery, type AxionQueryOptions } from "../query-options";
+import { defineQuery } from "../query-options";
+import type { AxionQueryOptions } from "../query-options";
 import type { OmitMetadataAndFields, RequestOptions } from "../types";
+
+const BASE_PATH = `${API_BASE_PATH}/${SERVICE_PATHS.CODEGEN}`;
 
 /**
  * Query keys factory for codegen domain
@@ -56,6 +69,15 @@ export const codegenKeys = {
         body,
       ] as const,
   },
+
+  // Blueprints
+  blueprints: {
+    all: () => [...codegenKeys.all(), "blueprints"] as const,
+    list: (query: OmitMetadataAndFields<ListBlueprintsRequest, never>) =>
+      [...codegenKeys.blueprints.all(), "list", query] as const,
+    detail: (blueprintId: string) =>
+      [...codegenKeys.blueprints.all(), "detail", blueprintId] as const,
+  },
 } as const;
 
 /**
@@ -70,7 +92,7 @@ export function createCodegenApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<GenerateProjectResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/generate`,
+        `${BASE_PATH}/projects/${projectId}/generate`,
         data,
         options
       ),
@@ -85,7 +107,7 @@ export function createCodegenApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<GenerateServiceResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/services/${nodeId}/generate`,
+        `${BASE_PATH}/projects/${projectId}/services/${nodeId}/generate`,
         data,
         options
       ),
@@ -97,7 +119,7 @@ export function createCodegenApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<ValidateProjectResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/validate`,
+        `${BASE_PATH}/projects/${projectId}/validate`,
         data,
         options
       ),
@@ -112,8 +134,24 @@ export function createCodegenApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<ValidateServiceResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/services/${nodeId}/validate`,
+        `${BASE_PATH}/projects/${projectId}/services/${nodeId}/validate`,
         data,
+        options
+      ),
+
+    // Blueprints
+    listBlueprints: (
+      query: OmitMetadataAndFields<ListBlueprintsRequest, never> = {},
+      options?: RequestOptions
+    ) =>
+      client.get<ListBlueprintsResponse>(`${BASE_PATH}/blueprints`, {
+        ...options,
+        query: query as unknown as RequestOptions["query"],
+      }),
+
+    getBlueprint: (blueprintId: string, options?: RequestOptions) =>
+      client.get<BlueprintResponse>(
+        `${BASE_PATH}/blueprints/${blueprintId}`,
         options
       ),
   };
@@ -171,6 +209,43 @@ export function createCodegenQueries(api: CodegenApi) {
           api.validateService(projectId, nodeId, body, { signal }),
         staleTime: STALE_TIME_SHORT,
         gcTime: GC_TIME_SHORT,
+      }),
+
+    /**
+     * List blueprints query
+     */
+    listBlueprints: (
+      query: OmitMetadataAndFields<ListBlueprintsRequest, never> = {}
+    ): AxionQueryOptions<
+      ListBlueprintsResponse,
+      Error,
+      ListBlueprintsResponse,
+      ReturnType<typeof codegenKeys.blueprints.list>
+    > =>
+      defineQuery({
+        queryKey: codegenKeys.blueprints.list(query),
+        queryFn: ({ signal }) => api.listBlueprints(query, { signal }),
+        // Blueprints change rarely, cache for longer
+        staleTime: STALE_TIME_LONG,
+        gcTime: GC_TIME_LONG,
+      }),
+
+    /**
+     * Get blueprint detail query
+     */
+    getBlueprint: (
+      blueprintId: string
+    ): AxionQueryOptions<
+      BlueprintResponse,
+      Error,
+      BlueprintResponse,
+      ReturnType<typeof codegenKeys.blueprints.detail>
+    > =>
+      defineQuery({
+        queryKey: codegenKeys.blueprints.detail(blueprintId),
+        queryFn: ({ signal }) => api.getBlueprint(blueprintId, { signal }),
+        staleTime: STALE_TIME_LONG,
+        gcTime: GC_TIME_LONG,
       }),
   };
 }

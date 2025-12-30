@@ -3,7 +3,7 @@
  * Implements retry strategies for Kafka message processing
  */
 
-export interface RetryPolicy {
+export type RetryPolicy = {
   maxAttempts: number;
   initialDelayMs: number;
   maxDelayMs: number;

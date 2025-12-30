@@ -6,7 +6,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { Admin } from "kafkajs";
 
-export interface LagMetrics {
+export type LagMetrics = {
   groupId: string;
   topic: string;
   partition: number;
@@ -15,13 +15,13 @@ export interface LagMetrics {
   highWatermark: number;
 }
 
-export interface TopicPartitionInfo {
+export type TopicPartitionInfo = {
   topic: string;
   partition: number;
   highWatermark: number;
 }
 
-export interface ErrorRateMetrics {
+export type ErrorRateMetrics = {
   topic: string;
   handler: string;
   errorCount: number;

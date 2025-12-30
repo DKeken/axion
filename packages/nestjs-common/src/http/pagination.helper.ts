@@ -1,9 +1,7 @@
 import { createDefaultPagination, type Pagination } from "@axion/contracts";
+import { type PaginationQuery } from "@axion/shared";
 
-export type PaginationQuery = {
-  page?: string;
-  limit?: string;
-};
+export { type PaginationQuery };
 
 const toPositiveIntOrUndefined = (value?: string): number | undefined => {
   if (!value) return undefined;

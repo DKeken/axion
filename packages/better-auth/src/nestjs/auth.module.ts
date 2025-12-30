@@ -5,7 +5,7 @@ import type { betterAuth } from "better-auth";
 /**
  * Better Auth module configuration
  */
-export interface AxionAuthModuleOptions {
+export type AxionAuthModuleOptions = {
   /**
    * Better Auth instance (returned from betterAuth())
    */

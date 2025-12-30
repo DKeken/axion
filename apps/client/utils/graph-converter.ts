@@ -1,5 +1,11 @@
 import type { Node as FlowNode, Edge as FlowEdge } from "reactflow";
-import { type GraphData, NodeType, EdgeType } from "@axion/contracts";
+import {
+  type GraphData,
+  NodeType,
+  EdgeType,
+  type Node,
+  type Edge,
+} from "@axion/contracts";
 
 export type GraphFlowNodeData = {
   id: string;
@@ -13,17 +19,42 @@ export type GraphFlowEdgeData = {
   edgeType: EdgeType;
 };
 
+export function getReactFlowNodeType(type: NodeType): string {
+  switch (type) {
+    case NodeType.NODE_TYPE_DATABASE:
+      return "database";
+    case NodeType.NODE_TYPE_LOGIC:
+      return "logic";
+    case NodeType.NODE_TYPE_GATEWAY:
+      return "gateway";
+    case NodeType.NODE_TYPE_SERVICE:
+    default:
+      return "service";
+  }
+}
+
+export function getNodeTypeFromReactFlow(type?: string): NodeType {
+  switch (type) {
+    case "database":
+      return NodeType.NODE_TYPE_DATABASE;
+    case "logic":
+      return NodeType.NODE_TYPE_LOGIC;
+    case "gateway":
+      return NodeType.NODE_TYPE_GATEWAY;
+    case "service":
+    default:
+      return NodeType.NODE_TYPE_SERVICE;
+  }
+}
+
 export function graphDataToFlow(graph: GraphData): {
   nodes: FlowNode<GraphFlowNodeData>[];
   edges: FlowEdge<GraphFlowEdgeData>[];
 } {
   const nodes: FlowNode<GraphFlowNodeData>[] = graph.nodes.map(
     (node, index) => ({
-      // Graph contract marks `data` as required, but generated TS may allow undefined.
-      // Fallbacks here are only for UI stability when data is missing.
-      // (The backend should always persist valid nodes.)
       id: node.id,
-      type: node.type === NodeType.NODE_TYPE_DATABASE ? "database" : "service",
+      type: getReactFlowNodeType(node.type),
       position: node.position
         ? { x: node.position.x, y: node.position.y }
         : {
@@ -52,4 +83,31 @@ export function graphDataToFlow(graph: GraphData): {
   }));
 
   return { nodes, edges };
+}
+
+export function flowToGraphData(
+  flowNodes: FlowNode<GraphFlowNodeData>[],
+  flowEdges: FlowEdge<GraphFlowEdgeData>[]
+): GraphData {
+  return {
+    nodes: flowNodes.map((node) => ({
+      id: node.id,
+      type: getNodeTypeFromReactFlow(node.type),
+      data: {
+        blueprintId: node.data.blueprintId,
+        config: node.data.config ?? {},
+        serviceName: node.data.name,
+      },
+      position: {
+        x: node.position.x,
+        y: node.position.y,
+      },
+    })),
+    edges: flowEdges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: edge.data?.edgeType ?? EdgeType.EDGE_TYPE_HTTP,
+    })),
+  };
 }

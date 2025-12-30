@@ -6,14 +6,16 @@
  * и генерирует ключ шифрования через scrypt для дополнительной безопасности.
  */
 
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import {
   createCipheriv,
+  createHash,
   createDecipheriv,
   randomBytes,
   scrypt,
   type ScryptOptions,
 } from "crypto";
+
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 
 /**
  * Key length для scrypt (32 bytes для AES-256)
@@ -118,6 +120,12 @@ export class SshEncryptionService implements OnModuleInit {
    * Генерация ключа шифрования из master key
    */
   private deriveKey(masterKey: string): Promise<Buffer> {
+    // In dev/test we intentionally use a fast derivation to avoid slow service boot.
+    // Production keeps scrypt to harden master key usage.
+    if (!this.isProduction) {
+      return Promise.resolve(createHash("sha256").update(masterKey).digest());
+    }
+
     return scryptAsync(masterKey, SCRYPT_SALT, SCRYPT_KEYLEN, SCRYPT_OPTIONS);
   }
 
@@ -155,7 +163,10 @@ export class SshEncryptionService implements OnModuleInit {
       const iv = randomBytes(IV_LENGTH);
 
       // Создаем cipher
-      const cipher = createCipheriv(ALGORITHM, this.encryptionKey!, iv);
+      if (!this.encryptionKey) {
+        throw new Error("Encryption key not initialized");
+      }
+      const cipher = createCipheriv(ALGORITHM, this.encryptionKey, iv);
 
       // Шифруем текст
       let encrypted = cipher.update(plaintext, "utf8");
@@ -212,7 +223,10 @@ export class SshEncryptionService implements OnModuleInit {
       const ciphertext = data.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
       // Создаем decipher
-      const decipher = createDecipheriv(ALGORITHM, this.encryptionKey!, iv);
+      if (!this.encryptionKey) {
+        throw new Error("Encryption key not initialized");
+      }
+      const decipher = createDecipheriv(ALGORITHM, this.encryptionKey, iv);
       decipher.setAuthTag(authTag);
 
       // Расшифровываем

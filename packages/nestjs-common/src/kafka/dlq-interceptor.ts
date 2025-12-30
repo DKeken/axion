@@ -3,13 +3,6 @@
  * Automatically sends failed messages to Dead Letter Queue
  */
 
-import type { CallHandler, ExecutionContext } from "@nestjs/common";
-import { Injectable, NestInterceptor, Logger } from "@nestjs/common";
-import type { Observable } from "rxjs";
-import { catchError, throwError } from "rxjs";
-import type { KafkaContext } from "@nestjs/microservices";
-import type { ClientKafka } from "@nestjs/microservices";
-
 import {
   createDLQEventEnvelope,
   getDLQTopicName,
@@ -19,11 +12,17 @@ import {
   convertKafkaHeaders,
   type KafkaMessagePayload,
 } from "@axion/shared";
+import type { CallHandler, ExecutionContext } from "@nestjs/common";
+import { Injectable, NestInterceptor, Logger } from "@nestjs/common";
+import type { KafkaContext , ClientKafka } from "@nestjs/microservices";
+import type { Observable } from "rxjs";
+import { catchError, throwError } from "rxjs";
+
 
 /**
  * DLQ Interceptor Options
  */
-export interface DLQInterceptorOptions {
+export type DLQInterceptorOptions = {
   /**
    * Maximum retry attempts before sending to DLQ
    * @default 3

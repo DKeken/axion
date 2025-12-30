@@ -6,17 +6,17 @@
 /**
  * Resource types
  */
-export interface Project {
+export type Project = {
   id: string;
   userId: string;
   name: string;
 }
 
-export interface GraphData {
+export type GraphData = {
   projectId: string;
 }
 
-export interface Service {
+export type Service = {
   id: string;
   projectId: string;
 }

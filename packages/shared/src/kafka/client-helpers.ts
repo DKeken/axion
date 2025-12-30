@@ -2,9 +2,10 @@
  * Kafka client helpers for sending messages with standard headers
  */
 
+import type { RequestMetadata } from "@axion/contracts";
 import type { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
-import type { RequestMetadata } from "@axion/contracts";
+
 import { createKafkaHeaders, getCorrelationIdFromHeaders } from "./headers";
 
 /**

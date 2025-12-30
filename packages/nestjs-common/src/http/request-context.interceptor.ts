@@ -1,10 +1,11 @@
+import { randomUUID } from "node:crypto";
+
+import type { RequestMetadata } from "@axion/contracts";
+import { createRequestMetadata } from "@axion/shared";
 import type { CallHandler, ExecutionContext } from "@nestjs/common";
 import { Injectable, NestInterceptor } from "@nestjs/common";
 import type { Observable } from "rxjs";
-import { randomUUID } from "node:crypto";
 
-import { createRequestMetadata } from "@axion/shared";
-import type { RequestMetadata } from "@axion/contracts";
 
 type RequestWithAxionContext = {
   axion?: {

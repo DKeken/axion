@@ -30,6 +30,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@axion/contracts": ["../../packages/contracts/src/index.ts"],
+      "@axion/shared": ["../../packages/shared/src/index.ts"],
+      "@axion/database": ["../../packages/database/src/index.ts"],
+      "@axion/nestjs-common": ["../../packages/nestjs-common/src/index.ts"],
+      "@axion/better-auth": ["../../packages/better-auth/src/index.ts"],
+      "@axion/frontend-api": ["../../packages/frontend-api/src/index.ts"],
       "@/components/*": ["./src/components/*"],
       "@/lib/*": ["./src/lib/*"],
       "@/utils/*": ["./src/utils/*"],

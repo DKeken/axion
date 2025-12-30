@@ -2,7 +2,7 @@ import { SshEncryptionService } from "@axion/nestjs-common";
 import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
-import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
+import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 
 type RotationResult = {
   rotated: number;

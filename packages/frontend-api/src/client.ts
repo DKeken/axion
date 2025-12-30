@@ -2,40 +2,17 @@
  * Main client factory and centralized API
  */
 
+import { createCodegenApi, createCodegenQueries, codegenKeys } from "./domains/codegen";
+import type { CodegenApi, CodegenQueries } from "./domains/codegen";
+import { createDeploymentApi, createDeploymentQueries, deploymentKeys } from "./domains/deployment";
+import type { DeploymentApi, DeploymentQueries } from "./domains/deployment";
+import { createGraphApi, createGraphQueries, graphKeys } from "./domains/graph";
+import type { GraphApi, GraphQueries } from "./domains/graph";
+import { createInfrastructureApi, createInfrastructureQueries, infrastructureKeys } from "./domains/infrastructure";
+import type { InfrastructureApi, InfrastructureQueries } from "./domains/infrastructure";
+import { createHttpClient } from "./http-client";
+import type { HttpClient } from "./http-client";
 import type { ApiClientConfig } from "./types";
-import { createHttpClient, type HttpClient } from "./http-client";
-
-import {
-  createCodegenApi,
-  createCodegenQueries,
-  codegenKeys,
-  type CodegenApi,
-  type CodegenQueries,
-} from "./domains/codegen";
-
-import {
-  createDeploymentApi,
-  createDeploymentQueries,
-  deploymentKeys,
-  type DeploymentApi,
-  type DeploymentQueries,
-} from "./domains/deployment";
-
-import {
-  createGraphApi,
-  createGraphQueries,
-  graphKeys,
-  type GraphApi,
-  type GraphQueries,
-} from "./domains/graph";
-
-import {
-  createInfrastructureApi,
-  createInfrastructureQueries,
-  infrastructureKeys,
-  type InfrastructureApi,
-  type InfrastructureQueries,
-} from "./domains/infrastructure";
 
 /**
  * Centralized query keys for all domains

@@ -1,19 +1,24 @@
+import { getUserIdFromSession } from "@axion/better-auth";
 import {
   type RequestMetadata,
   createErrorResponse,
   createValidationError,
+  AUTH_SERVICE_NAME,
+  AUTH_SERVICE_PATTERNS,
+  Status,
+  type ValidateSessionResponse,
 } from "@axion/contracts";
 import {
-  getProjectIdFromMetadata,
-  getRequestIdFromMetadata,
   getSessionTokenFromMetadata,
   getUserIdFromMetadata,
   isValidRequestMetadata,
+  normalizeRequestMetadata,
 } from "@axion/shared";
-import { getUserIdFromSession } from "@axion/better-auth";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
+import type { ClientKafka } from "@nestjs/microservices";
 import type { UserSession } from "@thallesp/nestjs-better-auth";
-import { Inject, Injectable, Logger } from "@nestjs/common";
 import type { betterAuth } from "better-auth";
+import { firstValueFrom, timeout } from "rxjs";
 
 /**
  * Helper for authentication validation in microservices
@@ -24,49 +29,95 @@ export class AuthHelper {
   private readonly logger = new Logger(AuthHelper.name);
 
   constructor(
+    @Optional()
     @Inject("BETTER_AUTH")
-    private readonly auth: ReturnType<typeof betterAuth>
+    private readonly auth?: ReturnType<typeof betterAuth>,
+
+    @Optional()
+    @Inject(AUTH_SERVICE_NAME)
+    private readonly authServiceClient?: ClientKafka
   ) {}
 
   /**
    * Validate session token and return session
-   * Better Auth's getSession validates the session - if it returns non-null, session is valid
+   * Fallback to Kafka if direct Better Auth is not available
    */
   async validateSessionToken(
     sessionToken: string | undefined | null
-  ): Promise<{ session: UserSession; userId: string } | null> {
+  ): Promise<{ session: UserSession | unknown; userId: string } | null> {
     if (typeof sessionToken !== "string" || !sessionToken) {
       return null;
     }
 
-    try {
-      // Better Auth supports Bearer token in authorization header
-      // getSession returns null if session is invalid or expired
-      const session = await this.auth.api.getSession({
-        headers: {
-          authorization: `Bearer ${sessionToken}`,
-        },
-      });
+    // 1. Try direct Better Auth validation if available
+    if (this.auth) {
+      try {
+        // Better Auth supports Bearer token in authorization header
+        // getSession returns null if session is invalid or expired
+        const session = await this.auth.api.getSession({
+          headers: {
+            authorization: `Bearer ${sessionToken}`,
+          },
+        });
 
-      // Better Auth validates the session - if it's not null, it's valid
-      if (!session) {
-        return null;
+        // Better Auth validates the session - if it's not null, it's valid
+        if (!session) {
+          return null;
+        }
+
+        // Extract user ID using Better Auth helper
+        const userId = getUserIdFromSession(session);
+        if (!userId) {
+          return null;
+        }
+
+        return {
+          session,
+          userId,
+        };
+      } catch (error) {
+        this.logger.warn(
+          "Error validating session token via Better Auth",
+          error
+        );
+        // Continue to fallback
       }
-
-      // Extract user ID using Better Auth helper
-      const userId = getUserIdFromSession(session);
-      if (!userId) {
-        return null;
-      }
-
-      return {
-        session,
-        userId,
-      };
-    } catch (error) {
-      this.logger.warn("Error validating session token", error);
-      return null;
     }
+
+    // 2. Fallback to Kafka if direct validation failed or is not available
+    if (this.authServiceClient) {
+      try {
+        const response = await firstValueFrom(
+          this.authServiceClient
+            .send<ValidateSessionResponse>(
+              AUTH_SERVICE_PATTERNS.VALIDATE_SESSION,
+              { sessionToken }
+            )
+            .pipe(timeout(5000))
+        );
+
+        if (
+          response &&
+          response.status === Status.STATUS_SUCCESS &&
+          response.session
+        ) {
+          return {
+            session: response.session,
+            userId: response.session.userId,
+          };
+        }
+      } catch (error) {
+        this.logger.error("Error validating session token via Kafka", error);
+      }
+    }
+
+    if (!this.auth && !this.authServiceClient) {
+      this.logger.error(
+        "No authentication validation mechanism available (Better Auth or Kafka)"
+      );
+    }
+
+    return null;
   }
 
   /**
@@ -170,7 +221,7 @@ export class AuthHelper {
   }
 
   /**
-   * Ensure metadata has user_id
+   * Ensure metadata has user_id and is properly normalized
    */
   ensureUserIdInMetadata(
     metadata: RequestMetadata | unknown
@@ -180,26 +231,21 @@ export class AuthHelper {
       return null;
     }
 
-    // Use shared utility to validate metadata
-    if (!isValidRequestMetadata(metadata)) {
+    // Use shared utility to normalize metadata
+    // This handles both camelCase and snake_case, and ensures all fields are present
+    const normalized = normalizeRequestMetadata(metadata, validation.userId);
+
+    // Double check if it's valid according to our schema
+    if (!isValidRequestMetadata(normalized)) {
       return null;
     }
 
-    // Use shared utilities to extract values
-    const projectId = getProjectIdFromMetadata(metadata) || "";
-    const requestId = getRequestIdFromMetadata(metadata) || "";
-    const timestamp =
-      (typeof metadata.timestamp === "number" && metadata.timestamp) ||
-      Date.now();
-
     return {
-      userId: validation.userId,
-      user_id: validation.userId,
-      projectId,
-      project_id: projectId,
-      requestId,
-      request_id: requestId,
-      timestamp,
-    } satisfies RequestMetadata;
+      ...normalized,
+      // Keep snake_case for backward compatibility if needed by some consumers
+      user_id: normalized.userId,
+      project_id: normalized.projectId,
+      request_id: normalized.requestId,
+    } as RequestMetadata;
   }
 }

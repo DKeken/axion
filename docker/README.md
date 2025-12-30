@@ -88,10 +88,10 @@ docker compose down
 
 ### Traefik
 
-- **HTTP**: 80
+- **HTTP/Gateway**: 80, 8080
 - **HTTPS**: 443
-- **Dashboard**: 8080
-- **Dashboard URL**: http://traefik.localhost:8080
+- **Dashboard**: 8082
+- **Dashboard URL**: http://localhost:8082/dashboard/
 
 ## Traefik Configuration
 

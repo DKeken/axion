@@ -4,14 +4,14 @@ import { HealthStatus } from "@axion/contracts";
  * Health check utilities
  */
 
-export interface HealthCheckDependency {
+export type HealthCheckDependency = {
   name: string;
   status: HealthStatus;
   message?: string;
   response_time_ms?: number;
 }
 
-export interface HealthCheckResult {
+export type HealthCheckResult = {
   status: HealthStatus;
   service_name: string;
   timestamp: number;

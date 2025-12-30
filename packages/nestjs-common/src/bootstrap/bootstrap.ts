@@ -3,16 +3,17 @@
  * Reduces boilerplate in main.ts by providing common setup patterns
  */
 
+import { createKafkaServerOptions } from "@axion/shared/nest";
 import type { INestApplication } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import type { MicroserviceOptions } from "@nestjs/microservices";
-import { createKafkaServerOptions } from "@axion/shared";
-import { setupHttpContractLayer } from "../http/setup-http";
 
+import { setupHttpContractLayer } from "../http/setup-http";
 import { setupSwagger, type SwaggerOptions } from "../swagger/setup-swagger";
+
 import { setupGracefulShutdown } from "./graceful-shutdown";
 
-export interface BootstrapOptions {
+export type BootstrapOptions = {
   /**
    * Service name (from @axion/contracts)
    */
@@ -39,7 +40,7 @@ export interface BootstrapOptions {
    * If provided, Swagger documentation will be enabled
    */
   swagger?: SwaggerOptions | boolean;
-}
+};
 
 /**
  * Bootstrap a NestJS microservice with Kafka and HTTP server
@@ -69,6 +70,13 @@ export async function bootstrapMicroservice(
 
   // Global HTTP layer for public API endpoints (contract → HTTP status, etc.)
   setupHttpContractLayer(app);
+
+  // Enable CORS
+  app.enableCors({
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+  });
 
   // Setup Swagger/OpenAPI documentation (if enabled)
   if (options.swagger) {
@@ -122,8 +130,10 @@ export async function bootstrapMicroservice(
   // Start HTTP server
   const port = options.port ?? options.defaultPort ?? 3000;
 
-  await app.listen(port);
-  logger.log(`${options.serviceName} HTTP server listening on port ${port}`);
+  await app.listen(port, "0.0.0.0");
+  logger.log(
+    `${options.serviceName} HTTP server listening on port ${port} (0.0.0.0)`
+  );
 
   return app;
 }

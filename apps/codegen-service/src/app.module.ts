@@ -4,7 +4,8 @@ import {
   AUTH_SERVICE_NAME,
 } from "@axion/contracts";
 import { AuthModule, HealthModule } from "@axion/nestjs-common";
-import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
+import { parseKafkaBrokers } from "@axion/shared";
+import { createKafkaClientOptions } from "@axion/shared/nest";
 import { Module } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
 

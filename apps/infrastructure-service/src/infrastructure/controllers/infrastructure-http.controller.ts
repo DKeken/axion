@@ -33,6 +33,7 @@ import {
   Body,
   Param,
   Query,
+  Inject,
 } from "@nestjs/common";
 
 import { InfrastructureService } from "@/infrastructure/infrastructure.service";
@@ -40,7 +41,10 @@ import { InfrastructureService } from "@/infrastructure/infrastructure.service";
 @Controller("api")
 @UseGuards(HttpAuthGuard)
 export class InfrastructureHttpController {
-  constructor(private readonly infrastructureService: InfrastructureService) {}
+  constructor(
+    @Inject(InfrastructureService)
+    private readonly infrastructureService: InfrastructureService
+  ) {}
 
   // Servers
   @Get("servers")

@@ -118,10 +118,11 @@ bun dev
 
 После запуска `bun dev` доступны:
 
-- **Traefik Dashboard**: http://traefik.localhost:8080
-- **Kafka UI**: http://kafka-ui.localhost:8081 (если включен monitoring profile)
-- **Graph Service**: http://graph.localhost (когда запущен)
-- **Codegen Service**: http://codegen.localhost (когда запущен)
+- **Traefik Dashboard**: http://localhost:8082/dashboard/
+- **Gateway (API)**: http://localhost:8080
+- **Kafka UI**: http://localhost:8081 (если включен monitoring profile)
+- **Graph Service**: http://graph.localhost:8080
+- **Codegen Service**: http://codegen.localhost:8080
 - И т.д. для всех сервисов из `docker/services.config.ts`
 
 **Прямой доступ к сервисам (без Traefik):**

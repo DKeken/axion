@@ -2,7 +2,7 @@
  * Graph API domain - Projects, Graphs, and Services
  */
 
-import type {
+import {
   CreateProjectRequest,
   GraphResponse,
   ListGraphVersionsResponse,
@@ -14,22 +14,26 @@ import type {
   UpdateGraphRequest,
   UpdateProjectRequest,
 } from "@axion/contracts";
-import type { PaginationQuery } from "@axion/nestjs-common";
+import type { PaginationQuery } from "@axion/shared";
 
 import {
   API_BASE_PATH,
+  SERVICE_PATHS,
   STALE_TIME_LONG,
   STALE_TIME_MEDIUM,
   STALE_TIME_STANDARD,
 } from "../constants";
 import type { HttpClient } from "../http-client";
-import { defineQuery, type AxionQueryOptions } from "../query-options";
+import { defineQuery } from "../query-options";
+import type { AxionQueryOptions } from "../query-options";
 import type {
   OmitMetadata,
   OmitMetadataAndFields,
   PickFieldsWithoutMetadata,
   RequestOptions,
 } from "../types";
+
+const BASE_PATH = `${API_BASE_PATH}/${SERVICE_PATHS.GRAPH}`;
 
 /**
  * Query keys factory for graph domain
@@ -83,22 +87,21 @@ export function createGraphApi(client: HttpClient) {
   return {
     // Projects
     listProjects: (params?: PaginationQuery, options?: RequestOptions) =>
-      client.get<ListProjectsResponse>(`${API_BASE_PATH}/projects`, {
+      client.get<ListProjectsResponse>(`${BASE_PATH}/projects`, {
         ...options,
         query: params as Record<string, string>,
       }),
 
     getProject: (projectId: string, options?: RequestOptions) =>
       client.get<ProjectResponse>(
-        `${API_BASE_PATH}/projects/${projectId}`,
+        `${BASE_PATH}/projects/${projectId}`,
         options
       ),
 
     createProject: (
       data: OmitMetadata<CreateProjectRequest>,
       options?: RequestOptions
-    ) =>
-      client.post<ProjectResponse>(`${API_BASE_PATH}/projects`, data, options),
+    ) => client.post<ProjectResponse>(`${BASE_PATH}/projects`, data, options),
 
     updateProject: (
       projectId: string,
@@ -106,18 +109,18 @@ export function createGraphApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.patch<ProjectResponse>(
-        `${API_BASE_PATH}/projects/${projectId}`,
+        `${BASE_PATH}/projects/${projectId}`,
         data,
         options
       ),
 
     deleteProject: (projectId: string, options?: RequestOptions) =>
-      client.delete<void>(`${API_BASE_PATH}/projects/${projectId}`, options),
+      client.delete<void>(`${BASE_PATH}/projects/${projectId}`, options),
 
     // Graph
     getGraph: (projectId: string, options?: RequestOptions) =>
       client.get<GraphResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/graph`,
+        `${BASE_PATH}/projects/${projectId}/graph`,
         options
       ),
 
@@ -127,14 +130,14 @@ export function createGraphApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.put<GraphResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/graph`,
+        `${BASE_PATH}/projects/${projectId}/graph`,
         data,
         options
       ),
 
     listGraphVersions: (projectId: string, options?: RequestOptions) =>
       client.get<ListGraphVersionsResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/graph/versions`,
+        `${BASE_PATH}/projects/${projectId}/graph/versions`,
         options
       ),
 
@@ -144,7 +147,7 @@ export function createGraphApi(client: HttpClient) {
       options?: RequestOptions
     ) =>
       client.post<GraphResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/graph/revert`,
+        `${BASE_PATH}/projects/${projectId}/graph/revert`,
         data,
         options
       ),
@@ -152,13 +155,13 @@ export function createGraphApi(client: HttpClient) {
     // Services
     listServices: (projectId: string, options?: RequestOptions) =>
       client.get<ListServicesResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/services`,
+        `${BASE_PATH}/projects/${projectId}/services`,
         options
       ),
 
     getService: (projectId: string, nodeId: string, options?: RequestOptions) =>
       client.get<ServiceResponse>(
-        `${API_BASE_PATH}/projects/${projectId}/services/${nodeId}`,
+        `${BASE_PATH}/projects/${projectId}/services/${nodeId}`,
         options
       ),
   };

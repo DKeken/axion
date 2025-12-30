@@ -5,7 +5,7 @@
 
 import { createHash } from "crypto";
 
-export interface IdempotencyKey {
+export type IdempotencyKey = {
   topic: string;
   partition: number;
   offset: string;

@@ -8,7 +8,7 @@ import {
   type ValidateProjectRequest,
   type ValidateServiceRequest,
 } from "@axion/contracts";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 
 import { BlueprintsService } from "@/codegen/services/blueprints.service";
 import { ContractDiscoveryService } from "@/codegen/services/contract-discovery.service";
@@ -16,16 +16,24 @@ import { GenerationService } from "@/codegen/services/generation.service";
 import { ValidationService } from "@/codegen/services/validation.service";
 
 /**
- * Main CodegenService - координатор, делегирует вызовы специализированным сервисам
+ * Main CodegenOrchestratorService - координатор, делегирует вызовы специализированным сервисам
  */
 @Injectable()
-export class CodegenService {
+export class CodegenOrchestratorService {
   constructor(
+    @Inject(forwardRef(() => BlueprintsService))
     private readonly blueprintsService: BlueprintsService,
+    @Inject(forwardRef(() => GenerationService))
     private readonly generationService: GenerationService,
+    @Inject(forwardRef(() => ValidationService))
     private readonly validationService: ValidationService,
+    @Inject(forwardRef(() => ContractDiscoveryService))
     private readonly contractDiscoveryService: ContractDiscoveryService
-  ) {}
+  ) {
+    console.log("CodegenOrchestratorService initialized with:", {
+      validationService: !!this.validationService,
+    });
+  }
 
   // Generation
   async generateProject(data: GenerateProjectRequest) {

@@ -3,15 +3,6 @@
  * Implements immediate retry with exponential backoff for transient errors
  */
 
-import type {
-  CallHandler,
-  ExecutionContext,
-  NestInterceptor,
-} from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
-import type { Observable } from "rxjs";
-import { catchError, delay, retry } from "rxjs/operators";
-import { throwError } from "rxjs";
 import {
   shouldRetry,
   getRetryDelay,
@@ -19,9 +10,18 @@ import {
   type RetryPolicy,
   convertKafkaHeaders,
 } from "@axion/shared";
+import type {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import type { KafkaContext } from "@nestjs/microservices";
+import type { Observable } from "rxjs";
+import { throwError } from "rxjs";
+import { catchError, delay, retry } from "rxjs/operators";
 
-export interface RetryInterceptorOptions {
+export type RetryInterceptorOptions = {
   policy?: RetryPolicy;
   enabled?: boolean;
 }

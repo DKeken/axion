@@ -2,7 +2,7 @@
   "extends": "../../packages/_configs/typescript-config/node.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
@@ -12,6 +12,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../packages/*/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

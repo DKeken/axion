@@ -93,6 +93,7 @@ enum NodeType {
   NODE_TYPE_SERVICE = 1;
   NODE_TYPE_DATABASE = 2;
   NODE_TYPE_GATEWAY = 3;
+  NODE_TYPE_LOGIC = 4;
 }
 
 // Edge types (для графа)

@@ -4,6 +4,7 @@
  */
 
 import { Status } from "../../generated/common/common";
+import type { Pagination } from "../../generated/common/common";
 import type {
   Deployment,
   DeployProjectResponse,
@@ -16,7 +17,6 @@ import type {
   DeploymentStatusData,
 } from "../../generated/deployment/management";
 import type { RollbackDeploymentResponse } from "../../generated/deployment/rollback";
-import type { Pagination } from "../../generated/common/common";
 
 /**
  * Create DeployProjectResponse with correct structure: { status, error?, deployment? }

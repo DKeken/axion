@@ -6,7 +6,7 @@
 /**
  * Pagination options
  */
-export interface PaginationOptions {
+export type PaginationOptions = {
   page?: number;
   limit?: number;
 }
@@ -14,7 +14,7 @@ export interface PaginationOptions {
 /**
  * Paginated result
  */
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   total: number;
 }
@@ -27,11 +27,11 @@ export interface PaginatedResult<T> {
  * @template TCreate - Create DTO type
  * @template TUpdate - Update DTO type (usually Partial<TCreate>)
  */
-export interface IRepository<
+export type IRepository<
   TEntity,
   TCreate = TEntity,
   TUpdate = Partial<TCreate>
-> {
+> = {
   /**
    * Create a new entity
    */

@@ -30,7 +30,7 @@ export function createKafkaClient(): Kafka {
     },
   });
 
-  console.log(
+  console.warn(
     `[auth-service][kafka] Kafka client created for brokers: ${brokerList.join(", ")}`
   );
   return kafka;
@@ -53,7 +53,7 @@ export async function getProducer(): Promise<Producer> {
   });
 
   await producer.connect();
-  console.log("[auth-service][kafka] Producer connected");
+  console.warn("[auth-service][kafka] Producer connected");
   return producer;
 }
 
@@ -77,7 +77,7 @@ export async function getConsumer(groupId: string): Promise<Consumer> {
   });
 
   await consumer.connect();
-  console.log(`[auth-service][kafka] Consumer connected (group: ${groupId})`);
+  console.warn(`[auth-service][kafka] Consumer connected (group: ${groupId})`);
   return consumer;
 }
 
@@ -86,16 +86,16 @@ export async function disconnectKafka(): Promise<void> {
 
   if (producer) {
     promises.push(producer.disconnect());
-    console.log("[auth-service][kafka] Disconnecting producer...");
+    console.warn("[auth-service][kafka] Disconnecting producer...");
   }
 
   if (consumer) {
     promises.push(consumer.disconnect());
-    console.log("[auth-service][kafka] Disconnecting consumer...");
+    console.warn("[auth-service][kafka] Disconnecting consumer...");
   }
 
   await Promise.all(promises);
-  console.log("[auth-service][kafka] All Kafka connections closed");
+  console.warn("[auth-service][kafka] All Kafka connections closed");
 
   producer = null;
   consumer = null;

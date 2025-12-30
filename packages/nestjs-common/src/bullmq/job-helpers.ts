@@ -2,14 +2,14 @@
  * BullMQ job helpers with correlationId support
  */
 
-import type { Job, JobsOptions, Queue } from "bullmq";
 import type { RequestMetadata } from "@axion/contracts";
 import { getRequestIdFromMetadata } from "@axion/shared";
+import type { Job, JobsOptions, Queue } from "bullmq";
 
 /**
  * Standard job payload with correlationId
  */
-export interface StandardJobPayload {
+export type StandardJobPayload = {
   correlationId?: string;
   requestId?: string;
   userId?: string;

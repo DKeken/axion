@@ -13,7 +13,7 @@ import { BaseService } from "@axion/shared";
 import { Injectable } from "@nestjs/common";
 
 import { verifyServerAccess } from "@/infrastructure/helpers/server-access.helper";
-import { type ServerRepository } from "@/infrastructure/repositories/server.repository";
+import { ServerRepository } from "@/infrastructure/repositories/server.repository";
 
 @Injectable()
 export class AgentStatusService extends BaseService {

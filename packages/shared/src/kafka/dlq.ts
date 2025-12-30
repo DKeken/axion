@@ -7,7 +7,7 @@
  * DLQ Event Envelope
  * Standard format for messages sent to Dead Letter Queue
  */
-export interface DLQEventEnvelope {
+export type DLQEventEnvelope = {
   /**
    * Original topic where the message was consumed from
    */
@@ -149,7 +149,7 @@ export function shouldSendToDLQ(
 /**
  * DLQ Replay Options
  */
-export interface DLQReplayOptions {
+export type DLQReplayOptions = {
   /**
    * Target topic to replay message to (default: originalTopic)
    */

@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch --env-file=.env src/main.ts",
-    "start": "node dist/main.js",
+    "dev": "bun --watch src/main.ts",
+    "start": "node dist/apps/infrastructure-service/src/main.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",

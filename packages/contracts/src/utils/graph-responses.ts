@@ -4,12 +4,7 @@
  */
 
 import { Status } from "../../generated/common/common";
-import type {
-  Project,
-  ProjectResponse,
-  ListProjectsResponse,
-  ListProjectsData,
-} from "../../generated/graph/projects";
+import type { Pagination } from "../../generated/common/common";
 import type {
   GraphResponse,
   ListGraphVersionsResponse,
@@ -17,12 +12,17 @@ import type {
   GraphVersion,
 } from "../../generated/graph/graph";
 import type {
+  Project,
+  ProjectResponse,
+  ListProjectsResponse,
+  ListProjectsData,
+} from "../../generated/graph/projects";
+import type {
   ServiceResponse,
   ListServicesResponse,
   ListServicesData,
   ProjectService,
 } from "../../generated/graph/services";
-import type { Pagination } from "../../generated/common/common";
 
 /**
  * Create ProjectResponse with correct structure: { status, error?, project? }

@@ -3,10 +3,10 @@
  */
 
 import { Status } from "../../generated/common/common";
-import { ErrorCode } from "../constants/error-codes";
 import type { Error as ContractError } from "../../generated/common/common";
+import { ErrorCode } from "../constants/error-codes";
 
-export interface ResponseWithOneof<T> {
+export type ResponseWithOneof<T> = {
   status: Status;
   result?: {
     error?: ContractError;

@@ -2,16 +2,18 @@
   "name": "@axion/nestjs-common",
   "version": "1.0.0",
   "description": "Common NestJS utilities and guards for Axion Stack microservices",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "type": "commonjs",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "scripts": {
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "build": "tsc",
     "clean": "rm -rf dist"
@@ -27,9 +29,11 @@
     "ssh2": "^1.17.0"
   },
   "devDependencies": {
+    "@axion-stack/eslint-config": "workspace:*",
     "@axion-stack/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/ssh2": "^1.15.5",
+    "eslint": "^9",
     "typescript": "catalog:"
   },
   "peerDependencies": {

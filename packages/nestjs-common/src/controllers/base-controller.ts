@@ -16,7 +16,7 @@
  *
  * Note: This is a simple helper - for more complex cases, use explicit methods
  */
-type AnyFn = (...args: any[]) => any;
+type AnyFn = (...args: unknown[]) => unknown;
 
 /**
  * Delegate controller handler to a service method.
@@ -24,12 +24,14 @@ type AnyFn = (...args: any[]) => any;
  * We intentionally accept string keys to support `private readonly fooService`
  * constructor params (private members are not part of `keyof` in TS).
  */
-export function delegateToService<TArgs extends any[], TResult>(
+export function delegateToService<TArgs extends unknown[], TResult>(
   serviceProperty: string,
   methodName: string
-): (...args: TArgs) => Promise<TResult>;
-export function delegateToService(serviceProperty: string, methodName: string) {
-  return async function (this: Record<string, unknown>, ...args: unknown[]) {
+): (...args: TArgs) => Promise<TResult> {
+  const resultFn = async function (
+    this: Record<string, unknown>,
+    ...args: unknown[]
+  ) {
     const service = this[serviceProperty] as unknown as Record<string, AnyFn>;
     const method = service?.[methodName] as AnyFn | undefined;
 
@@ -41,4 +43,6 @@ export function delegateToService(serviceProperty: string, methodName: string) {
 
     return await method.apply(service, args);
   };
+
+  return resultFn as (...args: TArgs) => Promise<TResult>;
 }

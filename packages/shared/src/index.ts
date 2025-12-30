@@ -17,5 +17,10 @@ export * from "./utils/index";
 // Export base services
 export * from "./services/base-service";
 
-// Export Kafka utilities
-export * from "./kafka";
+// Export SAFE Kafka utilities (safe for frontend)
+export * from "./kafka/headers";
+export * from "./kafka/headers-converter";
+export * from "./kafka/dlq";
+export * from "./kafka/retry-policy";
+export * from "./kafka/idempotency";
+export * from "./kafka/types";

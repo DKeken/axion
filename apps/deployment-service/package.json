@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch --env-file=.env src/main.ts",
+    "dev": "tsx watch --tsconfig=tsconfig.json --env-file=.env src/main.ts",
     "start": "node dist/main.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

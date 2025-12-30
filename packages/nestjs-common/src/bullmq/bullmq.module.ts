@@ -19,8 +19,9 @@
  * ```
  */
 
-import { DynamicModule, Module } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
+import { DynamicModule, Module } from "@nestjs/common";
+
 import type { BullMQModuleOptions, BullMQModuleAsyncOptions } from "./types";
 
 @Module({})

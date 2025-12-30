@@ -5,14 +5,14 @@
  * Note: This decorator uses MethodDecorator type which preserves original method signature
  */
 
-import { Logger } from "@nestjs/common";
 import { handleServiceError } from "@axion/shared";
 import type { ErrorContext } from "@axion/shared";
+import { Logger } from "@nestjs/common";
 
 /**
  * Options for CatchError decorator
  */
-export interface CatchErrorOptions {
+export type CatchErrorOptions = {
   /**
    * Operation name for logging (defaults to method name)
    */

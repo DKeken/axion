@@ -133,7 +133,11 @@ export class SSEClient {
       }
     }
 
-    this.messageHandlers.get(event)!.add(handler as SSEMessageHandler);
+    const handlers = this.messageHandlers.get(event);
+    if (!handlers) {
+      return () => {};
+    }
+    handlers.add(handler as SSEMessageHandler);
 
     // Return unsubscribe function
     return () => {

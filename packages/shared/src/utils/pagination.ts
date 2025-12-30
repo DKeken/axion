@@ -7,6 +7,14 @@ import type { Pagination } from "@axion/contracts";
 import { createFullPagination, PAGINATION_DEFAULTS } from "@axion/contracts";
 
 /**
+ * Common pagination query parameters for HTTP handlers
+ */
+export type PaginationQuery = {
+  page?: string;
+  limit?: string;
+};
+
+/**
  * Extract pagination parameters from request
  * Provides defaults if pagination is not provided
  *

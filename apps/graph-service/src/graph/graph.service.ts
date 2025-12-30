@@ -13,7 +13,7 @@ import {
   type UpdateProjectRequest,
   type ValidateGraphRequest,
 } from "@axion/contracts";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { GraphOperationsService } from "@/graph/services/graph-operations.service";
 import { GraphServicesService } from "@/graph/services/graph-services.service";
@@ -27,10 +27,15 @@ import { ProjectsService } from "@/graph/services/projects.service";
 @Injectable()
 export class GraphService {
   constructor(
+    @Inject(ProjectsService)
     private readonly projectsService: ProjectsService,
+    @Inject(GraphOperationsService)
     private readonly graphOperationsService: GraphOperationsService,
+    @Inject(GraphServicesService)
     private readonly graphServicesService: GraphServicesService,
+    @Inject(GraphSyncService)
     private readonly graphSyncService: GraphSyncService,
+    @Inject(GraphValidationService)
     private readonly graphValidationService: GraphValidationService
   ) {}
 

@@ -10,14 +10,15 @@ import {
   createForbiddenError,
   type RequestMetadata,
 } from "@axion/contracts";
-import { getUserIdFromMetadata } from "./metadata";
+
 import { canAccessProject } from "./casl-abilities";
+import { getUserIdFromMetadata } from "./metadata";
 
 /**
  * Generic access control helper for resources owned by users
  * This pattern can be reused across microservices for checking user access to resources
  */
-export interface ResourceAccessCheck<TResource> {
+export type ResourceAccessCheck<TResource> = {
   findById(id: string): Promise<TResource | null>;
   getOwnerId(resource: TResource): string;
   resourceName: string;

@@ -11,12 +11,12 @@ export type { Pagination } from "../../generated/common/common";
 // Use alias for internal usage
 type Pagination = GeneratedPagination;
 
-export interface PaginationParams {
+export type PaginationParams = {
   page: number;
   limit: number;
 }
 
-export interface PaginatedResult<T> {
+export type PaginatedResult<T> = {
   items: T[];
   pagination: Pagination;
 }

@@ -9,7 +9,8 @@ import {
   BullMQModule,
   createBullMQConnectionConfig,
 } from "@axion/nestjs-common";
-import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
+import { parseKafkaBrokers } from "@axion/shared";
+import { createKafkaClientOptions } from "@axion/shared/nest";
 import { Module } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
 
@@ -33,14 +34,6 @@ import { InfrastructureModule } from "@/infrastructure/infrastructure.module";
         useFactory: () =>
           createKafkaClientOptions(
             GRAPH_SERVICE_NAME,
-            parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
-          ),
-      },
-      {
-        name: AUTH_SERVICE_NAME,
-        useFactory: () =>
-          createKafkaClientOptions(
-            AUTH_SERVICE_NAME,
             parseKafkaBrokers(env.kafkaBrokers, "localhost:9092")
           ),
       },

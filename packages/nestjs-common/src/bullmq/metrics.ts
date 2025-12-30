@@ -8,7 +8,7 @@ import type { Queue, Job } from "bullmq";
 /**
  * Queue Metrics
  */
-export interface QueueMetrics {
+export type QueueMetrics = {
   /**
    * Queue name
    */
@@ -53,7 +53,7 @@ export interface QueueMetrics {
 /**
  * Job Metrics
  */
-export interface JobMetrics {
+export type JobMetrics = {
   /**
    * Job ID
    */
@@ -170,7 +170,7 @@ export async function getJobsMetrics(jobs: Job[]): Promise<JobMetrics[]> {
 /**
  * Queue Metrics Summary
  */
-export interface QueueMetricsSummary extends QueueMetrics {
+export type QueueMetricsSummary = {
   /**
    * Total jobs in queue
    */
@@ -185,7 +185,7 @@ export interface QueueMetricsSummary extends QueueMetrics {
    * Average job duration (for completed jobs)
    */
   averageDuration?: number;
-}
+} & QueueMetrics
 
 /**
  * Get queue metrics summary with additional calculations
@@ -220,7 +220,7 @@ export async function getQueueMetricsSummary(
           durations.length;
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Ignore errors when calculating average duration (non-critical metric)
     // This can happen if Redis is temporarily unavailable
   }

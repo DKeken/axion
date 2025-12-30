@@ -8,6 +8,7 @@ import "common/common.proto";
 message ListBlueprintsRequest {
   axion.common.RequestMetadata metadata = 1;
   optional axion.common.BlueprintCategory category = 2; // Опционально: фильтр по категории
+  axion.common.Pagination pagination = 3;
 }
 
 message GetBlueprintRequest {
@@ -91,4 +92,5 @@ message ListBlueprintsResponse {
 
 message ListBlueprintsData {
   repeated Blueprint blueprints = 1;
+  axion.common.Pagination pagination = 2;
 }

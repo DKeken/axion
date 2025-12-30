@@ -10,13 +10,15 @@ import {
   createValidationError,
   createNotFoundError,
 } from "@axion/contracts";
-import { getUserIdFromMetadata } from "../helpers/metadata";
+import { Logger } from "@nestjs/common";
+
 import {
   verifyResourceAccess,
   type AccessVerificationResult,
 } from "../helpers/access-control";
+import { getUserIdFromMetadata } from "../helpers/metadata";
 import { extractPagination, createSuccessPaginatedResponse } from "../utils";
-import { Logger } from "@nestjs/common";
+
 
 /**
  * Error response type
@@ -26,7 +28,7 @@ export type ErrorResponse = ReturnType<typeof createErrorResponse>;
 /**
  * Resource access configuration for verifyResourceAccess
  */
-export interface ResourceAccessConfig<TResource> {
+export type ResourceAccessConfig<TResource> = {
   findById: (id: string) => Promise<TResource | null>;
   getOwnerId: (resource: TResource) => string;
   resourceName: string;
