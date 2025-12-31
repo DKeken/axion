@@ -9,11 +9,18 @@ import type {
   GraphVersion as ContractGraphVersion,
   GraphData,
 } from "@axion/contracts";
-import { mapServiceStatus } from "@axion/contracts";
+import { 
+  ProjectSchema, 
+  GraphVersionSchema, 
+  ProjectServiceSchema,
+  mapServiceStatus 
+} from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 /**
  * Transform database Project to Contract Project type
- * Automatically converts Date -> number (timestamp)
+ * Automatically converts Date -> Timestamp
  */
 export function transformProjectToContract(project: {
   id: string;
@@ -24,15 +31,15 @@ export function transformProjectToContract(project: {
   createdAt: Date;
   updatedAt: Date;
 }): ContractProject {
-  return {
+  return create(ProjectSchema, {
     id: project.id,
     userId: project.userId,
     name: project.name,
     graphVersion: project.graphVersion,
     infrastructureConfig: project.infrastructureConfig || {},
-    createdAt: project.createdAt.getTime(),
-    updatedAt: project.updatedAt.getTime(),
-  };
+    createdAt: timestampFromDate(project.createdAt),
+    updatedAt: timestampFromDate(project.updatedAt),
+  });
 }
 
 /**
@@ -45,18 +52,18 @@ export function transformGraphVersionToContract(version: {
   graphData?: GraphData | null;
   createdAt: Date;
 }): ContractGraphVersion {
-  return {
+  return create(GraphVersionSchema, {
     id: version.id,
     projectId: version.projectId,
     version: version.version,
     graphData: version.graphData || undefined,
-    createdAt: version.createdAt.getTime(),
-  };
+    createdAt: timestampFromDate(version.createdAt),
+  });
 }
 
 /**
  * Transform database ProjectService to Contract ProjectService type
- * Automatically converts Date -> number and status string -> ServiceStatus enum
+ * Automatically converts Date -> Timestamp and status string -> ServiceStatus enum
  */
 export function transformProjectServiceToContract(service: {
   id: string;
@@ -71,7 +78,7 @@ export function transformProjectServiceToContract(service: {
   createdAt: Date;
   updatedAt: Date;
 }): ContractProjectService {
-  return {
+  return create(ProjectServiceSchema, {
     id: service.id,
     projectId: service.projectId,
     nodeId: service.nodeId,
@@ -81,7 +88,7 @@ export function transformProjectServiceToContract(service: {
     status: mapServiceStatus(service.status),
     codeVersion: service.codeVersion,
     generatedCodePath: service.generatedCodePath || "",
-    createdAt: service.createdAt.getTime(),
-    updatedAt: service.updatedAt.getTime(),
-  };
+    createdAt: timestampFromDate(service.createdAt),
+    updatedAt: timestampFromDate(service.updatedAt),
+  });
 }

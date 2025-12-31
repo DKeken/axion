@@ -2,14 +2,15 @@
  * SSE (Server-Sent Events) client for real-time updates
  */
 
+import { ConnectError } from "@connectrpc/connect";
+
 import {
   SSE_DEFAULT_MAX_RECONNECT_ATTEMPTS,
   SSE_DEFAULT_RECONNECT_DELAY,
 } from "./constants";
-import { ApiError } from "./types";
 
 export type SSEMessageHandler<T = unknown> = (data: T) => void;
-export type SSEErrorHandler = (error: ApiError | Error) => void;
+export type SSEErrorHandler = (error: ConnectError | Error) => void;
 export type SSEOpenHandler = () => void;
 
 export type SSEClientConfig = {

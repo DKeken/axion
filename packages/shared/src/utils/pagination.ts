@@ -3,8 +3,7 @@
  * Reduces boilerplate when working with paginated requests
  */
 
-import type { Pagination } from "@axion/contracts";
-import { createFullPagination, PAGINATION_DEFAULTS } from "@axion/contracts";
+import { createFullPagination } from "@axion/contracts";
 
 /**
  * Common pagination query parameters for HTTP handlers
@@ -13,25 +12,6 @@ export type PaginationQuery = {
   page?: string;
   limit?: string;
 };
-
-/**
- * Extract pagination parameters from request
- * Provides defaults if pagination is not provided
- *
- * @example
- * ```typescript
- * const { page, limit } = extractPagination(data.pagination);
- * ```
- */
-export function extractPagination(pagination?: Pagination | null | undefined): {
-  page: number;
-  limit: number;
-} {
-  return {
-    page: pagination?.page || PAGINATION_DEFAULTS.DEFAULT_PAGE,
-    limit: pagination?.limit || PAGINATION_DEFAULTS.DEFAULT_LIMIT,
-  };
-}
 
 /**
  * Create paginated response helper
@@ -49,6 +29,10 @@ export function createPaginatedResponse<T>(
 ): { items: T[]; pagination: ReturnType<typeof createFullPagination> } {
   return {
     items: data.items,
-    pagination: createFullPagination(pagination, data.total),
+    pagination: createFullPagination(
+      pagination.page,
+      pagination.limit,
+      data.total
+    ),
   };
 }

@@ -6,8 +6,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Client, ConnectConfig } from "ssh2";
 
-import { SSH_CONSTANTS } from "../constants";
-import { type SshConnectionInfo } from "../types";
+import { SSH_CONSTANTS } from "@/ssh/constants";
+import { type SshConnectionInfo } from "@/ssh/types";
 
 @Injectable()
 export class SshConnectionService {

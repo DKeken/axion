@@ -11,7 +11,7 @@ export type ErrorContext = {
   resourceType?: string;
   userId?: string;
   additional?: Record<string, unknown>;
-}
+};
 
 /**
  * Base error class for all service errors
@@ -47,7 +47,7 @@ export class ValidationError extends ServiceError {
     originalError?: unknown
   ) {
     super(
-      ErrorCode.VALIDATION_ERROR,
+      ErrorCode.VALIDATION,
       message,
       {
         ...context,
@@ -102,7 +102,7 @@ export class DatabaseError extends ServiceError {
     context?: ErrorContext,
     originalError?: unknown
   ) {
-    super(ErrorCode.DATABASE_ERROR, message, context, originalError);
+    super(ErrorCode.DATABASE, message, context, originalError);
     this.name = "DatabaseError";
   }
 }
@@ -116,7 +116,7 @@ export class InternalError extends ServiceError {
     context?: ErrorContext,
     originalError?: unknown
   ) {
-    super(ErrorCode.INTERNAL_ERROR, message, context, originalError);
+    super(ErrorCode.INTERNAL, message, context, originalError);
     this.name = "InternalError";
   }
 }

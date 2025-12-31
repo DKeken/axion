@@ -18,8 +18,19 @@ import { Server, Grid, Loader2, HardDrive, Wifi } from "lucide-react";
 export default function InfrastructurePage() {
   const serversQuery = useQuery(frontendApi.queries.infrastructure.servers());
   const clustersQuery = useQuery(frontendApi.queries.infrastructure.clusters());
-  const servers = serversQuery.data?.data?.servers ?? [];
-  const clusters = clustersQuery.data?.data?.clusters ?? [];
+
+  // Правильная обработка Protobuf oneof
+  const serversData =
+    serversQuery.data?.result?.case === "servers"
+      ? serversQuery.data.result.value
+      : undefined;
+  const servers = serversData?.servers ?? [];
+
+  const clustersData =
+    clustersQuery.data?.result?.case === "clusters"
+      ? clustersQuery.data.result.value
+      : undefined;
+  const clusters = clustersData?.clusters ?? [];
 
   return (
     <div className="space-y-8">
@@ -66,14 +77,14 @@ export default function InfrastructurePage() {
                 <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
                   <div className="space-y-1">
                     <CardTitle className="text-base flex items-center gap-2">
-                      {server.host}
+                      {server.name}
                     </CardTitle>
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
                       <span className="font-mono bg-muted px-1 rounded">
-                        {server.username}
+                        {server.hostname}
                       </span>
                       <span>•</span>
-                      <span>Порт {server.port}</span>
+                      <span>Порт {server.ipAddress}</span>
                     </div>
                   </div>
                   <Badge

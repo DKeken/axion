@@ -5,51 +5,27 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
-    "./generated": {
-      "types": "./generated/index.d.ts",
-      "default": "./generated/index.ts"
-    },
-    "./constants": {
-      "types": "./src/constants/index.ts",
-      "default": "./src/constants/index.ts"
-    },
-    "./contract-utils": {
-      "types": "./src/contract-utils.ts",
-      "default": "./src/contract-utils.ts"
-    },
-    "./validation": {
-      "types": "./src/validation/index.ts",
-      "default": "./src/validation/index.ts"
-    },
-    "./types": {
-      "types": "./src/types/index.ts",
-      "default": "./src/types/index.ts"
-    }
-  },
   "scripts": {
-    "generate": "bun run generate:types",
-    "generate:types": "mkdir -p generated && find proto -name '*.proto' -type f -exec protoc --plugin=protoc-gen-ts_proto=$(pwd)/scripts/protoc-gen-ts_proto.mjs --ts_proto_out=./generated --ts_proto_opt=nestJs=true,esModuleInterop=true,outputServices=generic-definitions,outputClientImpl=false,useOptionals=messages --proto_path=./proto {} +",
+    "generate": "buf dep update && buf generate",
+    "lint": "buf lint",
+    "breaking": "buf breaking --against '.git#branch=main'",
+    "format": "buf format -w",
     "build": "tsc",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf generated"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.10.9",
-    "protobufjs": "^7.3.2"
+    "@bufbuild/protobuf": "^2.0.0",
+    "@bufbuild/protovalidate": "^0.6.0",
+    "@connectrpc/connect": "^2.0.0"
   },
   "devDependencies": {
     "@axion-stack/eslint-config": "workspace:*",
     "@axion-stack/typescript-config": "workspace:*",
+    "@bufbuild/buf": "^1.47.2",
+    "@bufbuild/protoc-gen-es": "^2.2.2",
     "@types/node": "catalog:",
     "eslint": "^9",
-    "ts-proto": "^2.4.0",
     "typescript": "catalog:"
   },
   "peerDependencies": {

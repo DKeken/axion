@@ -4,7 +4,7 @@ import { createKafkaClientOptions } from "@axion/shared/nest";
 import { Module, Global } from "@nestjs/common";
 import { ClientsModule } from "@nestjs/microservices";
 
-import { HttpAuthGuard } from "../http/http-auth.guard";
+import { HttpAuthGuard } from "@/http/http-auth.guard";
 
 import { AuthHelper } from "./auth-helper";
 import { MicroserviceAuthGuard } from "./microservice-auth.guard";

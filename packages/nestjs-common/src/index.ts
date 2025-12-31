@@ -13,9 +13,6 @@ export * from "./auth";
 // Decorators
 export * from "./decorators";
 
-// Controllers
-export * from "./controllers/base-controller";
-
 // Health module
 export * from "./health/health.module";
 
@@ -36,3 +33,9 @@ export * from "./bootstrap/bootstrap";
 
 // Pipes
 export * from "./pipes";
+
+// Interceptors
+export * from "./interceptors";
+
+// Connect-RPC
+export * from "./connect";

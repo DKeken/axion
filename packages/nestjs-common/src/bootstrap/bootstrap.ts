@@ -8,8 +8,15 @@ import type { INestApplication } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import type { MicroserviceOptions } from "@nestjs/microservices";
 
-import { setupHttpContractLayer } from "../http/setup-http";
-import { setupSwagger, type SwaggerOptions } from "../swagger/setup-swagger";
+import { createServer } from "node:http";
+import { setupHttpContractLayer } from "@/http/setup-http";
+import { setupSwagger, type SwaggerOptions } from "@/swagger/setup-swagger";
+import {
+  createConnectRpcHandler,
+  logConnectRpcStartup,
+  type ConnectRpcProvider,
+  type ConnectRpcOptions,
+} from "@/connect";
 
 import { setupGracefulShutdown } from "./graceful-shutdown";
 
@@ -40,6 +47,20 @@ export type BootstrapOptions = {
    * If provided, Swagger documentation will be enabled
    */
   swagger?: SwaggerOptions | boolean;
+  /**
+   * Connect-RPC options (optional)
+   * If provided, Connect-RPC server will be enabled
+   */
+  connectRpc?: {
+    /**
+     * Controllers that implement ConnectRpcProvider interface
+     */
+    providers: ConnectRpcProvider[];
+    /**
+     * Additional Connect-RPC options
+     */
+    options?: ConnectRpcOptions;
+  };
 };
 
 /**
@@ -127,13 +148,44 @@ export async function bootstrapMicroservice(
   // Setup graceful shutdown
   setupGracefulShutdown(app);
 
-  // Start HTTP server
   const port = options.port ?? options.defaultPort ?? 3000;
 
-  await app.listen(port, "0.0.0.0");
-  logger.log(
-    `${options.serviceName} HTTP server listening on port ${port} (0.0.0.0)`
-  );
+  // If Connect-RPC is enabled, create HTTP server with Connect-RPC handler
+  if (options.connectRpc) {
+    const connectRpcHandler = createConnectRpcHandler(
+      options.connectRpc.providers,
+      options.connectRpc.options
+    );
+
+    const server = createServer(connectRpcHandler);
+
+    server.listen(port, "0.0.0.0", () => {
+      logger.log(
+        `${options.serviceName} HTTP server listening on port ${port} (0.0.0.0)`
+      );
+      logConnectRpcStartup(port, options.serviceName);
+    });
+
+    // Update graceful shutdown to close HTTP server
+    const originalShutdown = setupGracefulShutdown(app);
+    process.removeAllListeners("SIGINT");
+    process.removeAllListeners("SIGTERM");
+
+    const shutdown = async () => {
+      logger.log("Shutting down Connect-RPC server...");
+      server.close();
+      await originalShutdown();
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  } else {
+    // Standard NestJS HTTP server (without Connect-RPC)
+    await app.listen(port, "0.0.0.0");
+    logger.log(
+      `${options.serviceName} HTTP server listening on port ${port} (0.0.0.0)`
+    );
+  }
 
   return app;
 }

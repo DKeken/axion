@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package axion.billing.v1;
+
+import "billing/subscription.proto";
+
+service BillingService {
+  rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse);
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (CreateSubscriptionResponse);
+  rpc UpdateSubscription(UpdateSubscriptionRequest) returns (UpdateSubscriptionResponse);
+  rpc CancelSubscription(CancelSubscriptionRequest) returns (CancelSubscriptionResponse);
+}
+

@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  # Generate TypeScript types from protobuf using local plugin
+  - local: protoc-gen-es
+    out: generated
+    opt:
+      - target=ts
+      - import_extension=none

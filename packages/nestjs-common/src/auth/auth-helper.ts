@@ -5,7 +5,6 @@ import {
   createValidationError,
   AUTH_SERVICE_NAME,
   AUTH_SERVICE_PATTERNS,
-  Status,
   type ValidateSessionResponse,
 } from "@axion/contracts";
 import {
@@ -96,15 +95,14 @@ export class AuthHelper {
             .pipe(timeout(5000))
         );
 
-        if (
-          response &&
-          response.status === Status.STATUS_SUCCESS &&
-          response.session
-        ) {
-          return {
-            session: response.session,
-            userId: response.session.userId,
-          };
+        if (response && response.result.case === "validation") {
+          const validation = response.result.value;
+          if (validation.session) {
+            return {
+              session: validation.session,
+              userId: validation.session.userId,
+            };
+          }
         }
       } catch (error) {
         this.logger.error("Error validating session token via Kafka", error);
@@ -240,12 +238,6 @@ export class AuthHelper {
       return null;
     }
 
-    return {
-      ...normalized,
-      // Keep snake_case for backward compatibility if needed by some consumers
-      user_id: normalized.userId,
-      project_id: normalized.projectId,
-      request_id: normalized.requestId,
-    } as RequestMetadata;
+    return normalized;
   }
 }

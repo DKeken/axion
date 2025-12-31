@@ -10,6 +10,9 @@ description: "Инструкция по развертыванию локаль�
 - **Runtime**: Bun v1.1+
 - **Containerization**: Docker & Docker Compose
 - **Systems Language**: Rust (для агента и Tauri)
+- **Protocol Buffers**: Buf CLI для работы с Protobuf контрактами
+- **Validation**: ProtoValidate от Buf для валидации данных
+- **RPC**: Connect-RPC для type-safe межсервисного взаимодействия
 
 ## Быстрый старт
 
@@ -78,4 +81,61 @@ lsof -i :3001 | grep LISTEN | awk '{print $2}' | xargs kill -9
 ```bash
 # Сброс и применение миграций
 bun run db:push
+```
+
+### Проблемы с генерацией контрактов
+
+Если TypeScript типы не соответствуют proto файлам:
+
+```bash
+# Перегенерировать контракты
+cd packages/contracts
+bun run generate
+```
+
+## Работа с Protobuf контрактами
+
+### Генерация типов
+
+Все TypeScript типы генерируются из Protobuf файлов:
+
+```bash
+cd packages/contracts
+bun run generate  # Генерирует типы через Buf
+```
+
+### Валидация контрактов
+
+Проверка синтаксиса и обратной совместимости:
+
+```bash
+cd packages/contracts
+bun run lint      # Проверка правил buf.yaml
+bun run breaking  # Проверка breaking changes
+```
+
+### Добавление нового контракта
+
+1. Создай `.proto` файл в `packages/contracts/proto/`
+2. Добавь `buf.validate` аннотации для валидации
+3. Запусти генерацию: `bun run generate`
+4. Экспортируй типы в `packages/contracts/src/index.ts`
+
+Пример:
+
+```protobuf
+syntax = "proto3";
+package axion.myservice.v1;
+
+import "buf/validate/validate.proto";
+import "common/common.proto";
+
+message CreateItemRequest {
+  common.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+
+  string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 100
+  ];
+}
 ```

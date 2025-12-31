@@ -23,6 +23,13 @@ http:
       service: auth-service
       middlewares:
         - cors
+    graph-connect:
+      rule: PathPrefix(`/axion.graph.`) || PathPrefix(`/axion.graph/`)
+      entryPoints:
+        - web
+      service: graph-service
+      middlewares:
+        - cors-connect
     graph:
       rule: PathPrefix(`/api/v1/graph`)
       entryPoints:
@@ -48,6 +55,13 @@ http:
       middlewares:
         - cors
         - graph-stripprefix
+    codegen-connect:
+      rule: PathPrefix(`/axion.codegen.`) || PathPrefix(`/axion.codegen/`)
+      entryPoints:
+        - web
+      service: codegen-service
+      middlewares:
+        - cors-connect
     codegen:
       rule: PathPrefix(`/api/v1/codegen`)
       entryPoints:
@@ -64,6 +78,13 @@ http:
       middlewares:
         - cors
         - codegen-stripprefix
+    deployment-connect:
+      rule: PathPrefix(`/axion.deployment.`) || PathPrefix(`/axion.deployment/`)
+      entryPoints:
+        - web
+      service: deployment-service
+      middlewares:
+        - cors-connect
     deployment:
       rule: PathPrefix(`/api/v1/deployment`)
       entryPoints:
@@ -80,6 +101,15 @@ http:
       middlewares:
         - cors
         - deployment-stripprefix
+    infrastructure-connect:
+      rule: >-
+        PathPrefix(`/axion.infrastructure.`) ||
+        PathPrefix(`/axion.infrastructure/`)
+      entryPoints:
+        - web
+      service: infrastructure-service
+      middlewares:
+        - cors-connect
     infrastructure:
       rule: PathPrefix(`/api/v1/infrastructure`)
       entryPoints:
@@ -96,6 +126,13 @@ http:
       middlewares:
         - cors
         - infrastructure-stripprefix
+    billing-connect:
+      rule: PathPrefix(`/axion.billing.`) || PathPrefix(`/axion.billing/`)
+      entryPoints:
+        - web
+      service: billing-service
+      middlewares:
+        - cors-connect
     billing:
       rule: PathPrefix(`/api/v1/billing`)
       entryPoints:
@@ -155,6 +192,35 @@ http:
           - X-Requested-With
           - X-Correlation-ID
         accessControlExposeHeaders:
+          - X-Correlation-ID
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+        accessControlAllowOriginList:
+          - http://localhost:3000
+          - http://localhost:3001
+          - http://127.0.0.1:3000
+          - http://127.0.0.1:3001
+        accessControlAllowOriginListRegex:
+          - ^https?://localhost(?::\\d+)?$
+          - ^https?://127\\.0\\.0\\.1(?::\\d+)?$
+    cors-connect:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+          - Accept
+          - Connect-Protocol-Version
+          - Connect-Timeout-Ms
+          - X-Requested-With
+          - X-Correlation-ID
+        accessControlExposeHeaders:
+          - Connect-Protocol-Version
+          - Connect-Timeout-Ms
           - X-Correlation-ID
         accessControlMaxAge: 86400
         addVaryHeader: true

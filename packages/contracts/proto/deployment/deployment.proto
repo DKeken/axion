@@ -1,65 +1,94 @@
 syntax = "proto3";
 
-package axion.deployment;
+package axion.deployment.v1;
 
+import "buf/validate/validate.proto";
 import "common/common.proto";
+import "common/errors.proto";
+import "google/protobuf/timestamp.proto";
 
-// Deploy messages
-message DeployProjectRequest {
-  axion.common.RequestMetadata metadata = 1;
-  string project_id = 2;
-  oneof target {
-    string cluster_id = 3;
-    string server_id = 4;
-  }
-  map<string, string> env_vars = 5; // Переменные окружения для сервисов
-  bool force_redeploy = 6; // Принудительный редеплой всех сервисов
-}
-
-message DeployProjectResponse {
-  axion.common.Status status = 1;
-  oneof result {
-    axion.common.Error error = 2;
-    Deployment deployment = 3;
-  }
-}
-
-message CancelDeploymentRequest {
-  axion.common.RequestMetadata metadata = 1;
-  string deployment_id = 2;
-}
-
-// Deployment types (shared with management and rollback)
-message ServiceDeploymentStatus {
-  string service_id = 1;
-  string node_id = 2;
-  string service_name = 3;
-  axion.common.DeploymentStatus status = 4;
-  string server_id = 5; // На каком сервере задеплоен (если кластер)
-  string error_message = 6;
-  int64 deployed_at = 7;
-}
-
-message DeploymentConfig {
-  string docker_compose_yml = 1; // Сгенерированный docker-compose.yml
-  map<string, string> dockerfiles = 2; // service_name -> dockerfile path
-  map<string, string> docker_images = 3; // service_name -> docker image
-  repeated string service_dependencies = 4; // Порядок деплоя (из edges графа)
+enum DeploymentStatus {
+  DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+  DEPLOYMENT_STATUS_PENDING = 1;
+  DEPLOYMENT_STATUS_IN_PROGRESS = 2;
+  DEPLOYMENT_STATUS_COMPLETED = 3;
+  DEPLOYMENT_STATUS_FAILED = 4;
+  DEPLOYMENT_STATUS_CANCELLED = 5;
 }
 
 message Deployment {
   string id = 1;
   string project_id = 2;
-  oneof target {
-    string cluster_id = 3;
-    string server_id = 4;
-  }
-  axion.common.DeploymentStatus status = 5;
-  repeated ServiceDeploymentStatus service_statuses = 6;
-  map<string, string> env_vars = 7;
-  DeploymentConfig config = 8;
-  int64 started_at = 9;
-  int64 completed_at = 10;
-  int64 created_at = 11;
-  int64 updated_at = 12;
+  string user_id = 3;
+  DeploymentStatus status = 4;
+  string environment = 5;
+  int32 graph_version = 6;
+  map<string, string> config = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+  string error_message = 11;
 }
+
+message CreateDeploymentRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+  
+  string environment = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 50
+  ];
+  
+  map<string, string> config = 4;
+}
+
+message CreateDeploymentResponse {
+  oneof result {
+    Deployment deployment = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message GetDeploymentRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string deployment_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetDeploymentResponse {
+  oneof result {
+    Deployment deployment = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ListDeploymentsRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+  axion.common.v1.Pagination pagination = 3;
+}
+
+message ListDeploymentsResponse {
+  oneof result {
+    DeploymentList deployments = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message DeploymentList {
+  repeated Deployment deployments = 1;
+  axion.common.v1.Pagination pagination = 2;
+}
+
+message CancelDeploymentRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string deployment_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message CancelDeploymentResponse {
+  oneof result {
+    Deployment deployment = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+

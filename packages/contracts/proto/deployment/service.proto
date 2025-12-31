@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package axion.deployment.v1;
+
+import "deployment/deployment.proto";
+
+service DeploymentService {
+  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse);
+  rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
+  rpc ListDeployments(ListDeploymentsRequest) returns (ListDeploymentsResponse);
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse);
+}
+

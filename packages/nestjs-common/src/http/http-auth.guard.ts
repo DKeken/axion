@@ -1,7 +1,6 @@
 import {
   AUTH_SERVICE_NAME,
   AUTH_SERVICE_PATTERNS,
-  Status,
   type RequestMetadata,
   type ValidateSessionResponse,
 } from "@axion/contracts";
@@ -20,7 +19,7 @@ import { Reflector } from "@nestjs/core";
 import type { ClientKafka } from "@nestjs/microservices";
 import { firstValueFrom, timeout } from "rxjs";
 
-import { ALLOW_ANONYMOUS_KEY } from "../auth/auth.decorator";
+import { ALLOW_ANONYMOUS_KEY } from "@/auth/auth.decorator";
 
 type HttpRequest = {
   headers: Record<string, string | string[] | undefined>;
@@ -154,27 +153,39 @@ export class HttpAuthGuard implements CanActivate, OnModuleInit {
           .pipe(timeout(10000)) // 10 second timeout
       );
 
-      // Check response status (Protobuf contract format)
-      if (!response || response.status !== Status.STATUS_SUCCESS) {
+      if (!response.result) {
+        throw new UnauthorizedException("Invalid response from auth service");
+      }
+
+      if (response.result.case === "error") {
         const errorMessage =
-          response?.error?.message || "Invalid or expired session";
+          response.result.value.message || "Authentication failed";
         throw new UnauthorizedException(errorMessage);
       }
 
-      // Extract session data from oneof result
-      if (!response.session) {
-        throw new UnauthorizedException("Session data not found in response");
+      if (response.result.case !== "validation") {
+        throw new UnauthorizedException("Unexpected response type");
       }
 
-      const userId = response.session.userId;
-      if (!userId) {
-        throw new UnauthorizedException("Session does not contain user id");
+      const validation = response.result.value;
+
+      if (!validation.valid) {
+        throw new UnauthorizedException("Invalid or expired session");
       }
+
+      const session = validation.session;
+      const user = validation.user;
+
+      if (!session || !user) {
+        throw new UnauthorizedException("Session data missing");
+      }
+
+      const userId = user.id;
 
       // Store minimal request context for controllers → domain services.
       req.axion = {
         userId,
-        session: response.session,
+        session: session,
         metadata: createRequestMetadata(userId),
       };
 

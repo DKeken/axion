@@ -1,5 +1,11 @@
 import { useCallback, useEffect } from "react";
-import { type Node } from "reactflow";
+import {
+  Edge,
+  OnConnect,
+  OnEdgesChange,
+  OnNodesChange,
+  type Node,
+} from "reactflow";
 import {
   UseQueryResult,
   useMutation,
@@ -9,27 +15,31 @@ import {
 import {
   NodeType,
   type UpdateGraphRequest,
-  GraphResponse,
-  ProjectResponse,
+  type GetGraphResponse,
+  type GetProjectResponse,
 } from "@axion/contracts";
 import { frontendApi } from "@/lib/frontend-api";
-import { type GraphFlowNodeData } from "@/lib/graph/converter";
+import {
+  GraphFlowEdgeData,
+  type GraphFlowNodeData,
+} from "@/lib/graph/converter";
 import { config } from "@/config/env";
 import { toast } from "sonner";
 import { useGraphStore } from "@/stores/graph-store";
 import { useShallow } from "zustand/react/shallow";
+import { getErrorMessage } from "@axion/shared";
 
 export interface ProjectGraphHook {
   nodes: Node<GraphFlowNodeData>[];
-  edges: import("reactflow").Edge<any>[];
-  onNodesChange: import("reactflow").OnNodesChange;
-  onEdgesChange: import("reactflow").OnEdgesChange;
-  onConnect: import("reactflow").OnConnect;
+  edges: Edge<GraphFlowEdgeData>[];
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
+  onConnect: OnConnect;
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
   selectedNode: GraphFlowNodeData | undefined;
-  projectQuery: UseQueryResult<ProjectResponse, Error>;
-  graphQuery: UseQueryResult<GraphResponse, Error>;
+  projectQuery: UseQueryResult<GetProjectResponse, Error>;
+  graphQuery: UseQueryResult<GetGraphResponse, Error>;
   saveGraph: () => void;
   isSaving: boolean;
   generateProject: () => void;
@@ -84,7 +94,7 @@ export function useProjectGraph(projectId: string): ProjectGraphHook {
 
   // Mutations
   const saveGraphMutation = useMutation({
-    mutationFn: (payload: Pick<UpdateGraphRequest, "graphData">) =>
+    mutationFn: (payload: Pick<UpdateGraphRequest, "graph">) =>
       frontendApi.graph.updateGraph(projectId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -93,8 +103,8 @@ export function useProjectGraph(projectId: string): ProjectGraphHook {
       toast.success("Graph saved successfully");
     },
     onError: (error) => {
-      toast.error("Failed to save graph");
-      console.error(error);
+      const message = getErrorMessage(error, "Failed to save graph");
+      toast.error(message);
     },
   });
 
@@ -108,8 +118,8 @@ export function useProjectGraph(projectId: string): ProjectGraphHook {
       toast.success("Project generation started");
     },
     onError: (error) => {
-      toast.error("Failed to start generation");
-      console.error(error);
+      const message = getErrorMessage(error, "Failed to start generation");
+      toast.error(message);
     },
   });
 
@@ -122,16 +132,16 @@ export function useProjectGraph(projectId: string): ProjectGraphHook {
 
   // Sync graph data from backend to store
   useEffect(() => {
-    const graphData = graphQuery.data?.graph;
-    if (graphData) {
+    if (graphQuery.data?.result?.case === "graph") {
+      const graphData = graphQuery.data.result.value;
       setGraphData(graphData);
     }
-  }, [graphQuery.data?.graph, setGraphData]);
+  }, [graphQuery.data, setGraphData]);
 
   // Handlers
   const handleSave = useCallback(() => {
     const graphData = getGraphData();
-    saveGraphMutation.mutate({ graphData });
+    saveGraphMutation.mutate({ graph: graphData });
   }, [getGraphData, saveGraphMutation]);
 
   const handleGenerate = useCallback(() => {
@@ -179,4 +189,3 @@ export function useProjectGraph(projectId: string): ProjectGraphHook {
     handleNodeUpdate,
   };
 }
-

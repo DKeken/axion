@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package axion.infrastructure.v1;
+
+import "buf/validate/validate.proto";
+import "common/common.proto";
+import "common/errors.proto";
+import "google/protobuf/timestamp.proto";
+
+enum ServerStatus {
+  SERVER_STATUS_UNSPECIFIED = 0;
+  SERVER_STATUS_ONLINE = 1;
+  SERVER_STATUS_OFFLINE = 2;
+  SERVER_STATUS_MAINTENANCE = 3;
+  SERVER_STATUS_ERROR = 4;
+}
+
+enum AgentStatus {
+  AGENT_STATUS_UNSPECIFIED = 0;
+  AGENT_STATUS_CONNECTED = 1;
+  AGENT_STATUS_DISCONNECTED = 2;
+  AGENT_STATUS_UPDATING = 3;
+}
+
+message Cluster {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+  string name = 3 [(buf.validate.field).string.min_len = 1];
+  string description = 4;
+  map<string, string> metadata = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message Server {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string cluster_id = 11 [(buf.validate.field).string.uuid = true]; // Optional cluster association
+  string name = 3;
+  string hostname = 4;
+  string ip_address = 5 [(buf.validate.field).string.ip = true];
+  ServerStatus status = 6;
+  map<string, string> metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp last_heartbeat = 10;
+}
+
+message Agent {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string server_id = 2 [(buf.validate.field).string.uuid = true];
+  string version = 3;
+  AgentStatus status = 4;
+  map<string, string> capabilities = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp last_heartbeat = 7;
+}
+
+message ServerInfo {
+  string os = 1;
+  string architecture = 2;
+  uint32 cpu_cores = 3;
+  double cpu_usage = 4;
+  uint64 total_memory = 5;
+  uint64 available_memory = 6;
+  bool docker_installed = 7;
+  string docker_version = 8;
+}
+
+// Cluster Requests/Responses
+
+message CreateClusterRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  string description = 3;
+  map<string, string> metadata_fields = 4;
+}
+
+message CreateClusterResponse {
+  oneof result {
+    Cluster cluster = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message GetClusterRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string cluster_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetClusterResponse {
+  oneof result {
+    Cluster cluster = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ListClustersRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  axion.common.v1.Pagination pagination = 2;
+}
+
+message ListClustersResponse {
+  oneof result {
+    ClusterList clusters = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ClusterList {
+  repeated Cluster clusters = 1;
+  axion.common.v1.Pagination pagination = 2;
+}
+
+message UpdateClusterRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string cluster_id = 2 [(buf.validate.field).string.uuid = true];
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateClusterResponse {
+  oneof result {
+    Cluster cluster = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message DeleteClusterRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string cluster_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteClusterResponse {
+  oneof result {
+    axion.common.v1.Empty success = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+// Server Requests/Responses
+
+message RegisterServerRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+  string hostname = 3 [(buf.validate.field).string.hostname = true];
+  string ip_address = 4 [(buf.validate.field).string.ip = true];
+  optional string cluster_id = 6 [(buf.validate.field).string.uuid = true];
+  map<string, string> metadata_fields = 5;
+}
+
+message RegisterServerResponse {
+  oneof result {
+    ServerRegistration registration = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ServerRegistration {
+  Server server = 1;
+  string agent_token = 2;
+  map<string, string> config = 3;
+}
+
+message GetServerRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string server_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetServerResponse {
+  oneof result {
+    Server server = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ListServersRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  axion.common.v1.Pagination pagination = 2;
+  optional string cluster_id = 3 [(buf.validate.field).string.uuid = true];
+}
+
+message ListServersResponse {
+  oneof result {
+    ServerList servers = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ServerList {
+  repeated Server servers = 1;
+  axion.common.v1.Pagination pagination = 2;
+}
+
+message UpdateServerStatusRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string server_id = 2 [(buf.validate.field).string.uuid = true];
+  ServerStatus status = 3;
+}
+
+message UpdateServerStatusResponse {
+  oneof result {
+    Server server = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message DeleteServerRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string server_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteServerResponse {
+  oneof result {
+    axion.common.v1.Empty success = 1;
+    axion.common.v1.Error error = 2;
+  }
+}

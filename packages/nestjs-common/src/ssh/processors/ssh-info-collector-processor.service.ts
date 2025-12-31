@@ -3,19 +3,21 @@
  * Обрабатывает задачи сбора информации о сервере из очереди BullMQ
  */
 
+import { ServerInfoSchema } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { Job } from "bullmq";
 
-import { SSH_QUEUE_NAMES } from "../queue-names";
-import { SshConnectionService } from "../services/ssh-connection.service";
-import { SshEncryptionService } from "../services/ssh-encryption.service";
-import { SshInfoCollectorService } from "../services/ssh-info-collector.service";
+import { SSH_QUEUE_NAMES } from "@/ssh/queue-names";
+import { SshConnectionService } from "@/ssh/services/ssh-connection.service";
+import { SshEncryptionService } from "@/ssh/services/ssh-encryption.service";
+import { SshInfoCollectorService } from "@/ssh/services/ssh-info-collector.service";
 import type {
   SshCollectInfoJobPayload,
   SshJobResult,
   SshConnectionInfo,
-} from "../types";
+} from "@/ssh/types";
 
 /**
  * Интерфейс для получения сервера из репозитория
@@ -29,7 +31,7 @@ export type IServerRepository = {
     encryptedPrivateKey: string | null;
     encryptedPassword: string | null;
   } | null>;
-}
+};
 
 @Processor(SSH_QUEUE_NAMES.INFO_COLLECTION)
 @Injectable()
@@ -115,16 +117,16 @@ export class SshInfoCollectorProcessor extends WorkerHost {
       return {
         success: false,
         infoResult: {
-          serverInfo: {
+          serverInfo: create(ServerInfoSchema, {
             os: "",
             architecture: "",
-            totalMemory: 0,
-            availableMemory: 0,
+            totalMemory: BigInt(0),
+            availableMemory: BigInt(0),
             cpuCores: 0,
             cpuUsage: 0,
             dockerInstalled: false,
             dockerVersion: "",
-          },
+          }),
         },
         error: errorMessage,
       };

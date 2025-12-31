@@ -25,7 +25,7 @@ export function createHealthyStatus(
   dependencies?: HealthCheckDependency[]
 ): HealthCheckResult {
   return {
-    status: HealthStatus.HEALTH_STATUS_HEALTHY,
+    status: HealthStatus.HEALTHY,
     service_name: serviceName,
     timestamp: Date.now(),
     ...(details && { details }),
@@ -39,7 +39,7 @@ export function createDegradedStatus(
   dependencies?: HealthCheckDependency[]
 ): HealthCheckResult {
   return {
-    status: HealthStatus.HEALTH_STATUS_DEGRADED,
+    status: HealthStatus.DEGRADED,
     service_name: serviceName,
     timestamp: Date.now(),
     details: { message },
@@ -53,7 +53,7 @@ export function createUnhealthyStatus(
   dependencies?: HealthCheckDependency[]
 ): HealthCheckResult {
   return {
-    status: HealthStatus.HEALTH_STATUS_UNHEALTHY,
+    status: HealthStatus.UNHEALTHY,
     service_name: serviceName,
     timestamp: Date.now(),
     details: { message },
@@ -76,7 +76,7 @@ export function createHealthDependency(
 }
 
 export function isHealthy(health: HealthCheckResult): boolean {
-  return health.status === HealthStatus.HEALTH_STATUS_HEALTHY;
+  return health.status === HealthStatus.HEALTHY;
 }
 
 export function createDatabaseHealthDependency(
@@ -86,8 +86,8 @@ export function createDatabaseHealthDependency(
   return createHealthDependency(
     "database",
     connected
-      ? HealthStatus.HEALTH_STATUS_HEALTHY
-      : HealthStatus.HEALTH_STATUS_UNHEALTHY,
+      ? HealthStatus.HEALTHY
+      : HealthStatus.UNHEALTHY,
     connected ? "Connected" : "Disconnected",
     responseTimeMs
   );
@@ -100,8 +100,8 @@ export function createRedisHealthDependency(
   return createHealthDependency(
     "redis",
     connected
-      ? HealthStatus.HEALTH_STATUS_HEALTHY
-      : HealthStatus.HEALTH_STATUS_UNHEALTHY,
+      ? HealthStatus.HEALTHY
+      : HealthStatus.UNHEALTHY,
     connected ? "Connected" : "Disconnected",
     responseTimeMs
   );

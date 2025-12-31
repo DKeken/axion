@@ -3,7 +3,9 @@
  * Provides utilities for managing correlationId, causationId, userId, projectId in Kafka messages
  */
 
-import type { RequestMetadata } from "@axion/contracts";
+import { type RequestMetadata, RequestMetadataSchema } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 
 /**
  * Standard Kafka header names
@@ -94,9 +96,8 @@ export function createKafkaHeaders(
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 
-  // Correlation ID (from metadata.requestId or generate new)
-  const correlationId =
-    metadata.requestId || (metadata.correlationId as string | undefined) || "";
+  // Correlation ID (from metadata.requestId)
+  const correlationId = metadata.requestId || "";
   if (correlationId && correlationId.length > 0) {
     headers[KAFKA_HEADERS.CORRELATION_ID] = correlationId;
   }
@@ -110,17 +111,8 @@ export function createKafkaHeaders(
   }
 
   // User ID
-  const userId =
-    metadata.userId || (metadata.user_id as string | undefined) || "";
-  if (userId && userId.length > 0) {
-    headers[KAFKA_HEADERS.USER_ID] = userId;
-  }
-
-  // Project ID
-  const projectId =
-    metadata.projectId || (metadata.project_id as string | undefined) || "";
-  if (projectId && projectId.length > 0) {
-    headers[KAFKA_HEADERS.PROJECT_ID] = projectId;
+  if (metadata.userId && metadata.userId.length > 0) {
+    headers[KAFKA_HEADERS.USER_ID] = metadata.userId;
   }
 
   // Request ID
@@ -128,8 +120,12 @@ export function createKafkaHeaders(
     headers[KAFKA_HEADERS.REQUEST_ID] = metadata.requestId;
   }
 
-  // Timestamp
-  headers[KAFKA_HEADERS.TIMESTAMP] = String(metadata.timestamp || Date.now());
+  // Timestamp (convert Protobuf Timestamp to milliseconds)
+  const timestamp = metadata.timestamp
+    ? Number(metadata.timestamp.seconds) * 1000 +
+      Math.floor(Number(metadata.timestamp.nanos) / 1000000)
+    : Date.now();
+  headers[KAFKA_HEADERS.TIMESTAMP] = String(timestamp);
 
   return headers;
 }
@@ -142,7 +138,6 @@ export function extractMetadataFromHeaders(
 ): RequestMetadata {
   const correlationId = getCorrelationIdFromHeaders(headers);
   const userId = getUserIdFromHeaders(headers);
-  const projectId = getProjectIdFromHeaders(headers);
   const requestId = correlationId; // Use correlationId as requestId
 
   const timestampHeader =
@@ -150,18 +145,16 @@ export function extractMetadataFromHeaders(
     headers["timestamp"] ||
     headers["x-timestamp"];
 
-  const timestamp = timestampHeader
+  const timestampMs = timestampHeader
     ? Array.isArray(timestampHeader)
       ? parseInt(timestampHeader[0], 10)
       : parseInt(timestampHeader, 10)
     : Date.now();
 
-  // RequestMetadata requires userId, projectId, requestId, timestamp
-  // Return minimal valid metadata
-  return {
+  return create(RequestMetadataSchema, {
     userId: userId || "",
-    projectId: projectId || "",
     requestId: requestId || "",
-    timestamp,
-  } as RequestMetadata;
+    sessionId: "",
+    timestamp: timestampFromMs(timestampMs),
+  });
 }

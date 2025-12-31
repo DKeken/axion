@@ -14,9 +14,11 @@ const frontendApi = createFrontendApi({
     // 2. Fallback to getSession
     const result = await authClient.getSession();
 
-    // Some versions of better-auth might include token in session object
-    // if the bearer plugin is used on the server.
-    return (result.data?.session as { token?: string })?.token ?? null;
+    return result.data?.session?.token ?? null;
+  },
+  getUserId: async () => {
+    const result = await authClient.getSession();
+    return result.data?.user?.id ?? null;
   },
 });
 

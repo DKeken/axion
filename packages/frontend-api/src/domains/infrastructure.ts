@@ -1,65 +1,57 @@
-/**
- * Infrastructure API domain - Servers, Clusters, and Agents
- */
-
 import {
-  AgentStatusResponse,
-  CalculateSystemRequirementsRequest,
-  CalculateSystemRequirementsResponse,
-  ClusterResponse,
-  ConfigureServerRequest,
-  ConfigureServerResponse,
-  CreateClusterRequest,
-  CreateServerRequest,
-  InstallAgentRequest,
-  InstallAgentResponse,
-  ListClustersResponse,
-  ListServersResponse,
-  ServerResponse,
-  TestServerConnectionRequest,
-  TestServerConnectionResponse,
-  UpdateClusterRequest,
-  UpdateServerRequest,
+  type ListServersResponse,
+  type GetServerResponse,
+  type RegisterServerRequest,
+  type RegisterServerResponse,
+  type UpdateServerStatusRequest,
+  type UpdateServerStatusResponse,
+  type DeleteServerResponse,
+  type ListClustersResponse,
+  type GetClusterResponse,
+  type CreateClusterRequest,
+  type CreateClusterResponse,
+  type UpdateClusterRequest,
+  type UpdateClusterResponse,
+  type DeleteClusterResponse,
+  RequestMetadataSchema,
+  PAGINATION_DEFAULTS,
 } from "@axion/contracts";
-import type { PaginationQuery } from "@axion/shared";
-
 import {
-  API_BASE_PATH,
-  SERVICE_PATHS,
-  STALE_TIME_LONG,
-  STALE_TIME_STANDARD,
-  STALE_TIME_MEDIUM,
-  STALE_TIME_VERY_LONG,
-} from "../constants";
-import type { HttpClient } from "../http-client";
+  ListServersRequestSchema,
+  GetServerRequestSchema,
+  RegisterServerRequestSchema,
+  UpdateServerStatusRequestSchema,
+  DeleteServerRequestSchema,
+  ListClustersRequestSchema,
+  GetClusterRequestSchema,
+  CreateClusterRequestSchema,
+  UpdateClusterRequestSchema,
+  DeleteClusterRequestSchema,
+} from "@axion/contracts/generated/infrastructure/server_pb";
+import { InfrastructureService } from "@axion/contracts/generated/infrastructure/service_pb";
+import type { PaginationQuery } from "@axion/shared";
+import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
+
+import type { ConnectClient } from "../connect-client";
+import { STALE_TIME_LONG, STALE_TIME_MEDIUM } from "../constants";
 import { defineQuery } from "../query-options";
 import type { AxionQueryOptions } from "../query-options";
-import type {
-  OmitMetadata,
-  OmitMetadataAndFields,
-  RequestOptions,
-} from "../types";
-
-const BASE_PATH = `${API_BASE_PATH}/${SERVICE_PATHS.INFRASTRUCTURE}`;
 
 /**
  * Query keys factory for infrastructure domain
  */
 export const infrastructureKeys = {
   all: () => ["infrastructure"] as const,
-
-  // Servers
   servers: {
     all: () => [...infrastructureKeys.all(), "servers"] as const,
     lists: () => [...infrastructureKeys.servers.all(), "list"] as const,
-    list: (params?: { clusterId?: string } & PaginationQuery) =>
+    list: (params?: PaginationQuery) =>
       [...infrastructureKeys.servers.lists(), params ?? {}] as const,
     details: () => [...infrastructureKeys.servers.all(), "detail"] as const,
     detail: (serverId: string) =>
       [...infrastructureKeys.servers.details(), serverId] as const,
   },
-
-  // Clusters
   clusters: {
     all: () => [...infrastructureKeys.all(), "clusters"] as const,
     lists: () => [...infrastructureKeys.clusters.all(), "list"] as const,
@@ -68,153 +60,145 @@ export const infrastructureKeys = {
     details: () => [...infrastructureKeys.clusters.all(), "detail"] as const,
     detail: (clusterId: string) =>
       [...infrastructureKeys.clusters.details(), clusterId] as const,
-    servers: (clusterId: string) =>
-      [...infrastructureKeys.clusters.detail(clusterId), "servers"] as const,
-  },
-
-  // Agents
-  agents: {
-    all: () => [...infrastructureKeys.all(), "agents"] as const,
-    status: (serverId: string) =>
-      [...infrastructureKeys.agents.all(), "status", serverId] as const,
-  },
-
-  // System requirements
-  systemRequirements: {
-    all: () => [...infrastructureKeys.all(), "system-requirements"] as const,
-    calculate: (data: OmitMetadata<CalculateSystemRequirementsRequest>) =>
-      [
-        ...infrastructureKeys.systemRequirements.all(),
-        "calculate",
-        data,
-      ] as const,
   },
 } as const;
 
 /**
  * Infrastructure API client
  */
-export function createInfrastructureApi(client: HttpClient) {
+export function createInfrastructureApi(connectClient: ConnectClient) {
+  const client = connectClient.createClient(InfrastructureService);
+
+  const getMetadata = async () => {
+    const userId =
+      (await connectClient.config.getUserId?.()) || crypto.randomUUID(); // Fallback to random UUID if no user
+    return create(RequestMetadataSchema, {
+      userId,
+      requestId: crypto.randomUUID(),
+      sessionId: "current-session",
+      timestamp: timestampFromMs(Date.now()),
+    });
+  };
+
   return {
     // Servers
-    listServers: (
-      params?: { clusterId?: string } & PaginationQuery,
-      options?: RequestOptions
-    ) =>
-      client.get<ListServersResponse>(`${BASE_PATH}/servers`, {
-        ...options,
-        query: params as Record<string, string>,
-      }),
+    listServers: async (
+      params?: PaginationQuery
+    ): Promise<ListServersResponse> => {
+      const request = create(ListServersRequestSchema, {
+        metadata: await getMetadata(),
+        pagination: params
+          ? {
+              page: Number(params.page) || PAGINATION_DEFAULTS.page,
+              limit: Number(params.limit) || PAGINATION_DEFAULTS.limit,
+              total: 0,
+            }
+          : undefined,
+      });
+      return client.listServers(request);
+    },
 
-    getServer: (serverId: string, options?: RequestOptions) =>
-      client.get<ServerResponse>(`${BASE_PATH}/servers/${serverId}`, options),
+    getServer: async (serverId: string): Promise<GetServerResponse> => {
+      const request = create(GetServerRequestSchema, {
+        metadata: await getMetadata(),
+        serverId,
+      });
+      return client.getServer(request);
+    },
 
-    createServer: (
-      data: OmitMetadata<CreateServerRequest>,
-      options?: RequestOptions
-    ) => client.post<ServerResponse>(`${BASE_PATH}/servers`, data, options),
+    registerServer: async (
+      data: Omit<RegisterServerRequest, "metadata">
+    ): Promise<RegisterServerResponse> => {
+      const request = create(RegisterServerRequestSchema, {
+        metadata: await getMetadata(),
+        name: data.name,
+        hostname: data.hostname,
+        ipAddress: data.ipAddress,
+        metadataFields: data.metadataFields,
+        clusterId: data.clusterId,
+      });
+      return client.registerServer(request);
+    },
 
-    updateServer: (
+    updateServerStatus: async (
       serverId: string,
-      data: OmitMetadataAndFields<UpdateServerRequest, "serverId">,
-      options?: RequestOptions
-    ) =>
-      client.patch<ServerResponse>(
-        `${BASE_PATH}/servers/${serverId}`,
-        data,
-        options
-      ),
+      data: Omit<UpdateServerStatusRequest, "metadata" | "serverId">
+    ): Promise<UpdateServerStatusResponse> => {
+      const request = create(UpdateServerStatusRequestSchema, {
+        metadata: await getMetadata(),
+        serverId,
+        status: data.status,
+      });
+      return client.updateServerStatus(request);
+    },
 
-    deleteServer: (serverId: string, options?: RequestOptions) =>
-      client.delete<void>(`${BASE_PATH}/servers/${serverId}`, options),
-
-    testServerConnection: (
-      data: OmitMetadata<TestServerConnectionRequest>,
-      options?: RequestOptions
-    ) =>
-      client.post<TestServerConnectionResponse>(
-        `${BASE_PATH}/servers/test-ssh`,
-        data,
-        options
-      ),
-
-    configureServer: (
-      serverId: string,
-      data: OmitMetadataAndFields<ConfigureServerRequest, "serverId">,
-      options?: RequestOptions
-    ) =>
-      client.post<ConfigureServerResponse>(
-        `${BASE_PATH}/servers/${serverId}/configure`,
-        data,
-        options
-      ),
+    deleteServer: async (serverId: string): Promise<DeleteServerResponse> => {
+      const request = create(DeleteServerRequestSchema, {
+        metadata: await getMetadata(),
+        serverId,
+      });
+      return client.deleteServer(request);
+    },
 
     // Clusters
-    listClusters: (params?: PaginationQuery, options?: RequestOptions) =>
-      client.get<ListClustersResponse>(`${BASE_PATH}/clusters`, {
-        ...options,
-        query: params as Record<string, string>,
-      }),
+    listClusters: async (
+      params?: PaginationQuery
+    ): Promise<ListClustersResponse> => {
+      const request = create(ListClustersRequestSchema, {
+        metadata: await getMetadata(),
+        pagination: params
+          ? {
+              page: Number(params.page) || PAGINATION_DEFAULTS.page,
+              limit: Number(params.limit) || PAGINATION_DEFAULTS.limit,
+              total: 0,
+            }
+          : undefined,
+      });
+      return client.listClusters(request);
+    },
 
-    getCluster: (clusterId: string, options?: RequestOptions) =>
-      client.get<ClusterResponse>(
-        `${BASE_PATH}/clusters/${clusterId}`,
-        options
-      ),
+    getCluster: async (clusterId: string): Promise<GetClusterResponse> => {
+      const request = create(GetClusterRequestSchema, {
+        metadata: await getMetadata(),
+        clusterId,
+      });
+      return client.getCluster(request);
+    },
 
-    createCluster: (
-      data: OmitMetadata<CreateClusterRequest>,
-      options?: RequestOptions
-    ) => client.post<ClusterResponse>(`${BASE_PATH}/clusters`, data, options),
+    createCluster: async (
+      data: Omit<CreateClusterRequest, "metadata">
+    ): Promise<CreateClusterResponse> => {
+      const request = create(CreateClusterRequestSchema, {
+        metadata: await getMetadata(),
+        name: data.name,
+        description: data.description,
+        metadataFields: data.metadataFields,
+      });
+      return client.createCluster(request);
+    },
 
-    updateCluster: (
+    updateCluster: async (
       clusterId: string,
-      data: OmitMetadataAndFields<UpdateClusterRequest, "clusterId">,
-      options?: RequestOptions
-    ) =>
-      client.patch<ClusterResponse>(
-        `${BASE_PATH}/clusters/${clusterId}`,
-        data,
-        options
-      ),
+      data: Omit<UpdateClusterRequest, "metadata" | "clusterId">
+    ): Promise<UpdateClusterResponse> => {
+      const request = create(UpdateClusterRequestSchema, {
+        metadata: await getMetadata(),
+        clusterId,
+        name: data.name,
+        description: data.description,
+      });
+      return client.updateCluster(request);
+    },
 
-    deleteCluster: (clusterId: string, options?: RequestOptions) =>
-      client.delete<void>(`${BASE_PATH}/clusters/${clusterId}`, options),
-
-    listClusterServers: (clusterId: string, options?: RequestOptions) =>
-      client.get<ListServersResponse>(
-        `${BASE_PATH}/clusters/${clusterId}/servers`,
-        options
-      ),
-
-    // Agents
-    installAgent: (
-      serverId: string,
-      data: OmitMetadataAndFields<InstallAgentRequest, "serverId">,
-      options?: RequestOptions
-    ) =>
-      client.post<InstallAgentResponse>(
-        `${BASE_PATH}/servers/${serverId}/agent/install`,
-        data,
-        options
-      ),
-
-    getAgentStatus: (serverId: string, options?: RequestOptions) =>
-      client.get<AgentStatusResponse>(
-        `${BASE_PATH}/servers/${serverId}/agent/status`,
-        options
-      ),
-
-    // System requirements
-    calculateSystemRequirements: (
-      data: OmitMetadata<CalculateSystemRequirementsRequest>,
-      options?: RequestOptions
-    ) =>
-      client.post<CalculateSystemRequirementsResponse>(
-        `${BASE_PATH}/servers/requirements`,
-        data,
-        options
-      ),
+    deleteCluster: async (
+      clusterId: string
+    ): Promise<DeleteClusterResponse> => {
+      const request = create(DeleteClusterRequestSchema, {
+        metadata: await getMetadata(),
+        clusterId,
+      });
+      return client.deleteCluster(request);
+    },
   };
 }
 
@@ -225,11 +209,8 @@ export type InfrastructureApi = ReturnType<typeof createInfrastructureApi>;
  */
 export function createInfrastructureQueries(api: InfrastructureApi) {
   return {
-    /**
-     * List servers query
-     */
     servers: (
-      params?: { clusterId?: string } & PaginationQuery
+      params?: PaginationQuery
     ): AxionQueryOptions<
       ListServersResponse,
       Error,
@@ -238,30 +219,24 @@ export function createInfrastructureQueries(api: InfrastructureApi) {
     > =>
       defineQuery({
         queryKey: infrastructureKeys.servers.list(params),
-        queryFn: ({ signal }) => api.listServers(params, { signal }),
-        staleTime: STALE_TIME_STANDARD, // 15s
+        queryFn: () => api.listServers(params),
+        staleTime: STALE_TIME_MEDIUM,
       }),
 
-    /**
-     * Get server query
-     */
     server: (
       serverId: string
     ): AxionQueryOptions<
-      ServerResponse,
+      GetServerResponse,
       Error,
-      ServerResponse,
+      GetServerResponse,
       ReturnType<typeof infrastructureKeys.servers.detail>
     > =>
       defineQuery({
         queryKey: infrastructureKeys.servers.detail(serverId),
-        queryFn: ({ signal }) => api.getServer(serverId, { signal }),
-        staleTime: STALE_TIME_LONG, // 30s
+        queryFn: () => api.getServer(serverId),
+        staleTime: STALE_TIME_LONG,
       }),
 
-    /**
-     * List clusters query
-     */
     clusters: (
       params?: PaginationQuery
     ): AxionQueryOptions<
@@ -272,77 +247,22 @@ export function createInfrastructureQueries(api: InfrastructureApi) {
     > =>
       defineQuery({
         queryKey: infrastructureKeys.clusters.list(params),
-        queryFn: ({ signal }) => api.listClusters(params, { signal }),
-        staleTime: STALE_TIME_STANDARD, // 15s
+        queryFn: () => api.listClusters(params),
+        staleTime: STALE_TIME_MEDIUM,
       }),
 
-    /**
-     * Get cluster query
-     */
     cluster: (
       clusterId: string
     ): AxionQueryOptions<
-      ClusterResponse,
+      GetClusterResponse,
       Error,
-      ClusterResponse,
+      GetClusterResponse,
       ReturnType<typeof infrastructureKeys.clusters.detail>
     > =>
       defineQuery({
         queryKey: infrastructureKeys.clusters.detail(clusterId),
-        queryFn: ({ signal }) => api.getCluster(clusterId, { signal }),
-        staleTime: STALE_TIME_LONG, // 30s
-      }),
-
-    /**
-     * List cluster servers query
-     */
-    clusterServers: (
-      clusterId: string
-    ): AxionQueryOptions<
-      ListServersResponse,
-      Error,
-      ListServersResponse,
-      ReturnType<typeof infrastructureKeys.clusters.servers>
-    > =>
-      defineQuery({
-        queryKey: infrastructureKeys.clusters.servers(clusterId),
-        queryFn: ({ signal }) => api.listClusterServers(clusterId, { signal }),
-        staleTime: STALE_TIME_STANDARD, // 15s
-      }),
-
-    /**
-     * Get agent status query
-     */
-    agentStatus: (
-      serverId: string
-    ): AxionQueryOptions<
-      AgentStatusResponse,
-      Error,
-      AgentStatusResponse,
-      ReturnType<typeof infrastructureKeys.agents.status>
-    > =>
-      defineQuery({
-        queryKey: infrastructureKeys.agents.status(serverId),
-        queryFn: ({ signal }) => api.getAgentStatus(serverId, { signal }),
-        staleTime: STALE_TIME_MEDIUM, // 10s
-      }),
-
-    /**
-     * Calculate system requirements query
-     */
-    systemRequirements: (
-      data: OmitMetadata<CalculateSystemRequirementsRequest>
-    ): AxionQueryOptions<
-      CalculateSystemRequirementsResponse,
-      Error,
-      CalculateSystemRequirementsResponse,
-      ReturnType<typeof infrastructureKeys.systemRequirements.calculate>
-    > =>
-      defineQuery({
-        queryKey: infrastructureKeys.systemRequirements.calculate(data),
-        queryFn: ({ signal }) =>
-          api.calculateSystemRequirements(data, { signal }),
-        staleTime: STALE_TIME_VERY_LONG, // 1min - calculation is expensive
+        queryFn: () => api.getCluster(clusterId),
+        staleTime: STALE_TIME_LONG,
       }),
   };
 }

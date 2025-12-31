@@ -1,31 +1,43 @@
 /**
- * Standardized error codes for Axion Stack
- * Minimal set of error codes following the pattern: CATEGORY_SUBCATEGORY
+ * Error codes - re-exported from @axion/contracts
  */
 
-export enum ErrorCode {
-  // Validation (400)
-  VALIDATION_ERROR = "VALIDATION_ERROR",
+import { ErrorCode } from "@axion/contracts";
 
-  // Authentication & Authorization (401, 403)
-  UNAUTHORIZED = "UNAUTHORIZED",
-  FORBIDDEN = "FORBIDDEN",
+// Re-export for backward compatibility
+export { ErrorCode };
 
-  // Not Found (404)
-  NOT_FOUND = "NOT_FOUND",
-
-  // Conflict (409)
-  CONFLICT = "CONFLICT",
-
-  // Database (500)
-  DATABASE_ERROR = "DATABASE_ERROR",
-
-  // Internal (500)
-  INTERNAL_ERROR = "INTERNAL_ERROR",
-
-  // External service (502, 503)
-  EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR",
-
-  // Rate limit (429)
-  RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED",
+/**
+ * Map protobuf ErrorCode to human-readable string
+ */
+export function errorCodeToString(code: ErrorCode): string {
+  switch (code) {
+    case ErrorCode.VALIDATION:
+      return "VALIDATION_ERROR";
+    case ErrorCode.NOT_FOUND:
+      return "NOT_FOUND";
+    case ErrorCode.UNAUTHORIZED:
+      return "UNAUTHORIZED";
+    case ErrorCode.FORBIDDEN:
+      return "FORBIDDEN";
+    case ErrorCode.INTERNAL:
+      return "INTERNAL_ERROR";
+    case ErrorCode.DATABASE:
+      return "DATABASE_ERROR";
+    case ErrorCode.EXTERNAL_SERVICE:
+      return "EXTERNAL_SERVICE_ERROR";
+    default:
+      return "UNKNOWN_ERROR";
+  }
 }
+
+// Convenience constants for backward compatibility
+export const ERROR_CODES = {
+  VALIDATION: ErrorCode.VALIDATION,
+  NOT_FOUND: ErrorCode.NOT_FOUND,
+  UNAUTHORIZED: ErrorCode.UNAUTHORIZED,
+  FORBIDDEN: ErrorCode.FORBIDDEN,
+  INTERNAL: ErrorCode.INTERNAL,
+  DATABASE: ErrorCode.DATABASE,
+  EXTERNAL_SERVICE: ErrorCode.EXTERNAL_SERVICE,
+} as const;

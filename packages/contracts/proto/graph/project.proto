@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package axion.graph.v1;
+
+import "buf/validate/validate.proto";
+import "common/common.proto";
+import "common/errors.proto";
+import "graph/graph.proto";
+import "google/protobuf/timestamp.proto";
+
+message Project {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 graph_version = 5;
+  map<string, string> infrastructure_config = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message CreateProjectRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  
+  string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255
+  ];
+  
+  string description = 3 [
+    (buf.validate.field).string.max_len = 1000
+  ];
+  
+  option (buf.validate.message).cel = {
+    id: "name_not_empty"
+    message: "name must not be empty or whitespace only"
+    expression: "this.name.trim().size() > 0"
+  };
+}
+
+message CreateProjectResponse {
+  oneof result {
+    Project project = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message GetProjectRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetProjectResponse {
+  oneof result {
+    Project project = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message UpdateProjectRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string name = 3 [(buf.validate.field).string.max_len = 255];
+  optional string description = 4 [(buf.validate.field).string.max_len = 1000];
+}
+
+message UpdateProjectResponse {
+  oneof result {
+    Project project = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message DeleteProjectRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message DeleteProjectResponse {
+  oneof result {
+    axion.common.v1.Empty success = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ListProjectsRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  axion.common.v1.Pagination pagination = 2;
+}
+
+message ListProjectsResponse {
+  oneof result {
+    ProjectList projects = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message ProjectList {
+  repeated Project projects = 1;
+  axion.common.v1.Pagination pagination = 2;
+}
+
+// Graph operations
+message GetGraphRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetGraphResponse {
+  oneof result {
+    GraphData graph = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message UpdateGraphRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string project_id = 2 [(buf.validate.field).string.uuid = true];
+  GraphData graph = 3 [(buf.validate.field).required = true];
+}
+
+message UpdateGraphResponse {
+  oneof result {
+    GraphData graph = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package axion.common.v1;
+
+import "common/errors.proto";
+import "google/protobuf/any.proto";
+
+// Универсальная обертка для ответов
+message ServiceResponse {
+  oneof result {
+    google.protobuf.Any data = 1;
+    Error error = 2;
+  }
+}
+

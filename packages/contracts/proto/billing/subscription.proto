@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package axion.billing.v1;
+
+import "buf/validate/validate.proto";
+import "common/common.proto";
+import "common/errors.proto";
+import "google/protobuf/timestamp.proto";
+
+enum SubscriptionStatus {
+  SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+  SUBSCRIPTION_STATUS_ACTIVE = 1;
+  SUBSCRIPTION_STATUS_CANCELLED = 2;
+  SUBSCRIPTION_STATUS_EXPIRED = 3;
+  SUBSCRIPTION_STATUS_TRIAL = 4;
+}
+
+enum PlanTier {
+  PLAN_TIER_UNSPECIFIED = 0;
+  PLAN_TIER_FREE = 1;
+  PLAN_TIER_STARTER = 2;
+  PLAN_TIER_PRO = 3;
+  PLAN_TIER_ENTERPRISE = 4;
+}
+
+message Plan {
+  string id = 1;
+  string name = 2;
+  PlanTier tier = 3;
+  int32 price_monthly = 4;  // в центах
+  int32 price_yearly = 5;   // в центах
+  map<string, string> features = 6;
+  map<string, int32> limits = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message Subscription {
+  string id = 1;
+  string user_id = 2;
+  string plan_id = 3;
+  SubscriptionStatus status = 4;
+  google.protobuf.Timestamp current_period_start = 5;
+  google.protobuf.Timestamp current_period_end = 6;
+  google.protobuf.Timestamp cancel_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message GetSubscriptionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetSubscriptionResponse {
+  oneof result {
+    SubscriptionDetails subscription = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message SubscriptionDetails {
+  Subscription subscription = 1;
+  Plan plan = 2;
+}
+
+message ListPlansRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+}
+
+message ListPlansResponse {
+  oneof result {
+    PlanList plans = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message PlanList {
+  repeated Plan plans = 1;
+}
+
+message CreateSubscriptionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  
+  string plan_id = 2 [(buf.validate.field).string.uuid = true];
+  
+  string payment_method_id = 3 [
+    (buf.validate.field).string.min_len = 1
+  ];
+}
+
+message CreateSubscriptionResponse {
+  oneof result {
+    SubscriptionDetails subscription = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message CancelSubscriptionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string subscription_id = 2 [(buf.validate.field).string.uuid = true];
+  bool immediate = 3;  // Отменить немедленно или в конце периода
+}
+
+message CancelSubscriptionResponse {
+  oneof result {
+    Subscription subscription = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message UpdateSubscriptionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string subscription_id = 2 [(buf.validate.field).string.uuid = true];
+  string new_plan_id = 3 [(buf.validate.field).string.uuid = true];
+}
+
+message UpdateSubscriptionResponse {
+  oneof result {
+    SubscriptionDetails subscription = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+

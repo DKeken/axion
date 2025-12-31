@@ -3,15 +3,13 @@
  */
 
 import {
+  AUTH_SERVICE_NAME,
   GRAPH_SERVICE_NAME,
   CODEGEN_SERVICE_NAME,
   DEPLOYMENT_SERVICE_NAME,
   INFRASTRUCTURE_SERVICE_NAME,
   BILLING_SERVICE_NAME,
 } from "@axion/contracts";
-
-// Auth service is not in contracts yet, so we define it here
-export const AUTH_SERVICE_NAME = "auth-service" as const;
 
 export interface ServiceConfig {
   serviceName: string;

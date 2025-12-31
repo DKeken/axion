@@ -12,6 +12,8 @@ export * from "./service-errors";
 // Main error handler - use this in services
 export {
   handleServiceError,
+  handleServiceErrorTyped,
   getErrorMessage,
   getUserFriendlyMessage,
+  type ILogger,
 } from "./error-handler";

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package axion.infrastructure.v1;
+
+import "infrastructure/server.proto";
+
+service InfrastructureService {
+  // Cluster operations
+  rpc CreateCluster(CreateClusterRequest) returns (CreateClusterResponse);
+  rpc GetCluster(GetClusterRequest) returns (GetClusterResponse);
+  rpc ListClusters(ListClustersRequest) returns (ListClustersResponse);
+  rpc UpdateCluster(UpdateClusterRequest) returns (UpdateClusterResponse);
+  rpc DeleteCluster(DeleteClusterRequest) returns (DeleteClusterResponse);
+
+  // Server operations
+  rpc RegisterServer(RegisterServerRequest) returns (RegisterServerResponse);
+  rpc GetServer(GetServerRequest) returns (GetServerResponse);
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
+  rpc UpdateServerStatus(UpdateServerStatusRequest) returns (UpdateServerStatusResponse);
+  rpc DeleteServer(DeleteServerRequest) returns (DeleteServerResponse);
+}

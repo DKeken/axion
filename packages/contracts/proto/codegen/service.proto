@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package axion.codegen.v1;
+
+import "codegen/blueprint.proto";
+
+service CodegenService {
+  rpc GetBlueprint(GetBlueprintRequest) returns (GetBlueprintResponse);
+  rpc ListBlueprints(ListBlueprintsRequest) returns (ListBlueprintsResponse);
+  rpc GenerateCode(GenerateCodeRequest) returns (GenerateCodeResponse);
+}
+

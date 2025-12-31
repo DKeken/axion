@@ -1,4 +1,6 @@
-import type { RequestMetadata } from "@axion/contracts";
+import { type RequestMetadata, RequestMetadataSchema } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
+import { timestampNow } from "@bufbuild/protobuf/wkt";
 import type { UserSession } from "@thallesp/nestjs-better-auth";
 
 /**
@@ -11,12 +13,12 @@ export function sessionToMetadata(
     return null;
   }
 
-  return {
+  return create(RequestMetadataSchema, {
     userId: session.user.id,
-    projectId: "",
+    sessionId: session.session.id || "",
     requestId: "",
-    timestamp: Date.now(),
-  };
+    timestamp: timestampNow(),
+  });
 }
 
 /**
@@ -33,18 +35,22 @@ export function getUserIdFromSession(
  */
 export function createMetadataFromSession(
   session: UserSession | null | undefined,
-  projectId?: string,
   requestId?: string
 ): RequestMetadata | null {
   const userId = getUserIdFromSession(session);
+
+  if (!session?.session?.id) {
+    return null;
+  }
+
   if (!userId) {
     return null;
   }
 
-  return {
+  return create(RequestMetadataSchema, {
     userId,
-    ...(projectId && { projectId }),
-    ...(requestId && { requestId }),
-    timestamp: Date.now(),
-  } as RequestMetadata;
+    sessionId: session.session.id || "",
+    requestId: requestId || "",
+    timestamp: timestampNow(),
+  });
 }

@@ -53,13 +53,11 @@ function generateTraefikConfig(isDev: boolean): TraefikConfig {
   const API_BASE_PATH = "/api/v1";
   const AUTH_BASE_PATH = "/api"; // Auth service uses /api/auth without version
   const CORS_MIDDLEWARE = "cors";
+  const CORS_CONNECT_MIDDLEWARE = "cors-connect";
 
-  // Global CORS middleware applied to all API routers.
-  // This ensures preflight responses always include Access-Control-Allow-* headers,
-  // even when the upstream service returns 4xx/5xx or is temporarily unavailable.
+  // Global CORS middleware for traditional HTTP APIs
   config.http.middlewares[CORS_MIDDLEWARE] = {
     headers: {
-      // Credentials are required because frontend-api defaults to credentials: "include"
       accessControlAllowCredentials: true,
       accessControlAllowMethods: [
         "GET",
@@ -77,6 +75,44 @@ function generateTraefikConfig(isDev: boolean): TraefikConfig {
         "X-Correlation-ID",
       ],
       accessControlExposeHeaders: ["X-Correlation-ID"],
+      accessControlMaxAge: 86_400,
+      addVaryHeader: true,
+      accessControlAllowOriginList: isDev
+        ? [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
+          ]
+        : [],
+      accessControlAllowOriginListRegex: isDev
+        ? [
+            "^https?://localhost(?::\\\\d+)?$",
+            "^https?://127\\\\.0\\\\.0\\\\.1(?::\\\\d+)?$",
+          ]
+        : [],
+    },
+  };
+
+  // CORS middleware for Connect-RPC (requires special headers)
+  config.http.middlewares[CORS_CONNECT_MIDDLEWARE] = {
+    headers: {
+      accessControlAllowCredentials: true,
+      accessControlAllowMethods: ["POST", "GET", "OPTIONS"],
+      accessControlAllowHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Connect-Protocol-Version",
+        "Connect-Timeout-Ms",
+        "X-Requested-With",
+        "X-Correlation-ID",
+      ],
+      accessControlExposeHeaders: [
+        "Connect-Protocol-Version",
+        "Connect-Timeout-Ms",
+        "X-Correlation-ID",
+      ],
       accessControlMaxAge: 86_400,
       addVaryHeader: true,
       accessControlAllowOriginList: isDev
@@ -122,6 +158,17 @@ function generateTraefikConfig(isDev: boolean): TraefikConfig {
     config.http.services[s.dockerServiceName] = {
       loadBalancer: { servers: [{ url: serviceUrl }] },
     };
+
+    // Connect-RPC routes (exclude auth-service - it uses Better Auth HTTP)
+    if (s.routerName !== "auth") {
+      const connectPath = `/axion.${s.routerName}`;
+      config.http.routers[`${s.routerName}-connect`] = {
+        rule: `PathPrefix(\`${connectPath}.\`) || PathPrefix(\`${connectPath}/\`)`,
+        entryPoints: ["web"],
+        service: s.dockerServiceName,
+        middlewares: [CORS_CONNECT_MIDDLEWARE],
+      };
+    }
 
     // Path-based routing with basepath
     if (s.pathPrefix) {

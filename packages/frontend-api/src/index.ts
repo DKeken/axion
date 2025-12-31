@@ -1,9 +1,8 @@
 /**
- * @axion/frontend-api - Typed frontend HTTP client and TanStack Query integration
+ * @axion/frontend-api - Connect-RPC client and TanStack Query integration
  *
  * This package provides:
- * - Type-safe HTTP client based on Ky
- * - SSE client for real-time updates
+ * - Type-safe Connect-RPC client
  * - TanStack Query integration with query factories
  * - Domain-specific APIs (graph, codegen, deployment, infrastructure)
  * - Protobuf contract types from @axion/contracts
@@ -39,12 +38,17 @@ export { createFrontendApi, queryKeys, type FrontendApi } from "./client";
 // === Constants ===
 export * from "./constants";
 
-// === HTTP Client ===
-export { createHttpClient, HttpClient } from "./http-client";
+// === Connect Client ===
+export {
+  createConnectClient,
+  createAxionTransport,
+  createServiceClient,
+  type ConnectClientConfig,
+  type ConnectClient,
+} from "./connect-client";
 
-export type { ApiClientConfig, RequestOptions } from "./types";
-
-export { ApiError, fromKyError } from "./types";
+// === Types ===
+export type { Client, Transport, ConnectError } from "./types";
 
 // === SSE Client ===
 export {
@@ -80,37 +84,3 @@ export {
   type GraphApi,
   type GraphQueries,
 } from "./domains/graph";
-
-// Codegen
-export {
-  createCodegenApi,
-  createCodegenQueries,
-  codegenKeys,
-  type CodegenApi,
-  type CodegenQueries,
-} from "./domains/codegen";
-
-// Deployment
-export {
-  createDeploymentApi,
-  createDeploymentQueries,
-  deploymentKeys,
-  type DeploymentApi,
-  type DeploymentQueries,
-} from "./domains/deployment";
-
-// Infrastructure
-export {
-  createInfrastructureApi,
-  createInfrastructureQueries,
-  infrastructureKeys,
-  type InfrastructureApi,
-  type InfrastructureQueries,
-} from "./domains/infrastructure";
-
-// === Helper types ===
-export type {
-  OmitMetadata,
-  OmitMetadataAndFields,
-  PickFieldsWithoutMetadata,
-} from "./types";

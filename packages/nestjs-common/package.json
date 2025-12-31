@@ -21,9 +21,11 @@
   "dependencies": {
     "@axion/contracts": "workspace:*",
     "@axion/shared": "workspace:*",
-    "@nestjs/bullmq": "^10.2.3",
-    "@nestjs/common": "catalog:",
-    "@nestjs/core": "catalog:",
+    "@bufbuild/protobuf": "^2.0.0",
+    "@bufbuild/protovalidate": "^0.6.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.0.0",
+    "@nestjs/bullmq": "^11.0.4",
     "bullmq": "catalog:",
     "rxjs": "catalog:",
     "ssh2": "^1.17.0"
@@ -31,6 +33,9 @@
   "devDependencies": {
     "@axion-stack/eslint-config": "workspace:*",
     "@axion-stack/typescript-config": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/swagger": "catalog:",
     "@types/node": "catalog:",
     "@types/ssh2": "^1.15.5",
     "eslint": "^9",

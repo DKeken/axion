@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package axion.graph.v1;
+
+import "graph/project.proto";
+
+service GraphService {
+  // Project operations
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse);
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+  
+  // Graph operations
+  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
+  rpc UpdateGraph(UpdateGraphRequest) returns (UpdateGraphResponse);
+}
+

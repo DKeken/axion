@@ -1,246 +1,211 @@
 # @axion/contracts
 
-Protobuf contracts for Axion Control Plane services.
+Protobuf контракты и TypeScript типы для Axion Stack. Единственный источник истины для всех типов, контрактов и валидаций в monorepo.
 
-## Structure
+## Установка
 
-```
-packages/contracts/
-├── proto/
-│   ├── common/
-│   │   ├── common.proto        # Общие типы (Error, Pagination, Metadata)
-│   │   └── health.proto        # Health Check типы
-│   ├── graph-service.proto     # Graph Service контракты
-│   ├── codegen-service.proto   # Codegen Service контракты
-│   ├── deployment-service.proto # Deployment Service контракты
-│   ├── infrastructure-service.proto # Infrastructure Service контракты
-│   ├── billing-service.proto   # Billing Service контракты
-│   └── runner-agent-service.proto # Runner Agent Service контракты (gRPC)
-├── generated/                  # Сгенерированные TypeScript типы
-│   ├── common/
-│   │   └── common.pb.ts
-│   ├── graph-service.pb.ts
-│   ├── codegen-service.pb.ts
-│   ├── deployment-service.pb.ts
-│   ├── infrastructure-service.pb.ts
-│   ├── billing-service.pb.ts
-│   └── runner-agent-service.pb.ts
-└── package.json
+```bash
+bun add @axion/contracts
 ```
 
-## Usage
+## Генерация типов
 
-### Generate TypeScript types
+После изменения proto файлов:
 
 ```bash
 cd packages/contracts
-bun install
 bun run generate
 ```
 
-**How it works:**
+Это выполнит:
 
-The generation uses a wrapper script `scripts/protoc-gen-ts_proto.mjs` that:
+1. Генерацию TypeScript типов из proto файлов через Buf CLI
+2. Создание Connect-RPC service definitions
+3. Генерацию схем валидации для ProtoValidate
 
-1. Dynamically finds the `ts-proto` plugin in `node_modules`
-2. Falls back to `bunx` if the plugin is not found locally
-3. Properly forwards stdin/stdout to protoc
+## Использование
 
-This approach avoids hardcoding paths in `node_modules` and works reliably across different environments.
-
-### In NestJS Microservice
-
-#### Client Configuration (Kafka)
+### Импорт типов
 
 ```typescript
-import { ClientsModule } from "@nestjs/microservices";
-import { GRAPH_SERVICE_NAME } from "@axion/contracts";
-import { createKafkaClientOptions, parseKafkaBrokers } from "@axion/shared";
-
-@Module({
-  imports: [
-    ClientsModule.registerAsync([
-      {
-        name: GRAPH_SERVICE_NAME,
-        useFactory: () =>
-          createKafkaClientOptions(
-            GRAPH_SERVICE_NAME,
-            parseKafkaBrokers(process.env.KAFKA_BROKERS, "kafka:9092")
-          ),
-      },
-    ]),
-  ],
-})
-export class AppModule {}
+import {
+  type CreateProjectRequest,
+  type Project,
+  NodeType,
+  EdgeType,
+} from "@axion/contracts";
 ```
 
-#### Server Configuration (Kafka + HTTP)
+### Валидация с ProtoValidate
 
 ```typescript
-import { bootstrapMicroservice } from "@axion/nestjs-common";
-import { GRAPH_SERVICE_NAME } from "@axion/contracts";
-import { AppModule } from "./app.module";
+import { createValidator } from "@bufbuild/protovalidate";
+import { CreateProjectRequestSchema } from "@axion/contracts";
 
-bootstrapMicroservice(AppModule, {
-  serviceName: GRAPH_SERVICE_NAME,
-  defaultPort: 3000,
-  kafkaBrokers: process.env.KAFKA_BROKERS,
-});
+const validator = createValidator();
+
+const result = validator.validate(CreateProjectRequestSchema, data);
+
+if (result.kind !== "valid") {
+  console.error("Validation failed:", result.violations);
+}
 ```
 
-#### Using MessagePattern Constants
+### Connect-RPC Services
 
 ```typescript
-import { MessagePattern } from "@nestjs/microservices";
+import { GraphService } from "@axion/contracts";
+import { ConnectRouter } from "@connectrpc/connect";
+
+export function graphServiceRouter(router: ConnectRouter) {
+  router.service(GraphService, {
+    async createProject(req) {
+      // Implementation
+      return { project: { ... } };
+    }
+  });
+}
+```
+
+### Kafka MessagePattern константы
+
+```typescript
 import { GRAPH_SERVICE_PATTERNS } from "@axion/contracts";
 
-@Controller()
-export class GraphController {
-  @MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
-  async createProject(data: CreateProjectRequest) {
-    // Implementation
-  }
+@MessagePattern(GRAPH_SERVICE_PATTERNS.CREATE_PROJECT)
+async createProject(@Payload() data: CreateProjectRequest) {
+  // Handler implementation
 }
 ```
 
-#### Working with Request Metadata
+### Utility функции
 
 ```typescript
 import {
-  createRequestMetadata,
   getUserIdFromMetadata,
-  getProjectIdFromMetadata
-} from "@axion/contracts";
-
-// Creating metadata
-const metadata = createRequestMetadata(
-  "user-123",
-  "project-456",
-  "request-789"
-);
-
-// Extracting from context
-@MessagePattern(GRAPH_SERVICE_PATTERNS.GET_PROJECT)
-async getProject(data: GetProjectRequest, context: RmqContext) {
-  const metadata = context.getData().metadata;
-  const userId = getUserIdFromMetadata(metadata);
-  const projectId = getProjectIdFromMetadata(metadata);
-  // ...
-}
-```
-
-## Shared Utilities
-
-### Access Control
-
-Generic helper for checking user access to resources:
-
-```typescript
-import { verifyResourceAccess } from "@axion/contracts";
-
-const access = await verifyResourceAccess(
-  {
-    findById: (id) => repository.findById(id),
-    getOwnerId: (resource) => resource.userId,
-    resourceName: "Project",
-  },
-  projectId,
-  metadata
-);
-
-if (!access.success) return access.response;
-// access.userId is available here
-```
-
-### Status Mapping
-
-Convert database enum values to Protobuf enums:
-
-```typescript
-import { mapServiceStatus } from "@axion/contracts";
-
-const protobufStatus = mapServiceStatus("pending");
-// Returns: ServiceStatus.SERVICE_STATUS_PENDING
-```
-
-### Error Handling
-
-Consistent error handling across microservices:
-
-```typescript
-import { handleServiceError } from "@axion/contracts";
-
-try {
-  // ... operation
-} catch (error) {
-  return handleServiceError(this.logger, "creating project", error);
-}
-```
-
-## Contracts
-
-### Graph Service
-
-- CRUD операции для проектов и графов
-- Версионирование графов
-- Real-time синхронизация
-
-### Codegen Service
-
-- Генерация кода из графа
-- LLM интеграция
-- Валидация сгенерированного кода
-
-### Deployment Service
-
-- Деплой проектов
-- Управление деплоями
-- Статусы деплоев
-
-## Response Utilities
-
-Утилиты для работы с Response обертками (паттерн oneof):
-
-```typescript
-import {
   createSuccessResponse,
   createErrorResponse,
-  isSuccessResponse,
-  extractData,
-  createError,
+  createValidationError,
   createNotFoundError,
 } from "@axion/contracts";
 
+// Извлечение user_id из metadata
+const userId = getUserIdFromMetadata(request.metadata);
+
 // Создание успешного ответа
-const response = createSuccessResponse({ id: "123", name: "Project" });
+return createSuccessResponse(project);
 
-// Создание ответа с ошибкой
-const errorResponse = createErrorResponse(
-  createNotFoundError("Project", "123")
-);
+// Создание ошибки
+return createErrorResponse(createNotFoundError("Project", projectId));
+```
 
-// Проверка и извлечение данных
-if (isSuccessResponse(response)) {
-  const data = extractData(response);
+## Структура
+
+```
+packages/contracts/
+├── proto/                    # Protobuf определения
+│   ├── common/              # Общие типы
+│   │   ├── common.proto     # RequestMetadata, Pagination
+│   │   ├── errors.proto     # Error, ErrorCode
+│   │   └── responses.proto  # ServiceResponse
+│   ├── graph/               # Graph Service
+│   ├── auth/                # Auth Service
+│   ├── deployment/          # Deployment Service
+│   ├── infrastructure/      # Infrastructure Service
+│   ├── codegen/             # Codegen Service
+│   └── billing/             # Billing Service
+├── generated/               # Сгенерированный TypeScript код
+├── src/                     # Source code
+│   ├── index.ts            # Главный экспорт
+│   ├── utils/              # Utility функции
+│   │   ├── metadata.ts     # Работа с RequestMetadata
+│   │   └── responses.ts    # Создание ответов и ошибок
+│   └── constants/          # Константы
+│       └── patterns.ts     # Kafka MessagePattern константы
+└── buf.yaml                # Buf конфигурация
+```
+
+## Сервисы
+
+### Graph Service
+
+- Управление проектами (CRUD)
+- Управление графами архитектуры
+- Версионирование графов
+
+### Auth Service
+
+- Валидация сессий
+- Создание/отзыв сессий
+- Управление пользователями
+
+### Deployment Service
+
+- Создание деплоев
+- Отслеживание статуса
+- Отмена деплоев
+
+### Infrastructure Service
+
+- Регистрация серверов
+- Управление агентами
+- Мониторинг статуса
+
+### Codegen Service
+
+- Получение blueprints
+- Генерация кода из графов
+
+### Billing Service
+
+- Управление подписками
+- Управление планами
+- Биллинг операции
+
+## Валидация
+
+Все proto файлы содержат buf.validate аннотации:
+
+```protobuf
+message CreateProjectRequest {
+  RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+
+  string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255
+  ];
+
+  option (buf.validate.message).cel = {
+    id: "name_not_empty"
+    message: "name must not be empty or whitespace only"
+    expression: "this.name.trim().size() > 0"
+  };
 }
 ```
 
-## Pagination Utilities
+## Разработка
 
-Утилиты для работы с пагинацией:
+### Добавление нового контракта
 
-```typescript
-import {
-  createPagination,
-  createFullPagination,
-  createPaginatedResult,
-  calculateOffset,
-  validatePaginationParams,
-} from "@axion/contracts";
+1. Создай `.proto` файл в соответствующей директории
+2. Добавь `buf.validate` аннотации для валидации
+3. Запусти генерацию: `bun run generate`
+4. Экспортируй типы в `src/index.ts`
+5. Добавь MessagePattern константы в `src/constants/patterns.ts`
 
-// Создание пагинации
-const pagination = createFullPagination({ page: 1, limit: 10 }, 100);
+### Проверка
 
-// Вычисление offset для SQL
-const offset = calculateOffset(2, 10); // Returns: 10
+```bash
+# Type check
+bun type-check
+
+# Buf lint
+bun run lint
+
+# Buf breaking changes
+bun run breaking
 ```
+
+## License
+
+ISC

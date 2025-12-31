@@ -9,7 +9,9 @@ import {
   createNotFoundError,
   createForbiddenError,
   type Error as ContractError,
+  ErrorSchema,
 } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
 
 import { classifyDatabaseError } from "./database-error-handler";
 import {
@@ -30,7 +32,7 @@ export type ILogger = {
   warn?: (message: string, error?: unknown) => void;
   debug?: (message: string, error?: unknown) => void;
   log?: (message: string, error?: unknown) => void;
-}
+};
 
 /**
  * Convert ServiceError to Contract Error
@@ -55,11 +57,12 @@ function serviceErrorToContractError(error: ServiceError): ContractError {
     }
   }
 
-  return {
+  return create(ErrorSchema, {
     code: error.code,
     message: error.message,
-    details,
-  };
+    field: "",
+    metadata: details,
+  });
 }
 
 /**
@@ -132,7 +135,7 @@ function serviceErrorToErrorResponse(
     return createErrorResponse(
       createNotFoundError(
         serviceError.context?.resourceType || "Resource",
-        serviceError.context?.resourceId
+        serviceError.context?.resourceId || "unknown"
       )
     );
   }
@@ -204,6 +207,45 @@ export function handleServiceError(
 
   logError(logger, serviceError, operation);
   return serviceErrorToErrorResponse(serviceError);
+}
+
+/**
+ * Type-safe error handler that returns a properly typed Protobuf response
+ * Use this when you need to return a specific Response type (e.g., CreateProjectResponse)
+ *
+ * @example
+ * ```typescript
+ * import { create } from "@bufbuild/protobuf";
+ * import { CreateProjectResponseSchema } from "@axion/contracts";
+ *
+ * try {
+ *   // operation
+ * } catch (error) {
+ *   return handleServiceErrorTyped(
+ *     CreateProjectResponseSchema,
+ *     this.logger,
+ *     "creating project",
+ *     error,
+ *     { resourceType: "Project", userId }
+ *   );
+ * }
+ * ```
+ */
+export function handleServiceErrorTyped<T>(
+  schema: unknown,
+  logger: ILogger,
+  operation: string,
+  error: unknown,
+  context?: ErrorContext
+): T {
+  const errorResponse = handleServiceError(logger, operation, error, context);
+
+  // Import create dynamically to avoid circular dependencies
+  const { create } = require("@bufbuild/protobuf");
+
+  return create(schema, {
+    result: { case: "error", value: errorResponse.result.value },
+  }) as T;
 }
 
 /**

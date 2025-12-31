@@ -1,4 +1,6 @@
-import type { RequestMetadata } from "@axion/contracts";
+import { type RequestMetadata, RequestMetadataSchema } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
+import { timestampNow } from "@bufbuild/protobuf/wkt";
 
 /**
  * Request metadata helper functions
@@ -12,42 +14,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Extract user_id from request metadata
+ * Extract userId from request metadata
  */
 export function getUserIdFromMetadata(
   metadata: RequestMetadata | unknown
 ): string | undefined {
-  if (isRecord(metadata)) {
-    const userId = metadata.user_id ?? metadata.userId;
-    return typeof userId === "string" ? userId : undefined;
+  if (!metadata || typeof metadata !== "object") {
+    return undefined;
   }
-  return undefined;
+  const meta = metadata as RequestMetadata;
+  return meta.userId || undefined;
 }
 
 /**
- * Extract project_id from request metadata
- */
-export function getProjectIdFromMetadata(
-  metadata: RequestMetadata | unknown
-): string | undefined {
-  if (isRecord(metadata)) {
-    const projectId = metadata.project_id ?? metadata.projectId;
-    return typeof projectId === "string" ? projectId : undefined;
-  }
-  return undefined;
-}
-
-/**
- * Extract request_id from request metadata
+ * Extract requestId from request metadata
  */
 export function getRequestIdFromMetadata(
   metadata: RequestMetadata | unknown
 ): string | undefined {
-  if (isRecord(metadata)) {
-    const requestId = metadata.request_id ?? metadata.requestId;
-    return typeof requestId === "string" ? requestId : undefined;
+  if (!metadata || typeof metadata !== "object") {
+    return undefined;
   }
-  return undefined;
+  const meta = metadata as RequestMetadata;
+  return meta.requestId || undefined;
 }
 
 /**
@@ -55,15 +44,15 @@ export function getRequestIdFromMetadata(
  */
 export function createRequestMetadata(
   userId: string,
-  projectId?: string,
-  requestId?: string
+  requestId?: string,
+  sessionId?: string
 ): RequestMetadata {
-  return {
+  return create(RequestMetadataSchema, {
     userId,
-    projectId: projectId || "",
     requestId: requestId || "",
-    timestamp: Date.now(),
-  };
+    sessionId: sessionId || "",
+    timestamp: timestampNow(),
+  });
 }
 
 /**
@@ -72,61 +61,41 @@ export function createRequestMetadata(
 export function isValidRequestMetadata(
   metadata: unknown
 ): metadata is RequestMetadata {
-  if (!isRecord(metadata)) {
+  if (!metadata || typeof metadata !== "object") {
     return false;
   }
 
-  const userId = metadata.user_id ?? metadata.userId;
-  const timestamp = metadata.timestamp;
-
-  return (
-    typeof userId === "string" &&
-    userId.length > 0 &&
-    typeof timestamp === "number"
-  );
+  const meta = metadata as RequestMetadata;
+  return typeof meta.userId === "string" && meta.userId.length > 0;
 }
 
 /**
  * Normalize request metadata from unknown input.
  * Ensures all required fields are present and correctly named (camelCase).
- * Handles both snake_case and camelCase inputs.
  */
 export function normalizeRequestMetadata(
   metadata: unknown,
   fallbackUserId?: string
 ): RequestMetadata {
   if (!isRecord(metadata)) {
-    return {
+    return create(RequestMetadataSchema, {
       userId: fallbackUserId ?? "",
-      projectId: "",
       requestId: "",
-      timestamp: Date.now(),
-    };
+      sessionId: "",
+      timestamp: timestampNow(),
+    });
   }
 
-  const userId = (metadata.user_id ??
-    metadata.userId ??
-    fallbackUserId ??
-    "") as string;
-  const projectId = (metadata.project_id ?? metadata.projectId ?? "") as string;
-  const requestId = (metadata.request_id ?? metadata.requestId ?? "") as string;
+  const userId = String(metadata.userId ?? fallbackUserId ?? "");
+  const requestId = String(metadata.requestId ?? "");
+  const sessionId = String(metadata.sessionId ?? "");
 
-  let timestamp = Date.now();
-  if (typeof metadata.timestamp === "number" && metadata.timestamp > 0) {
-    timestamp = metadata.timestamp;
-  } else if (typeof metadata.timestamp === "string") {
-    const parsed = parseInt(metadata.timestamp, 10);
-    if (!isNaN(parsed) && parsed > 0) {
-      timestamp = parsed;
-    }
-  }
-
-  return {
-    userId: String(userId),
-    projectId: String(projectId),
-    requestId: String(requestId),
-    timestamp,
-  };
+  return create(RequestMetadataSchema, {
+    userId,
+    requestId,
+    sessionId,
+    timestamp: timestampNow(),
+  });
 }
 
 /**

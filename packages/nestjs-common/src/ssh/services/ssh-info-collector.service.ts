@@ -4,10 +4,12 @@
  */
 
 import type { ServerInfo } from "@axion/contracts";
+import { ServerInfoSchema } from "@axion/contracts";
+import { create } from "@bufbuild/protobuf";
 import { Injectable, Logger } from "@nestjs/common";
 import type { Client } from "ssh2";
 
-import { SSH_CONSTANTS } from "../constants";
+import { SSH_CONSTANTS } from "@/ssh/constants";
 
 import { SshConnectionService } from "./ssh-connection.service";
 
@@ -169,29 +171,29 @@ export class SshInfoCollectorService {
         this.checkDocker(client),
       ]);
 
-      return {
+      return create(ServerInfoSchema, {
         os: osInfo.os,
         architecture: osInfo.architecture,
         cpuCores: cpuInfo.cpuCores,
         cpuUsage: cpuInfo.cpuUsage,
-        totalMemory: memoryInfo.totalMemory,
-        availableMemory: memoryInfo.availableMemory,
+        totalMemory: BigInt(memoryInfo.totalMemory),
+        availableMemory: BigInt(memoryInfo.availableMemory),
         dockerInstalled: dockerInfo.dockerInstalled,
         dockerVersion: dockerInfo.dockerVersion || "",
-      };
+      });
     } catch (error) {
       this.logger.error("Failed to collect server info", error);
       // Возвращаем минимальную информацию при ошибке
-      return {
+      return create(ServerInfoSchema, {
         os: "",
         architecture: "",
         cpuCores: 0,
         cpuUsage: 0,
-        totalMemory: 0,
-        availableMemory: 0,
+        totalMemory: BigInt(0),
+        availableMemory: BigInt(0),
         dockerInstalled: false,
         dockerVersion: "",
-      };
+      });
     }
   }
 }

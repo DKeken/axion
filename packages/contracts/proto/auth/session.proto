@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package axion.auth.v1;
+
+import "buf/validate/validate.proto";
+import "common/common.proto";
+import "common/errors.proto";
+import "google/protobuf/timestamp.proto";
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message Session {
+  string id = 1;
+  string user_id = 2;
+  string token = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  google.protobuf.Timestamp created_at = 5;
+  map<string, string> metadata = 6;
+}
+
+message ValidateSessionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string session_token = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ValidateSessionResponse {
+  oneof result {
+    SessionValidation validation = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message SessionValidation {
+  bool valid = 1;
+  Session session = 2;
+  User user = 3;
+}
+
+message CreateSessionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  
+  string email = 2 [
+    (buf.validate.field).string.email = true
+  ];
+  
+  string password = 3 [
+    (buf.validate.field).string.min_len = 8
+  ];
+}
+
+message CreateSessionResponse {
+  oneof result {
+    SessionData session = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message SessionData {
+  Session session = 1;
+  User user = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+}
+
+message RevokeSessionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string session_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message RevokeSessionResponse {
+  oneof result {
+    axion.common.v1.Empty success = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+

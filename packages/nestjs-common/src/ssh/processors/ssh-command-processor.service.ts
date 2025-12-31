@@ -7,14 +7,14 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { Job } from "bullmq";
 
-import { SSH_QUEUE_NAMES } from "../queue-names";
-import { SshConnectionService } from "../services/ssh-connection.service";
-import { SshEncryptionService } from "../services/ssh-encryption.service";
+import { SSH_QUEUE_NAMES } from "@/ssh/queue-names";
+import { SshConnectionService } from "@/ssh/services/ssh-connection.service";
+import { SshEncryptionService } from "@/ssh/services/ssh-encryption.service";
 import type {
   SshExecuteCommandJobPayload,
   SshJobResult,
   SshConnectionInfo,
-} from "../types";
+} from "@/ssh/types";
 
 /**
  * Интерфейс для получения сервера из репозитория

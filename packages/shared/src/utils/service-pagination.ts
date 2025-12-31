@@ -3,10 +3,10 @@
  * Extends base pagination with service-specific helpers
  */
 
-import { createSuccessResponse } from "@axion/contracts";
 import type { Pagination } from "@axion/contracts";
+import { createSuccessResponse, extractPagination } from "@axion/contracts";
 
-import { extractPagination, createPaginatedResponse } from "./pagination";
+import { createPaginatedResponse } from "./pagination";
 
 /**
  * Extract pagination and create success response with paginated data

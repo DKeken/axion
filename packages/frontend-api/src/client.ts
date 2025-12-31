@@ -1,26 +1,29 @@
 /**
- * Main client factory and centralized API
+ * Main client factory and centralized API (Connect-RPC)
  */
 
-import { createCodegenApi, createCodegenQueries, codegenKeys } from "./domains/codegen";
-import type { CodegenApi, CodegenQueries } from "./domains/codegen";
-import { createDeploymentApi, createDeploymentQueries, deploymentKeys } from "./domains/deployment";
-import type { DeploymentApi, DeploymentQueries } from "./domains/deployment";
+import {
+  createConnectClient,
+  type ConnectClientConfig,
+  type ConnectClient,
+} from "./connect-client";
 import { createGraphApi, createGraphQueries, graphKeys } from "./domains/graph";
 import type { GraphApi, GraphQueries } from "./domains/graph";
-import { createInfrastructureApi, createInfrastructureQueries, infrastructureKeys } from "./domains/infrastructure";
-import type { InfrastructureApi, InfrastructureQueries } from "./domains/infrastructure";
-import { createHttpClient } from "./http-client";
-import type { HttpClient } from "./http-client";
-import type { ApiClientConfig } from "./types";
+import {
+  createInfrastructureApi,
+  createInfrastructureQueries,
+  infrastructureKeys,
+} from "./domains/infrastructure";
+import type {
+  InfrastructureApi,
+  InfrastructureQueries,
+} from "./domains/infrastructure";
 
 /**
  * Centralized query keys for all domains
  */
 export const queryKeys = {
   graph: graphKeys,
-  codegen: codegenKeys,
-  deployment: deploymentKeys,
   infrastructure: infrastructureKeys,
 } as const;
 
@@ -29,16 +32,14 @@ export const queryKeys = {
  */
 export type FrontendApi = {
   /**
-   * HTTP client instance
+   * Connect client instance
    */
-  client: HttpClient;
+  connectClient: ConnectClient;
 
   /**
    * Domain APIs
    */
   graph: GraphApi;
-  codegen: CodegenApi;
-  deployment: DeploymentApi;
   infrastructure: InfrastructureApi;
 
   /**
@@ -46,61 +47,55 @@ export type FrontendApi = {
    */
   queries: {
     graph: GraphQueries;
-    codegen: CodegenQueries;
-    deployment: DeploymentQueries;
     infrastructure: InfrastructureQueries;
   };
 };
 
 /**
- * Create frontend API client
+ * Create frontend API client with Connect-RPC
  *
  * @example
  * ```ts
  * // Create client with default config
- * const api = createFrontendApi();
+ * const api = createFrontendApi({
+ *   baseUrl: 'https://api.example.com',
+ * });
  *
- * // Create client with custom config
+ * // Create client with auth
  * const api = createFrontendApi({
  *   baseUrl: 'https://api.example.com',
  *   getAuthToken: async () => {
  *     return localStorage.getItem('token');
  *   },
- *   onError: (error) => {
- *     console.error('API Error:', error);
+ *   getUserId: async () => {
+ *     return auth.user?.id;
  *   },
  * });
  *
  * // Use domain APIs
- * const projects = await api.graph.listProjects({ pagination: undefined });
+ * const response = await api.graph.listProjects({ page: 1, limit: 10 });
  *
  * // Use query factories
  * const projectQuery = api.queries.graph.project('project-id');
  * const { data } = useQuery(projectQuery);
  * ```
  */
-export function createFrontendApi(config?: ApiClientConfig): FrontendApi {
-  const client = createHttpClient(config);
+export function createFrontendApi(config: ConnectClientConfig): FrontendApi {
+  const connectClient = createConnectClient(config);
 
   // Create domain APIs
-  const graph = createGraphApi(client);
-  const codegen = createCodegenApi(client);
-  const deployment = createDeploymentApi(client);
-  const infrastructure = createInfrastructureApi(client);
+  const graph = createGraphApi(connectClient);
+  const infrastructure = createInfrastructureApi(connectClient);
 
   // Create query factories
   const queries = {
     graph: createGraphQueries(graph),
-    codegen: createCodegenQueries(codegen),
-    deployment: createDeploymentQueries(deployment),
     infrastructure: createInfrastructureQueries(infrastructure),
   };
 
   return {
-    client,
+    connectClient,
     graph,
-    codegen,
-    deployment,
     infrastructure,
     queries,
   };

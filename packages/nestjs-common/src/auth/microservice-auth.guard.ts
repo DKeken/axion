@@ -1,7 +1,6 @@
 import {
   AUTH_SERVICE_NAME,
   AUTH_SERVICE_PATTERNS,
-  Status,
   type ValidateSessionResponse,
 } from "@axion/contracts";
 import { extractMetadata, getSessionTokenFromMetadata } from "@axion/shared";
@@ -135,30 +134,30 @@ export class MicroserviceAuthGuard implements CanActivate, OnModuleInit {
       );
 
       // Check response status (Protobuf contract format)
-      if (!response || response.status !== Status.STATUS_SUCCESS) {
-        this.logger.warn(
-          `Invalid or expired session token: ${response?.error?.message || "unknown error"}`
-        );
+      if (!response || response.result.case !== "validation") {
+        const errorMsg =
+          response?.result.case === "error"
+            ? response.result.value.message
+            : "unknown error";
+        this.logger.warn(`Invalid or expired session token: ${errorMsg}`);
         return false;
       }
 
-      // Extract session data from oneof result
-      if (!response.session) {
+      // Extract session data from validation result
+      const validation = response.result.value;
+      if (!validation.session) {
         this.logger.warn("Session data not found in response");
         return false;
       }
 
-      const userId = response.session.userId;
+      const userId = validation.session.userId;
       if (!userId) {
         this.logger.warn("Session does not contain user ID");
         return false;
       }
 
       // Update metadata with validated user_id
-      // RequestMetadata supports both camelCase and snake_case
       metadata.userId = userId;
-      metadata.user_id = userId;
-      metadata.session = response.session; // Store full session for potential use
 
       return true;
     } catch (error) {

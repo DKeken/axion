@@ -8,15 +8,15 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { Queue } from "bullmq";
 
-import { DEFAULT_QUEUE_OPTIONS, type QueueOptions } from "../../bullmq";
-import { SSH_CONSTANTS } from "../constants";
-import { SSH_QUEUE_NAMES } from "../queue-names";
+import { DEFAULT_QUEUE_OPTIONS, type QueueOptions } from "@/bullmq";
+import { SSH_CONSTANTS } from "@/ssh/constants";
+import { SSH_QUEUE_NAMES } from "@/ssh/queue-names";
 import type {
   SshTestConnectionJobPayload,
   SshExecuteCommandJobPayload,
   SshCollectInfoJobPayload,
   SshJobResult,
-} from "../types";
+} from "@/ssh/types";
 
 
 @Injectable()

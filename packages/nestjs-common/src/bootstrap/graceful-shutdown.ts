@@ -9,10 +9,12 @@ import { Logger } from "@nestjs/common";
  * - BullMQ workers
  * - Database connections
  */
-export function setupGracefulShutdown(app: INestApplication): void {
+export function setupGracefulShutdown(
+  app: INestApplication
+): (signal?: string) => Promise<void> {
   const logger = new Logger("GracefulShutdown");
 
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal: string = "MANUAL") => {
     logger.log(`Received ${signal}, starting graceful shutdown...`);
 
     try {
@@ -76,4 +78,6 @@ export function setupGracefulShutdown(app: INestApplication): void {
       process.exit(1);
     });
   });
+
+  return shutdown;
 }

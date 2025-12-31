@@ -1,71 +1,91 @@
 /**
- * Pagination utilities
- * Uses generated Pagination type directly from Protobuf
+ * Pagination utilities and constants
  */
 
-import type { Pagination as GeneratedPagination } from "../../generated/common/common";
+import { create } from "@bufbuild/protobuf";
+import { type Pagination, PaginationSchema } from "../../generated/common/common_pb";
 
-// Re-export Pagination type from generated
-export type { Pagination } from "../../generated/common/common";
+/**
+ * Default pagination values
+ */
+export const PAGINATION_DEFAULTS = {
+  page: 1,
+  limit: 10,
+  maxLimit: 100,
+  // Backward compatibility aliases
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MAX_LIMIT: 100,
+} as const;
 
-// Use alias for internal usage
-type Pagination = GeneratedPagination;
-
-export type PaginationParams = {
-  page: number;
-  limit: number;
+/**
+ * Sort order enum
+ */
+export enum SortOrder {
+  ASC = "ASC",
+  DESC = "DESC",
 }
 
-export type PaginatedResult<T> = {
-  items: T[];
-  pagination: Pagination;
-}
-
+/**
+ * Create a full pagination object with total count
+ */
 export function createFullPagination(
-  params: PaginationParams,
+  page: number,
+  limit: number,
   total: number
 ): Pagination {
-  return {
-    page: params.page,
-    limit: params.limit,
+  return create(PaginationSchema, {
+    page,
+    limit,
     total,
-    totalPages: Math.ceil(total / params.limit),
-  };
+  });
 }
 
+/**
+ * Create pagination with defaults
+ */
+export function createPagination(
+  page?: number,
+  limit?: number
+): Pagination {
+  return create(PaginationSchema, {
+    page: page ?? PAGINATION_DEFAULTS.page,
+    limit: limit ?? PAGINATION_DEFAULTS.limit,
+    total: 0,
+  });
+}
+
+/**
+ * Calculate offset from page and limit
+ */
 export function calculateOffset(page: number, limit: number): number {
   return (page - 1) * limit;
 }
 
-export function createPaginatedResult<T>(
-  items: T[],
-  pagination: Pagination
-): PaginatedResult<T> {
-  return { items, pagination };
+/**
+ * Calculate total pages from total items and limit
+ */
+export function calculateTotalPages(total: number, limit: number): number {
+  return Math.ceil(total / limit);
 }
 
-export function validatePaginationParams(
-  page: number,
-  limit: number,
-  maxLimit: number = 100
-): PaginationParams {
-  if (page < 1) throw new Error("Page must be greater than 0");
-  if (limit < 1) throw new Error("Limit must be greater than 0");
-  if (limit > maxLimit) throw new Error(`Limit cannot exceed ${maxLimit}`);
-  return { page, limit };
+/**
+ * Extract pagination parameters from request
+ * Provides defaults if pagination is not provided
+ *
+ * @example
+ * ```typescript
+ * const { page, limit } = extractPagination(data.pagination);
+ * const offset = calculateOffset(page, limit);
+ * ```
+ */
+export function extractPagination(pagination?: Pagination | null | undefined): {
+  page: number;
+  limit: number;
+} {
+  return {
+    page: pagination?.page || PAGINATION_DEFAULTS.page,
+    limit: pagination?.limit || PAGINATION_DEFAULTS.limit,
+  };
 }
 
-export function createDefaultPagination(
-  page?: number,
-  limit?: number
-): PaginationParams {
-  return validatePaginationParams(page || 1, limit || 10);
-}
-
-export function hasNextPage(pagination: Pagination): boolean {
-  return pagination.page < pagination.totalPages;
-}
-
-export function hasPreviousPage(pagination: Pagination): boolean {
-  return pagination.page > 1;
-}
