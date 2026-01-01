@@ -177,6 +177,10 @@ export type {
   UpdateServerStatusResponse,
   DeleteServerRequest,
   DeleteServerResponse,
+  ConfigureServerRequest,
+  ConfigureServerResponse,
+  TestServerConnectionRequest,
+  TestServerConnectionResponse,
 } from "../generated/infrastructure/server_pb";
 
 export {
@@ -207,6 +211,10 @@ export {
   UpdateServerStatusResponseSchema,
   DeleteServerRequestSchema,
   DeleteServerResponseSchema,
+  ConfigureServerRequestSchema,
+  ConfigureServerResponseSchema,
+  TestServerConnectionRequestSchema,
+  TestServerConnectionResponseSchema,
 } from "../generated/infrastructure/server_pb";
 
 // Connect-RPC service

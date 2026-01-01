@@ -8,6 +8,13 @@
       "when": 1767211549615,
       "tag": "0000_freezing_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767229136052,
+      "tag": "0001_lowly_pandemic",
+      "breakpoints": true
     }
   ]
 }

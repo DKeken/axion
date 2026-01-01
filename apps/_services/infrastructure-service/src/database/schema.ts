@@ -1,4 +1,13 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  jsonb,
+  pgEnum,
+  integer,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -45,10 +54,17 @@ export const clusters = pgTable("clusters", {
 export const servers = pgTable("servers", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id", { length: 255 }).notNull(),
-  clusterId: uuid("cluster_id").references(() => clusters.id, { onDelete: "set null" }),
+  clusterId: uuid("cluster_id").references(() => clusters.id, {
+    onDelete: "set null",
+  }),
   name: varchar("name", { length: 255 }).notNull(),
   hostname: varchar("hostname", { length: 255 }).notNull(),
   ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+  sshUsername: varchar("ssh_username", { length: 255 }),
+  sshPort: integer("ssh_port").default(22),
+  encryptedSshPassword: text("encrypted_ssh_password"),
+  encryptedSshPrivateKey: text("encrypted_ssh_private_key"),
+  encryptedSshPassphrase: text("encrypted_ssh_passphrase"),
   status: serverStatusEnum("status").notNull().default("OFFLINE"),
   metadata: jsonb("metadata").$type<Record<string, string>>().default({}),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -71,7 +87,9 @@ export const agents = pgTable("agents", {
     .references(() => servers.id, { onDelete: "cascade" }),
   version: varchar("version", { length: 50 }).notNull(),
   status: agentStatusEnum("status").notNull().default("DISCONNECTED"),
-  capabilities: jsonb("capabilities").$type<Record<string, string>>().default({}),
+  capabilities: jsonb("capabilities")
+    .$type<Record<string, string>>()
+    .default({}),
   token: text("token").notNull(), // Agent authentication token
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

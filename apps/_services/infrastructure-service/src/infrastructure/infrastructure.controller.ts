@@ -33,6 +33,12 @@ import {
   UpdateServerStatusResponseSchema,
   DeleteServerRequestSchema,
   DeleteServerResponseSchema,
+  ConfigureServerRequestSchema,
+  ConfigureServerResponseSchema,
+  TestServerConnectionRequestSchema,
+  TestServerConnectionResponseSchema,
+  type ConfigureServerRequest,
+  type TestServerConnectionRequest,
 } from "@axion/contracts";
 import { InfrastructureService } from "./infrastructure.service";
 
@@ -143,6 +149,24 @@ export class InfrastructureController implements ConnectRpcProvider {
           async (req: DeleteServerRequest) => {
             this.logger.log(`DeleteServer called: ${req.serverId}`);
             return this.infrastructureService.deleteServer(req);
+          }
+        ),
+
+        configureServer: withValidation(
+          ConfigureServerRequestSchema,
+          ConfigureServerResponseSchema,
+          async (req: ConfigureServerRequest) => {
+            this.logger.log(`ConfigureServer called: ${req.serverId}`);
+            return this.infrastructureService.configureServer(req);
+          }
+        ),
+
+        testServerConnection: withValidation(
+          TestServerConnectionRequestSchema,
+          TestServerConnectionResponseSchema,
+          async (req: TestServerConnectionRequest) => {
+            this.logger.log(`TestServerConnection called: ${req.hostname}`);
+            return this.infrastructureService.testServerConnection(req);
           }
         ),
       });

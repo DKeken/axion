@@ -22,6 +22,14 @@ import {
   UpdateServerStatusResponseSchema,
   DeleteServerRequestSchema,
   DeleteServerResponseSchema,
+  ConfigureServerRequestSchema,
+  ConfigureServerResponseSchema,
+  TestServerConnectionRequestSchema,
+  TestServerConnectionResponseSchema,
+  type ConfigureServerRequest,
+  type ConfigureServerResponse,
+  type TestServerConnectionRequest,
+  type TestServerConnectionResponse,
 } from "@axion/contracts";
 import { INFRASTRUCTURE_SERVICE_PATTERNS } from "@/constants/patterns";
 import { InfrastructureService } from "./infrastructure.service";
@@ -105,5 +113,33 @@ export class InfrastructureKafkaController {
   ): Promise<DeleteServerResponse> {
     this.logger.log(`Kafka: DeleteServer called: ${data.serverId}`);
     return this.infrastructureService.deleteServer(data);
+  }
+
+  @MessagePattern(INFRASTRUCTURE_SERVICE_PATTERNS.CONFIGURE_SERVER)
+  @UseInterceptors(
+    new ProtoValidationInterceptor(
+      ConfigureServerRequestSchema,
+      ConfigureServerResponseSchema
+    )
+  )
+  async configureServer(
+    @Payload() data: ConfigureServerRequest
+  ): Promise<ConfigureServerResponse> {
+    this.logger.log(`Kafka: ConfigureServer called: ${data.serverId}`);
+    return this.infrastructureService.configureServer(data);
+  }
+
+  @MessagePattern(INFRASTRUCTURE_SERVICE_PATTERNS.TEST_SERVER_CONNECTION)
+  @UseInterceptors(
+    new ProtoValidationInterceptor(
+      TestServerConnectionRequestSchema,
+      TestServerConnectionResponseSchema
+    )
+  )
+  async testServerConnection(
+    @Payload() data: TestServerConnectionRequest
+  ): Promise<TestServerConnectionResponse> {
+    this.logger.log(`Kafka: TestServerConnection called: ${data.hostname}`);
+    return this.infrastructureService.testServerConnection(data);
   }
 }

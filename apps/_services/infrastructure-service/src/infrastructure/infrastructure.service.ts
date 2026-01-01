@@ -37,9 +37,22 @@ import {
   DeleteServerResponseSchema,
   ServerListSchema,
   ServerRegistrationSchema,
+  ConfigureServerResponseSchema,
+  TestServerConnectionResponseSchema,
+  ServerInfoSchema,
+  type ConfigureServerRequest,
+  type ConfigureServerResponse,
+  type TestServerConnectionRequest,
+  type TestServerConnectionResponse,
 } from "@axion/contracts";
 import { EmptySchema } from "@axion/contracts/generated/common/common_pb";
 import { handleServiceErrorTyped } from "@axion/shared";
+import {
+  SshConnectionService,
+  SshEncryptionService,
+  SshQueueService,
+  SshInfoCollectorService,
+} from "@axion/nestjs-common";
 import { ServerRepository } from "./repositories/server.repository";
 import { AgentRepository } from "./repositories/agent.repository";
 import { ClusterRepository } from "./repositories/cluster.repository";
@@ -58,7 +71,11 @@ export class InfrastructureService {
   constructor(
     private readonly serverRepository: ServerRepository,
     private readonly agentRepository: AgentRepository,
-    private readonly clusterRepository: ClusterRepository
+    private readonly clusterRepository: ClusterRepository,
+    private readonly sshConnectionService: SshConnectionService,
+    private readonly sshEncryptionService: SshEncryptionService,
+    private readonly sshQueueService: SshQueueService,
+    private readonly sshInfoCollectorService: SshInfoCollectorService
   ) {}
 
   // ========================================================================
@@ -498,6 +515,155 @@ export class InfrastructureService {
           resourceType: "Server",
           resourceId: data.serverId,
         }
+      );
+    }
+  }
+
+  async configureServer(
+    data: ConfigureServerRequest
+  ): Promise<ConfigureServerResponse> {
+    const userId = getUserIdFromMetadata(data.metadata);
+    if (!userId) {
+      return create(ConfigureServerResponseSchema, {
+        result: {
+          case: "error",
+          value: createValidationError("user_id is required in metadata"),
+        },
+      });
+    }
+
+    try {
+      const server = await this.serverRepository.findById(data.serverId);
+      if (!server) {
+        return create(ConfigureServerResponseSchema, {
+          result: {
+            case: "error",
+            value: createNotFoundError("Server", data.serverId),
+          },
+        });
+      }
+
+      if (server.userId !== userId) {
+        return create(ConfigureServerResponseSchema, {
+          result: {
+            case: "error",
+            value: createValidationError("Server does not belong to user"),
+          },
+        });
+      }
+
+      const { credentials } = data;
+      if (!credentials) {
+        return create(ConfigureServerResponseSchema, {
+          result: {
+            case: "error",
+            value: createValidationError("credentials are required"),
+          },
+        });
+      }
+
+      // Encrypt credentials
+      const encryptedPassword = credentials.password
+        ? this.sshEncryptionService.encrypt(credentials.password)
+        : undefined;
+      const encryptedPrivateKey = credentials.privateKey
+        ? this.sshEncryptionService.encrypt(credentials.privateKey)
+        : undefined;
+      const encryptedPassphrase = credentials.passphrase
+        ? this.sshEncryptionService.encrypt(credentials.passphrase)
+        : undefined;
+
+      // Update server with encrypted credentials
+      await this.serverRepository.update(data.serverId, {
+        sshUsername: credentials.username,
+        sshPort: credentials.port || 22,
+        encryptedSshPassword: encryptedPassword,
+        encryptedSshPrivateKey: encryptedPrivateKey,
+        encryptedSshPassphrase: encryptedPassphrase,
+      });
+
+      // Queue a connection test to verify credentials
+      // We pass connectionInfo explicitly because we don't have ServerRepository injected in SshModule
+      await this.sshQueueService.createTestConnectionJob({
+        serverId: data.serverId,
+        connectionInfo: {
+          host: server.ipAddress,
+          port: credentials.port || 22,
+          username: credentials.username,
+          password: credentials.password,
+          privateKey: credentials.privateKey,
+          passphrase: credentials.passphrase,
+        },
+      });
+
+      return create(ConfigureServerResponseSchema, {
+        result: { case: "success", value: create(EmptySchema, {}) },
+      });
+    } catch (error) {
+      return handleServiceErrorTyped(
+        ConfigureServerResponseSchema,
+        this.logger,
+        "configuring server",
+        error,
+        {
+          resourceType: "Server",
+          resourceId: data.serverId,
+        }
+      );
+    }
+  }
+
+  async testServerConnection(
+    data: TestServerConnectionRequest
+  ): Promise<TestServerConnectionResponse> {
+    try {
+      const { credentials, hostname } = data;
+      if (!credentials) {
+        return create(TestServerConnectionResponseSchema, {
+          result: {
+            case: "error",
+            value: createValidationError("credentials are required"),
+          },
+        });
+      }
+
+      // Use SshConnectionService directly for synchronous feedback
+      const client = await this.sshConnectionService.connect({
+        host: hostname,
+        port: credentials.port || 22,
+        username: credentials.username,
+        password: credentials.password,
+        privateKey: credentials.privateKey,
+        passphrase: credentials.passphrase,
+      });
+
+      try {
+        const info = await this.sshInfoCollectorService.collectAll(client);
+
+        return create(TestServerConnectionResponseSchema, {
+          result: {
+            case: "info",
+            value: create(ServerInfoSchema, {
+              os: info.os,
+              architecture: info.architecture,
+              cpuCores: info.cpuCores,
+              cpuUsage: info.cpuUsage,
+              totalMemory: BigInt(info.totalMemory),
+              availableMemory: BigInt(info.availableMemory),
+              dockerInstalled: info.dockerInstalled,
+              dockerVersion: info.dockerVersion || "",
+            }),
+          },
+        });
+      } finally {
+        await this.sshConnectionService.disconnect(client);
+      }
+    } catch (error) {
+      return handleServiceErrorTyped(
+        TestServerConnectionResponseSchema,
+        this.logger,
+        "testing server connection",
+        error
       );
     }
   }

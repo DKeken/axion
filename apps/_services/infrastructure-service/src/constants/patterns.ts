@@ -8,6 +8,8 @@ export const INFRASTRUCTURE_SERVICE_PATTERNS = {
   LIST_SERVERS: "infrastructure.listServers",
   UPDATE_SERVER_STATUS: "infrastructure.updateServerStatus",
   DELETE_SERVER: "infrastructure.deleteServer",
+  CONFIGURE_SERVER: "infrastructure.configureServer",
+  TEST_SERVER_CONNECTION: "infrastructure.testServerConnection",
 } as const;
 
 /**
@@ -15,4 +17,3 @@ export const INFRASTRUCTURE_SERVICE_PATTERNS = {
  */
 export const INFRASTRUCTURE_SERVICE_NAME =
   "axion.infrastructure.v1.InfrastructureService";
-

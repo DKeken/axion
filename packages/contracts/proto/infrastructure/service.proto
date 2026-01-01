@@ -18,4 +18,6 @@ service InfrastructureService {
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
   rpc UpdateServerStatus(UpdateServerStatusRequest) returns (UpdateServerStatusResponse);
   rpc DeleteServer(DeleteServerRequest) returns (DeleteServerResponse);
+  rpc ConfigureServer(ConfigureServerRequest) returns (ConfigureServerResponse);
+  rpc TestServerConnection(TestServerConnectionRequest) returns (TestServerConnectionResponse);
 }

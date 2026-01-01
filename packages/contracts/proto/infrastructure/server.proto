@@ -67,6 +67,46 @@ message ServerInfo {
   string docker_version = 8;
 }
 
+message SshCredentials {
+  string username = 1 [(buf.validate.field).string.min_len = 1];
+  int32 port = 2 [(buf.validate.field).int32.gt = 0, (buf.validate.field).int32.lte = 65535];
+  optional string password = 3;
+  optional string private_key = 4;
+  optional string passphrase = 5;
+  
+  option (buf.validate.message).cel = {
+    id: "auth_method_required"
+    message: "Either password or private_key must be provided"
+    expression: "has(this.password) || has(this.private_key)"
+  };
+}
+
+message ConfigureServerRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string server_id = 2 [(buf.validate.field).string.uuid = true];
+  SshCredentials credentials = 3 [(buf.validate.field).required = true];
+}
+
+message ConfigureServerResponse {
+  oneof result {
+    axion.common.v1.Empty success = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
+message TestServerConnectionRequest {
+  axion.common.v1.RequestMetadata metadata = 1 [(buf.validate.field).required = true];
+  string hostname = 2 [(buf.validate.field).string.min_len = 1];
+  SshCredentials credentials = 3 [(buf.validate.field).required = true];
+}
+
+message TestServerConnectionResponse {
+  oneof result {
+    ServerInfo info = 1;
+    axion.common.v1.Error error = 2;
+  }
+}
+
 // Cluster Requests/Responses
 
 message CreateClusterRequest {

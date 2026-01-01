@@ -15,34 +15,53 @@ export const LogicNode = memo(function LogicNode({
   return (
     <Card
       className={cn(
-        "min-w-[200px] shadow-sm transition-all relative group border-orange-200",
+        "min-w-[220px] shadow-sm transition-all duration-300 relative group bg-card/95 backdrop-blur-sm border-muted/40",
         selected
-          ? "ring-2 ring-orange-500 border-orange-500 shadow-lg"
-          : "hover:border-orange-300"
+          ? "ring-2 ring-purple-500 border-purple-500 shadow-lg shadow-purple-500/10"
+          : "hover:border-purple-500/50 hover:shadow-md"
       )}
     >
-      <div className="absolute -top-3 left-3 bg-background px-2 text-[10px] text-orange-600 font-mono border border-orange-200 rounded-full">
+      <div
+        className={cn(
+          "absolute -top-2.5 left-4 px-2 py-0.5 text-[10px] font-medium tracking-wider border rounded-full bg-background shadow-sm transition-colors",
+          selected
+            ? "text-purple-600 border-purple-500/30"
+            : "text-muted-foreground border-border"
+        )}
+      >
         LOGIC
       </div>
-      <CardHeader className="p-3 pb-2 pt-4 flex flex-row items-center justify-between space-y-0">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-orange-100 rounded-md group-hover:bg-orange-200 transition-colors">
-            <Workflow className="w-4 h-4 text-orange-600" />
-          </div>
+      <CardHeader className="p-4 pb-2 pt-5 flex flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-3">
           <div
-            className="font-bold text-sm truncate max-w-[120px]"
-            title={data.name}
+            className={cn(
+              "p-2.5 rounded-xl transition-colors duration-300",
+              selected
+                ? "bg-purple-500/15 text-purple-600"
+                : "bg-purple-500/10 text-purple-600/80 group-hover:bg-purple-500/15 group-hover:text-purple-600"
+            )}
           >
-            {data.name}
+            <Workflow className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <div
+              className="font-semibold text-sm truncate max-w-[120px] leading-none"
+              title={data.name}
+            >
+              {data.name}
+            </div>
+            <div className="text-[10px] text-muted-foreground font-mono">
+              {data.id.slice(0, 8)}
+            </div>
           </div>
         </div>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <Settings2 className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
+        <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
+          <Settings2 className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
         </div>
       </CardHeader>
-      <Separator className="my-1 opacity-50 bg-orange-100" />
-      <CardContent className="p-3 pt-1">
-        <div className="text-xs text-muted-foreground">
+      <Separator className="my-2 opacity-50 mx-4 w-auto" />
+      <CardContent className="p-4 pt-1">
+        <div className="text-xs text-muted-foreground/80 leading-relaxed">
           Control flow logic
         </div>
       </CardContent>
@@ -60,4 +79,3 @@ export const LogicNode = memo(function LogicNode({
     </Card>
   );
 });
-

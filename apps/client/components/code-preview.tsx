@@ -28,26 +28,29 @@ export function CodePreview({
   return (
     <div
       className={cn(
-        "relative rounded-lg overflow-hidden border bg-card text-card-foreground",
+        "relative rounded-xl overflow-hidden border bg-zinc-950 dark:bg-zinc-900/50 text-zinc-50 shadow-sm transition-all hover:shadow-md",
         className
       )}
     >
       {filename && (
-        <div className="px-4 py-2 border-b bg-muted">
-          <span className="text-sm text-muted-foreground">{filename}</span>
+        <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+          <span className="text-xs font-mono text-zinc-400">{filename}</span>
         </div>
       )}
-      <div className="relative">
+      <div className="relative group">
         <Button
           onClick={handleCopy}
           size="sm"
-          variant="secondary"
-          className="absolute top-2 right-2 h-8 px-3"
+          variant="ghost"
+          className={cn(
+            "absolute top-3 right-3 h-7 px-2.5 text-xs font-medium bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-all opacity-0 group-hover:opacity-100",
+            copied && "text-green-400 opacity-100"
+          )}
         >
-          {copied ? "Copied!" : "Copy"}
+          {copied ? "Copied" : "Copy"}
         </Button>
-        <pre className="p-4 overflow-x-auto bg-background/50">
-          <code className={cn(`language-${language}`, "text-sm font-mono")}>
+        <pre className="p-4 overflow-x-auto text-sm leading-relaxed font-mono">
+          <code className={cn(`language-${language}`)}>
             {code}
           </code>
         </pre>
